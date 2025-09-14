@@ -15,16 +15,27 @@ class PrayerService {
     page: number;
     limit: number;
   }): Promise<Prayer[]> {
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
+
     let query = supabase
       .from('prayers')
       .select(`
         *,
         user:profiles!user_id(*),
         interaction_count:interactions(count),
-        comment_count:comments(count)
+        comment_count:comments(count),
+        user_interaction:interactions!left(
+          *
+        )
       `)
       .order('created_at', { ascending: false })
       .range((params.page - 1) * params.limit, params.page * params.limit - 1);
+
+    // Filter user_interaction to only show current user's interactions
+    if (userId) {
+      query = query.eq('user_interaction.user_id', userId);
+    }
 
     // Apply filters based on feed type
     if (params.groupId) {
@@ -46,19 +57,28 @@ class PrayerService {
    * Get single prayer by ID
    */
   async getPrayer(prayerId: string): Promise<Prayer> {
-    const { data, error } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
+
+    let query = supabase
       .from('prayers')
       .select(`
         *,
         user:profiles!user_id(*),
         interaction_count:interactions(count),
         comment_count:comments(count),
-        user_interaction:interactions(
+        user_interaction:interactions!left(
           *
         )
       `)
-      .eq('id', prayerId)
-      .maybeSingle();
+      .eq('id', prayerId);
+
+    // Filter user_interaction to only show current user's interactions
+    if (userId) {
+      query = query.eq('user_interaction.user_id', userId);
+    }
+
+    const { data, error } = await query.maybeSingle();
 
     if (error) throw error;
     if (!data) throw new Error('Prayer not found');

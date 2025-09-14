@@ -13,15 +13,17 @@ import { Prayer } from '@/types/database.types';
 import { usePrayerStore } from '@/store/prayer/prayerStore';
 import { prayerInteractionService } from '@/services/api/prayerInteractionService';
 import { contentModerationService } from '@/services/api/contentModerationService';
+import { useSharing } from '@/hooks/useSharing';
 import PrayerCard from '@/components/prayer/PrayerCard';
 import { OptimizedPrayerList } from '@/components/performance/OptimizedPrayerList';
+import OfflineStatusBanner from '@/components/offline/OfflineStatusBanner';
 import { Ionicons } from '@expo/vector-icons';
 
 /**
  * Home Screen - Main prayer feed
  * Implements Open/Closed Principle: Extensible for new feed types without modification
  */
-const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
+const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTabScreenProps<'Home'>) => {
   const {
     prayers,
     isLoading,
@@ -30,14 +32,26 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
     refreshPrayers,
     loadMorePrayers,
     interactWithPrayer,
+    subscribeToRealtime,
+    unsubscribeFromRealtime,
   } = usePrayerStore();
 
   const [feedType, setFeedType] = useState<'following' | 'discover'>('following');
   const [savedPrayers, setSavedPrayers] = useState<Set<string>>(new Set());
+  const [interactingPrayers, setInteractingPrayers] = useState<Set<string>>(new Set());
+  
+  const { sharePrayer, isSharing } = useSharing();
 
   useEffect(() => {
     fetchPrayers(feedType);
-  }, [feedType]);
+    // Subscribe to real-time updates
+    subscribeToRealtime(feedType);
+    
+    // Cleanup on unmount or feed type change
+    return () => {
+      unsubscribeFromRealtime();
+    };
+  }, [feedType, fetchPrayers, subscribeToRealtime, unsubscribeFromRealtime]);
 
   const handleRefresh = useCallback(() => {
     refreshPrayers(feedType);
@@ -58,10 +72,18 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
   };
 
   const handlePrayPress = async (prayerId: string) => {
+    setInteractingPrayers(prev => new Set(prev).add(prayerId));
     try {
       await interactWithPrayer(prayerId, 'PRAY');
     } catch (error) {
       console.error('Failed to interact with prayer:', error);
+      Alert.alert('Error', 'Failed to pray for this request. Please try again.');
+    } finally {
+      setInteractingPrayers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(prayerId);
+        return newSet;
+      });
     }
   };
 
@@ -70,18 +92,35 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
   };
 
   const handleSharePress = async (prayerId: string) => {
+    setInteractingPrayers(prev => new Set(prev).add(prayerId));
     try {
       await interactWithPrayer(prayerId, 'SHARE');
-      // TODO: Implement native sharing
+      // Use the sharing service
+      const prayer = prayers.find(p => p.id === prayerId);
+      if (prayer) {
+        await sharePrayer(prayer, {
+          showAlert: true,
+          alertTitle: 'Prayer Shared',
+          alertMessage: 'Thank you for sharing this prayer request. May it bring comfort and support to those who need it.',
+        });
+      }
     } catch (error) {
       console.error('Failed to share prayer:', error);
+      Alert.alert('Error', 'Failed to share prayer. Please try again.');
+    } finally {
+      setInteractingPrayers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(prayerId);
+        return newSet;
+      });
     }
   };
 
   const handleSavePress = async (prayerId: string) => {
+    setInteractingPrayers(prev => new Set(prev).add(prayerId));
     try {
       await prayerInteractionService.savePrayer(prayerId);
-      setSavedPrayers(prev => {
+      setSavedPrayers((prev: Set<string>) => {
         const newSet = new Set(prev);
         if (newSet.has(prayerId)) {
           newSet.delete(prayerId);
@@ -92,6 +131,13 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
       });
     } catch (error) {
       console.error('Failed to save prayer:', error);
+      Alert.alert('Error', 'Failed to save prayer. Please try again.');
+    } finally {
+      setInteractingPrayers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(prayerId);
+        return newSet;
+      });
     }
   };
 
@@ -124,10 +170,11 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
       onSharePress={() => handleSharePress(prayer.id)}
       onSavePress={() => handleSavePress(prayer.id)}
       isSaved={savedPrayers.has(prayer.id)}
+      isInteracting={interactingPrayers.has(prayer.id) || isSharing}
       onReportPress={() => handleReportPress(prayer)}
       onBlockUserPress={() => handleBlockUserPress(prayer)}
     />
-  ), [savedPrayers, handlePrayerPress, handlePrayPress, handleCommentPress, handleSharePress, handleSavePress, handleReportPress, handleBlockUserPress]);
+  ), [savedPrayers, interactingPrayers, isSharing, handlePrayerPress, handlePrayPress, handleCommentPress, handleSharePress, handleSavePress, handleReportPress, handleBlockUserPress]);
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -230,6 +277,7 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      <OfflineStatusBanner />
       <OptimizedPrayerList
         prayers={prayers}
         onLoadMore={handleLoadMoreOptimized}

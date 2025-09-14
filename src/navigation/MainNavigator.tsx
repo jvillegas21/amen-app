@@ -8,6 +8,7 @@ import { theme } from '@/theme';
 // Tab Screen imports
 import HomeScreen from '@/screens/main/HomeScreen';
 import DiscoverScreen from '@/screens/main/DiscoverScreen';
+import SearchScreen from '@/screens/main/SearchScreen';
 import GroupsNavigator from './GroupsNavigator';
 import CreateScreen from '@/screens/main/CreateScreen';
 import ProfileNavigator from './ProfileNavigator';
@@ -31,6 +32,9 @@ const MainNavigator: React.FC = () => {
               break;
             case 'Discover':
               iconName = focused ? 'compass' : 'compass-outline';
+              break;
+            case 'Search':
+              iconName = focused ? 'search' : 'search-outline';
               break;
             case 'Create':
               iconName = focused ? 'add-circle' : 'add-circle-outline';
@@ -106,7 +110,17 @@ const MainNavigator: React.FC = () => {
           title: 'Discover',
           headerShown: true,
           tabBarLabel: 'Discover',
-          tabBarAccessibilityLabel: 'Discover, tab 2 of 4',
+          tabBarAccessibilityLabel: 'Discover, tab 2 of 5',
+        }}
+      />
+      <Tab.Screen
+        name="Search"
+        component={SearchScreen}
+        options={{
+          title: 'Search',
+          headerShown: false,
+          tabBarLabel: 'Search',
+          tabBarAccessibilityLabel: 'Search, tab 3 of 5',
         }}
       />
       <Tab.Screen
