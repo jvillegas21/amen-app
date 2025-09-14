@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { MainTabScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
+import { searchService } from '@/services/api/searchService';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -65,17 +66,25 @@ const SearchScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }) 
 
   const fetchTrendingTopics = async () => {
     try {
-      // TODO: Implement trending topics fetch from API
-      // For now, using mock data
-      const mockTrending: TrendingTopic[] = [
-        { id: '1', title: 'Health & Healing', count: 1247, category: 'prayers' },
-        { id: '2', title: 'Job Opportunities', count: 892, category: 'prayers' },
-        { id: '3', title: 'Family Unity', count: 654, category: 'prayers' },
-        { id: '4', title: 'Spiritual Growth', count: 432, category: 'prayers' },
-        { id: '5', title: 'Prayer Warriors', count: 321, category: 'groups' },
-        { id: '6', title: 'Young Adults', count: 298, category: 'groups' },
+      const trendingTags = await searchService.getTrendingTopics(10);
+      const trendingGroups = await searchService.getTrendingGroups(5);
+      
+      const trending: TrendingTopic[] = [
+        ...trendingTags.map((tag, index) => ({
+          id: `tag-${index}`,
+          title: tag,
+          count: 0, // We don't have count from the API yet
+          category: 'prayers' as const,
+        })),
+        ...trendingGroups.map((group, index) => ({
+          id: `group-${index}`,
+          title: group.name,
+          count: group.member_count || 0,
+          category: 'groups' as const,
+        })),
       ];
-      setTrendingTopics(mockTrending);
+      
+      setTrendingTopics(trending);
     } catch (error) {
       console.error('Failed to load trending topics:', error);
     }
@@ -86,64 +95,49 @@ const SearchScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }) 
 
     setIsSearching(true);
     try {
-      // TODO: Implement search API call
-      // For now, using mock data
-      const mockResults: SearchResult[] = [
-        {
-          id: '1',
-          type: 'user',
-          title: 'Sarah Johnson',
-          subtitle: 'Chicago, IL',
-          avatar_url: 'https://via.placeholder.com/40',
-          user_display_name: 'Sarah Johnson',
-          created_at: new Date(Date.now() - 86400000).toISOString(),
-          location: 'Chicago, IL',
-        },
-        {
-          id: '2',
-          type: 'prayer',
-          title: 'Prayer for healing',
-          subtitle: 'Please pray for my grandmother who is in the hospital',
-          user_display_name: 'Mike Wilson',
-          prayer_text: 'Please pray for my grandmother who is in the hospital. She needs strength and healing.',
-          interaction_count: 15,
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-          location: 'Dallas, TX',
-        },
-        {
-          id: '3',
-          type: 'group',
-          title: 'Prayer Warriors',
-          subtitle: 'A group dedicated to supporting each other through prayer',
-          group_description: 'A group dedicated to supporting each other through prayer and encouragement.',
-          member_count: 24,
-          created_at: new Date(Date.now() - 172800000).toISOString(),
-        },
-        {
-          id: '4',
-          type: 'user',
-          title: 'Emily Chen',
-          subtitle: 'San Francisco, CA',
-          avatar_url: 'https://via.placeholder.com/40',
-          user_display_name: 'Emily Chen',
-          created_at: new Date(Date.now() - 259200000).toISOString(),
-          location: 'San Francisco, CA',
-        },
-        {
-          id: '5',
-          type: 'prayer',
-          title: 'Job interview prayer',
-          subtitle: 'Please pray for my job interview tomorrow',
-          user_display_name: 'David Rodriguez',
-          prayer_text: 'Please pray for my job interview tomorrow. I really need this position to support my family.',
-          interaction_count: 8,
-          created_at: new Date(Date.now() - 7200000).toISOString(),
-          location: 'Miami, FL',
-        },
+      const searchResults = await searchService.searchAll(searchQuery, {
+        type: activeTab === 'all' ? undefined : activeTab.slice(0, -1) as any,
+      });
+
+      // Transform API results to match our interface
+      const results: SearchResult[] = [
+        ...searchResults.users.map(user => ({
+          id: user.id,
+          type: 'user' as const,
+          title: user.display_name || 'Anonymous',
+          subtitle: user.location || 'Location not specified',
+          avatar_url: user.avatar_url,
+          user_display_name: user.display_name,
+          created_at: user.created_at,
+          location: user.location,
+        })),
+        ...searchResults.prayers.map(prayer => ({
+          id: prayer.id,
+          type: 'prayer' as const,
+          title: prayer.text?.substring(0, 50) + '...' || 'Prayer request',
+          subtitle: `by ${prayer.user?.display_name || 'Anonymous'}`,
+          prayer_text: prayer.text,
+          user_display_name: prayer.user?.display_name,
+          interaction_count: prayer.interaction_count || 0,
+          created_at: prayer.created_at,
+          location: prayer.location_city,
+        })),
+        ...searchResults.groups.map(group => ({
+          id: group.id,
+          type: 'group' as const,
+          title: group.name,
+          subtitle: group.description || 'No description',
+          group_description: group.description,
+          member_count: group.member_count || 0,
+          created_at: group.created_at,
+          location: group.location_city,
+        })),
       ];
-      setSearchResults(mockResults);
+
+      setSearchResults(results);
     } catch (error) {
-      Alert.alert('Error', 'Failed to perform search');
+      console.error('Search failed:', error);
+      Alert.alert('Error', 'Search failed. Please try again.');
     } finally {
       setIsSearching(false);
     }

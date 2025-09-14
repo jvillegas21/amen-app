@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, Session } from '@supabase/supabase-js';
 import { Profile } from '@/types/database.types';
 import { authService } from '@/services/auth/authService';
+import { profileService } from '@/services/api/profileService';
 
 /**
  * Auth Store Interface
@@ -22,8 +23,11 @@ interface AuthState {
   // Actions
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  verifyEmail: (email: string, token: string) => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
   checkAuthStatus: () => Promise<void>;
   completeOnboarding: () => Promise<void>;
@@ -89,6 +93,50 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      // Sign In with Google
+      signInWithGoogle: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const { user, session, profile } = await authService.signInWithGoogle();
+          set({
+            user,
+            session,
+            profile,
+            isAuthenticated: true,
+            isOnboardingComplete: profile?.onboarding_completed || false,
+            isLoading: false,
+          });
+        } catch (error) {
+          set({
+            error: error instanceof Error ? error.message : 'Google sign in failed',
+            isLoading: false,
+          });
+          throw error;
+        }
+      },
+
+      // Sign In with Apple
+      signInWithApple: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const { user, session, profile } = await authService.signInWithApple();
+          set({
+            user,
+            session,
+            profile,
+            isAuthenticated: true,
+            isOnboardingComplete: profile?.onboarding_completed || false,
+            isLoading: false,
+          });
+        } catch (error) {
+          set({
+            error: error instanceof Error ? error.message : 'Apple sign in failed',
+            isLoading: false,
+          });
+          throw error;
+        }
+      },
+
       // Sign Out
       signOut: async () => {
         set({ isLoading: true, error: null });
@@ -120,6 +168,29 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           set({
             error: error instanceof Error ? error.message : 'Password reset failed',
+            isLoading: false,
+          });
+          throw error;
+        }
+      },
+
+      // Verify Email
+      verifyEmail: async (email: string, token: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const { user, session } = await authService.verifyEmail(email, token);
+          const profile = await profileService.getOrCreateProfile(user.id, user.email);
+          set({
+            user,
+            session,
+            profile,
+            isAuthenticated: true,
+            isOnboardingComplete: profile?.onboarding_completed || false,
+            isLoading: false,
+          });
+        } catch (error) {
+          set({
+            error: error instanceof Error ? error.message : 'Email verification failed',
             isLoading: false,
           });
           throw error;

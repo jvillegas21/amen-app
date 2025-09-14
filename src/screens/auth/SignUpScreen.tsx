@@ -21,7 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
  * Based on login_signup mockups
  */
 const SignUpScreen: React.FC<AuthStackScreenProps<'SignUp'>> = ({ navigation }) => {
-  const { signUp, isLoading, error, clearError } = useAuthStore();
+  const { signUp, signInWithGoogle, signInWithApple, isLoading, error, clearError } = useAuthStore();
   
   const [formData, setFormData] = useState({
     displayName: '',
@@ -97,6 +97,24 @@ const SignUpScreen: React.FC<AuthStackScreenProps<'SignUp'>> = ({ navigation }) 
   const handleTermsPress = () => {
     // Navigate to terms of service
     Alert.alert('Terms of Service', 'Terms of Service screen will be implemented');
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      clearError();
+      await signInWithGoogle();
+    } catch (error) {
+      // Error is handled by the store
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    try {
+      clearError();
+      await signInWithApple();
+    } catch (error) {
+      // Error is handled by the store
+    }
   };
 
   return (
@@ -263,12 +281,20 @@ const SignUpScreen: React.FC<AuthStackScreenProps<'SignUp'>> = ({ navigation }) 
               </View>
 
               {/* Social Sign Up */}
-              <TouchableOpacity style={styles.socialButton} disabled={isLoading}>
+              <TouchableOpacity 
+                style={styles.socialButton} 
+                disabled={isLoading}
+                onPress={handleGoogleSignIn}
+              >
                 <Ionicons name="logo-google" size={20} color="#4285F4" />
                 <Text style={styles.socialButtonText}>Continue with Google</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.socialButton} disabled={isLoading}>
+              <TouchableOpacity 
+                style={styles.socialButton} 
+                disabled={isLoading}
+                onPress={handleAppleSignIn}
+              >
                 <Ionicons name="logo-apple" size={20} color="#000000" />
                 <Text style={styles.socialButtonText}>Continue with Apple</Text>
               </TouchableOpacity>
