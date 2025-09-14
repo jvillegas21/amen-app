@@ -4,7 +4,7 @@
     "strict": true,
     "target": "ES2020",
     "module": "esnext",
-    "lib": ["ES2020"],
+    "lib": ["ES2020", "DOM"],
     "jsx": "react-native",
     "allowJs": false,
     "skipLibCheck": true,

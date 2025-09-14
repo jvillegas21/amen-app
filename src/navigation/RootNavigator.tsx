@@ -20,11 +20,13 @@ import GroupDetailsScreen from '@/screens/groups/GroupDetailsScreen';
 import CreateGroupScreen from '@/screens/groups/CreateGroupScreen';
 import EditGroupScreen from '@/screens/groups/EditGroupScreen';
 import BibleStudyScreen from '@/screens/main/BibleStudyScreen';
+import BibleStudyDetailsScreen from '@/screens/main/BibleStudyDetailsScreen';
 import SettingsScreen from '@/screens/settings/SettingsScreen';
 import PrivacyScreen from '@/screens/settings/PrivacyScreen';
 import NotificationsScreen from '@/screens/settings/NotificationsScreen';
 import SupportScreen from '@/screens/settings/SupportScreen';
 import CreateTicketScreen from '@/screens/settings/CreateTicketScreen';
+import ReportContentScreen from '@/screens/moderation/ReportContentScreen';
 import AboutScreen from '@/screens/settings/AboutScreen';
 import HelpScreen from '@/screens/help/HelpScreen';
 import PrivacyPolicyScreen from '@/screens/legal/PrivacyPolicyScreen';
@@ -116,6 +118,11 @@ const RootNavigator: React.FC = () => {
                   component={CreateTicketScreen}
                   options={{ title: 'Contact Support' }}
                 />
+                <Stack.Screen
+                  name="ReportContent"
+                  component={ReportContentScreen}
+                  options={{ title: 'Report Content' }}
+                />
               </Stack.Group>
 
               {/* Full Screen Navigation */}
@@ -147,6 +154,11 @@ const RootNavigator: React.FC = () => {
                   name="BibleStudy"
                   component={BibleStudyScreen}
                   options={{ title: 'Bible Study' }}
+                />
+                <Stack.Screen
+                  name="BibleStudyDetails"
+                  component={BibleStudyDetailsScreen}
+                  options={{ title: 'Bible Study Details' }}
                 />
                 <Stack.Screen
                   name="Settings"
