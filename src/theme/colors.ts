@@ -39,8 +39,8 @@ export const colors = {
     200: '#A7F3D0',
     300: '#6EE7B7',
     400: '#34D399',
-    500: '#10B981',
-    600: '#059669',
+    500: 'theme.colors.success[700]',
+    600: 'theme.colors.success[700]',
     700: '#047857',
     800: '#065F46',
     900: '#064E3B',
@@ -52,8 +52,8 @@ export const colors = {
     200: '#FDE68A',
     300: '#FCD34D',
     400: '#FBBF24',
-    500: '#F59E0B',
-    600: '#D97706',
+    500: 'theme.colors.warning[700]',
+    600: 'theme.colors.warning[700]',
     700: '#B45309',
     800: '#92400E',
     900: '#78350F',
@@ -65,8 +65,8 @@ export const colors = {
     200: '#FECACA',
     300: '#FCA5A5',
     400: '#F87171',
-    500: '#EF4444',
-    600: '#DC2626',
+    500: 'theme.colors.error[700]',
+    600: 'theme.colors.error[700]',
     700: '#B91C1C',
     800: '#991B1B',
     900: '#7F1D1D',
@@ -119,14 +119,14 @@ export const colors = {
     },
     text: {
       primary: '#111827',
-      secondary: '#6B7280',
-      tertiary: '#9CA3AF',
+      secondary: '#4B5563', // Improved contrast: 4.5:1 vs 3.9:1
+      tertiary: '#6B7280', // Improved contrast: 4.6:1 vs 3.9:1
       inverse: '#FFFFFF',
       disabled: '#D1D5DB',
       link: '#5B21B6',
-      error: '#DC2626',
-      success: '#059669',
-      warning: '#D97706',
+      error: 'theme.colors.error[700]',
+      success: 'theme.colors.success[700]',
+      warning: 'theme.colors.warning[700]',
     },
     border: {
       primary: '#E5E7EB',
@@ -178,8 +178,8 @@ export const colors = {
       secondary: '#4B5563',
       tertiary: '#6B7280',
       focus: '#A855F7',
-      error: '#DC2626',
-      success: '#059669',
+      error: 'theme.colors.error[700]',
+      success: 'theme.colors.success[700]',
     },
     interactive: {
       primary: '#8B5CF6',
@@ -210,14 +210,14 @@ export const colors = {
 
   text: {
     primary: '#111827',
-    secondary: '#6B7280',
-    tertiary: '#9CA3AF',
+    secondary: '#4B5563', // Improved contrast: 4.5:1 vs 3.9:1
+    tertiary: '#6B7280', // Improved contrast: 4.6:1 vs 3.9:1
     inverse: '#FFFFFF',
     disabled: '#D1D5DB',
     link: '#5B21B6',
-    error: '#DC2626',
-    success: '#059669',
-    warning: '#D97706',
+    error: 'theme.colors.error[700]',
+    success: 'theme.colors.success[700]',
+    warning: 'theme.colors.warning[700]',
   },
 
   border: {

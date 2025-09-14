@@ -210,10 +210,10 @@ const CreateTicketScreen: React.FC<RootStackScreenProps<'CreateTicket'>> = ({ na
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return '#EF4444';
-      case 'high': return '#F59E0B';
+      case 'urgent': return 'theme.colors.error[700]';
+      case 'high': return 'theme.colors.warning[700]';
       case 'medium': return '#3B82F6';
-      case 'low': return '#10B981';
+      case 'low': return 'theme.colors.success[700]';
       default: return '#6B7280';
     }
   };
@@ -221,7 +221,7 @@ const CreateTicketScreen: React.FC<RootStackScreenProps<'CreateTicket'>> = ({ na
   const renderHelpfulTips = () => (
     <View style={styles.helpfulTips}>
       <View style={styles.tipsHeader}>
-        <Ionicons name="bulb" size={20} color="#F59E0B" />
+        <Ionicons name="bulb" size={20} color="theme.colors.warning[700]" />
         <Text style={styles.tipsTitle}>Helpful Tips</Text>
       </View>
       <View style={styles.tipsList}>
@@ -236,7 +236,7 @@ const CreateTicketScreen: React.FC<RootStackScreenProps<'CreateTicket'>> = ({ na
   const renderResponseTime = () => (
     <View style={styles.responseTime}>
       <View style={styles.responseTimeContent}>
-        <Ionicons name="time" size={20} color="#10B981" />
+        <Ionicons name="time" size={20} color="theme.colors.success[700]" />
         <Text style={styles.responseTimeTitle}>Response Time</Text>
         <Text style={styles.responseTimeText}>
           We typically respond to support tickets within 24 hours. 
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   required: {
-    color: '#EF4444',
+    color: 'theme.colors.error[700]',
   },
   textInput: {
     borderWidth: 1,

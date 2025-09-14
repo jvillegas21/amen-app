@@ -101,7 +101,7 @@ const CreateScreen: React.FC<MainTabScreenProps<'Create'>> = ({ navigation }) =>
           onPress={handleCreateGroup}
           activeOpacity={0.7}
         >
-          <View style={[styles.quickActionIcon, { backgroundColor: '#10B981' }]}>
+          <View style={[styles.quickActionIcon, { backgroundColor: 'theme.colors.success[700]' }]}>
             <Ionicons name="people" size={24} color="#FFFFFF" />
           </View>
           <Text style={styles.quickActionText}>Group</Text>
@@ -112,7 +112,7 @@ const CreateScreen: React.FC<MainTabScreenProps<'Create'>> = ({ navigation }) =>
           onPress={handleCreateBibleStudy}
           activeOpacity={0.7}
         >
-          <View style={[styles.quickActionIcon, { backgroundColor: '#F59E0B' }]}>
+          <View style={[styles.quickActionIcon, { backgroundColor: 'theme.colors.warning[700]' }]}>
             <Ionicons name="book" size={24} color="#FFFFFF" />
           </View>
           <Text style={styles.quickActionText}>Study</Text>
@@ -123,7 +123,7 @@ const CreateScreen: React.FC<MainTabScreenProps<'Create'>> = ({ navigation }) =>
           onPress={handleCreateEvent}
           activeOpacity={0.7}
         >
-          <View style={[styles.quickActionIcon, { backgroundColor: '#EF4444' }]}>
+          <View style={[styles.quickActionIcon, { backgroundColor: 'theme.colors.error[700]' }]}>
             <Ionicons name="calendar" size={24} color="#FFFFFF" />
           </View>
           <Text style={styles.quickActionText}>Event</Text>
@@ -148,7 +148,7 @@ const CreateScreen: React.FC<MainTabScreenProps<'Create'>> = ({ navigation }) =>
         'Prayer Group',
         'Create a group for focused prayer',
         'people-outline',
-        '#10B981',
+        'theme.colors.success[700]',
         handleCreateGroup
       )}
 
@@ -156,7 +156,7 @@ const CreateScreen: React.FC<MainTabScreenProps<'Create'>> = ({ navigation }) =>
         'Bible Study',
         'Create a Bible study with AI insights',
         'book-outline',
-        '#F59E0B',
+        'theme.colors.warning[700]',
         handleCreateBibleStudy,
         false
       )}
@@ -165,7 +165,7 @@ const CreateScreen: React.FC<MainTabScreenProps<'Create'>> = ({ navigation }) =>
         'Prayer Event',
         'Schedule a group prayer session',
         'calendar-outline',
-        '#EF4444',
+        'theme.colors.error[700]',
         handleCreateEvent,
         false
       )}

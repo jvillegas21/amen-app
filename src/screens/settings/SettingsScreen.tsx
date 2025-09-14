@@ -261,7 +261,7 @@ const SettingsScreen: React.FC<RootStackScreenProps<'Settings'>> = ({ navigation
 
   const renderSignOutButton = () => (
     <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-      <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+      <Ionicons name="log-out-outline" size={20} color="theme.colors.error[700]" />
       <Text style={styles.signOutButtonText}>Sign Out</Text>
     </TouchableOpacity>
   );
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
     borderColor: '#FECACA',
   },
   signOutButtonText: {
-    color: '#EF4444',
+    color: 'theme.colors.error[700]',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,

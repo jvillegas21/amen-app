@@ -231,7 +231,7 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
       <View style={styles.prayerFooter}>
         <View style={styles.prayerStats}>
           <View style={styles.statItem}>
-            <Ionicons name="heart" size={14} color="#EF4444" />
+            <Ionicons name="heart" size={14} color="theme.colors.error[700]" />
             <Text style={styles.statText}>{item.prayerCount}</Text>
           </View>
           <View style={styles.statItem}>

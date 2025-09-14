@@ -34,14 +34,14 @@ const OnboardingScreen: React.FC<AuthStackScreenProps<'Onboarding'>> = ({ naviga
       icon: 'people',
       title: 'Build Community',
       description: 'Join prayer groups and connect with believers in your area',
-      color: '#059669',
+      color: 'theme.colors.success[700]',
     },
     {
       id: 3,
       icon: 'book',
       title: 'Grow in Faith',
       description: 'Get personalized Bible study suggestions based on your prayers',
-      color: '#DC2626',
+      color: 'theme.colors.error[700]',
     },
   ];
 

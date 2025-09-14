@@ -261,7 +261,7 @@ const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ na
                         style={styles.removeImageButton}
                         onPress={() => removeImage(index)}
                       >
-                        <Ionicons name="close-circle" size={20} color="#EF4444" />
+                        <Ionicons name="close-circle" size={20} color="theme.colors.error[700]" />
                       </TouchableOpacity>
                     </View>
                   ))}

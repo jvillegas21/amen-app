@@ -118,7 +118,7 @@ const GroupsListScreen: React.FC<GroupsStackScreenProps<'GroupsList'>> = ({ navi
         activeOpacity={0.7}
       >
         <View style={styles.quickActionIcon}>
-          <Ionicons name="search" size={24} color="#10B981" />
+          <Ionicons name="search" size={24} color="theme.colors.success[700]" />
         </View>
         <Text style={styles.quickActionText}>Discover</Text>
         <Text style={styles.quickActionSubtext}>Find new groups</Text>
@@ -130,7 +130,7 @@ const GroupsListScreen: React.FC<GroupsStackScreenProps<'GroupsList'>> = ({ navi
         activeOpacity={0.7}
       >
         <View style={styles.quickActionIcon}>
-          <Ionicons name="add-circle" size={24} color="#F59E0B" />
+          <Ionicons name="add-circle" size={24} color="theme.colors.warning[700]" />
         </View>
         <Text style={styles.quickActionText}>Create</Text>
         <Text style={styles.quickActionSubtext}>Start new group</Text>

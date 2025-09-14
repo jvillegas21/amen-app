@@ -253,7 +253,7 @@ const PrivacyScreen: React.FC<RootStackScreenProps<'Privacy'>> = ({ navigation }
   const renderPrivacyInfo = () => (
     <View style={styles.privacyInfo}>
       <View style={styles.privacyInfoContent}>
-        <Ionicons name="shield-checkmark" size={24} color="#10B981" />
+        <Ionicons name="shield-checkmark" size={24} color="theme.colors.success[700]" />
         <Text style={styles.privacyInfoTitle}>Your Privacy Matters</Text>
         <Text style={styles.privacyInfoText}>
           We respect your privacy and give you control over your data. 

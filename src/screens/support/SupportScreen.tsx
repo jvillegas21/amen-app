@@ -97,9 +97,9 @@ const SupportScreen: React.FC<RootStackScreenProps<'Support'>> = ({ navigation }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'open': return '#EF4444';
-      case 'in_progress': return '#F59E0B';
-      case 'resolved': return '#10B981';
+      case 'open': return 'theme.colors.error[700]';
+      case 'in_progress': return 'theme.colors.warning[700]';
+      case 'resolved': return 'theme.colors.success[700]';
       case 'closed': return '#6B7280';
       default: return '#6B7280';
     }
@@ -107,10 +107,10 @@ const SupportScreen: React.FC<RootStackScreenProps<'Support'>> = ({ navigation }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return '#EF4444';
-      case 'high': return '#F59E0B';
+      case 'urgent': return 'theme.colors.error[700]';
+      case 'high': return 'theme.colors.warning[700]';
       case 'medium': return '#3B82F6';
-      case 'low': return '#10B981';
+      case 'low': return 'theme.colors.success[700]';
       default: return '#6B7280';
     }
   };
@@ -176,7 +176,7 @@ const SupportScreen: React.FC<RootStackScreenProps<'Support'>> = ({ navigation }
         
         <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Help')}>
           <View style={styles.actionIcon}>
-            <Ionicons name="help-circle" size={32} color="#10B981" />
+            <Ionicons name="help-circle" size={32} color="theme.colors.success[700]" />
           </View>
           <Text style={styles.actionTitle}>Help Center</Text>
           <Text style={styles.actionSubtitle}>Browse FAQs and guides</Text>
@@ -187,7 +187,7 @@ const SupportScreen: React.FC<RootStackScreenProps<'Support'>> = ({ navigation }
           Alert.alert('Coming Soon', 'Direct contact feature will be available soon');
         }}>
           <View style={styles.actionIcon}>
-            <Ionicons name="mail" size={32} color="#F59E0B" />
+            <Ionicons name="mail" size={32} color="theme.colors.warning[700]" />
           </View>
           <Text style={styles.actionTitle}>Contact Us</Text>
           <Text style={styles.actionSubtitle}>Get in touch directly</Text>

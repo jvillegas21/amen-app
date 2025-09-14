@@ -95,7 +95,7 @@ const BibleStudyScreen: React.FC<RootStackScreenProps<'BibleStudy'>> = ({
               <Text style={styles.metaText}>{study.save_count} saved</Text>
             </View>
             <View style={styles.metaItem}>
-              <Ionicons name="star" size={16} color="#F59E0B" />
+              <Ionicons name="star" size={16} color="theme.colors.warning[700]" />
               <Text style={styles.metaText}>{study.quality_score}/5</Text>
             </View>
           </View>
@@ -139,7 +139,7 @@ const BibleStudyScreen: React.FC<RootStackScreenProps<'BibleStudy'>> = ({
       <SafeAreaView style={styles.container}>
         {renderHeader()}
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle" size={48} color="#EF4444" />
+          <Ionicons name="alert-circle" size={48} color="theme.colors.error[700]" />
           <Text style={styles.errorTitle}>Study Not Found</Text>
           <Text style={styles.errorText}>
             The Bible study you're looking for could not be found.

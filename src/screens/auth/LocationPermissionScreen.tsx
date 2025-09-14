@@ -68,9 +68,9 @@ const LocationPermissionScreen: React.FC<AuthStackScreenProps<'LocationPermissio
   const getStatusIcon = () => {
     switch (permissionStatus) {
       case 'granted':
-        return <Ionicons name="checkmark-circle" size={64} color="#10B981" />;
+        return <Ionicons name="checkmark-circle" size={64} color="theme.colors.success[700]" />;
       case 'denied':
-        return <Ionicons name="close-circle" size={64} color="#EF4444" />;
+        return <Ionicons name="close-circle" size={64} color="theme.colors.error[700]" />;
       default:
         return <Ionicons name="location" size={64} color="#5B21B6" />;
     }

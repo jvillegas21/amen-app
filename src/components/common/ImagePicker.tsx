@@ -123,7 +123,7 @@ export default function ImagePicker({
               onPress={handleRemoveImage}
               disabled={uploading}
             >
-              <Ionicons name="close-circle" size={24} color="#EF4444" />
+              <Ionicons name="close-circle" size={24} color="theme.colors.error[700]" />
             </TouchableOpacity>
           )}
         </View>

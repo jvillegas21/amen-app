@@ -116,13 +116,13 @@ const StatisticsScreen: React.FC<ProfileStackScreenProps<'Statistics'>> = ({ nav
         title: 'Prayers Posted',
         value: statistics.prayers_posted,
         icon: 'heart-outline',
-        color: '#EF4444',
+        color: 'theme.colors.error[700]',
       },
       {
         title: 'Prayers Received',
         value: statistics.prayers_received,
         icon: 'heart',
-        color: '#10B981',
+        color: 'theme.colors.success[700]',
       },
       {
         title: 'Total Interactions',
@@ -134,7 +134,7 @@ const StatisticsScreen: React.FC<ProfileStackScreenProps<'Statistics'>> = ({ nav
         title: 'Groups Joined',
         value: statistics.groups_joined,
         icon: 'people-outline',
-        color: '#F59E0B',
+        color: 'theme.colors.warning[700]',
       },
     ];
 
@@ -162,7 +162,7 @@ const StatisticsScreen: React.FC<ProfileStackScreenProps<'Statistics'>> = ({ nav
     return (
       <View style={styles.streakCard}>
         <View style={styles.streakHeader}>
-          <Ionicons name="flame" size={24} color="#F59E0B" />
+          <Ionicons name="flame" size={24} color="theme.colors.warning[700]" />
           <Text style={styles.streakTitle}>Prayer Streak</Text>
         </View>
         <View style={styles.streakContent}>
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
   currentStreak: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#F59E0B',
+    color: 'theme.colors.warning[700]',
     marginBottom: 4,
   },
   streakLabel: {

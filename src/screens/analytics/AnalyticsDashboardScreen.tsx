@@ -119,7 +119,7 @@ export default function AnalyticsDashboardScreen() {
         <Text style={styles.insightsTitle}>Activity Insights</Text>
         {insights.map((insight, index) => (
           <View key={index} style={styles.insightItem}>
-            <Ionicons name="bulb" size={16} color="#F59E0B" />
+            <Ionicons name="bulb" size={16} color="theme.colors.warning[700]" />
             <Text style={styles.insightText}>{insight}</Text>
           </View>
         ))}
@@ -176,7 +176,7 @@ export default function AnalyticsDashboardScreen() {
             'Total Prayers',
             analytics?.total_prayers || 0,
             'heart',
-            '#EF4444'
+            'theme.colors.error[700]'
           )}
           {renderStatCard(
             'Total Comments',
@@ -188,7 +188,7 @@ export default function AnalyticsDashboardScreen() {
             'Total Shares',
             analytics?.total_shares || 0,
             'share',
-            '#10B981'
+            'theme.colors.success[700]'
           )}
           {renderStatCard(
             'Groups Joined',
