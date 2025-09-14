@@ -15,9 +15,11 @@ import { useRouter } from 'expo-router';
 import { locationService, PrayerLocation } from '@/services/api/locationService';
 import { Prayer } from '@/types/database.types';
 import { formatDistanceToNow } from 'date-fns';
+import { useTheme } from '@/theme/ThemeContext';
 
 export default function LocalPrayersScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
   
   const [prayers, setPrayers] = useState<PrayerLocation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,7 +120,7 @@ export default function LocalPrayersScreen() {
             Prayer Request
           </Text>
           <View style={styles.distanceBadge}>
-            <Ionicons name="location" size={12} color="#5B21B6" />
+            <Ionicons name="location" size={12} color={theme.colors.primary[600]} />
             <Text style={styles.distanceText}>
               {distance.toFixed(1)} km
             </Text>
@@ -176,7 +178,7 @@ export default function LocalPrayersScreen() {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="location-outline" size={64} color="#C7C7CC" />
+      <Ionicons name="location-outline" size={64} color={theme.colors.neutral[300]} />
       <Text style={styles.emptyStateTitle}>No Local Prayers</Text>
       <Text style={styles.emptyStateText}>
         Be the first to share a prayer in your area
@@ -184,19 +186,21 @@ export default function LocalPrayersScreen() {
     </View>
   );
 
+  const styles = createStyles(theme);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#5B21B6" />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.primary[600]} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Local Prayers</Text>
           <View style={styles.placeholder} />
         </View>
         
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#5B21B6" />
+          <ActivityIndicator size="large" color={theme.colors.primary[600]} />
           <Text style={styles.loadingText}>Finding local prayers...</Text>
         </View>
       </SafeAreaView>
@@ -207,11 +211,11 @@ export default function LocalPrayersScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#5B21B6" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary[600]} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Local Prayers</Text>
         <TouchableOpacity onPress={handleRefresh} style={styles.refreshButton}>
-          <Ionicons name="refresh" size={24} color="#5B21B6" />
+          <Ionicons name="refresh" size={24} color={theme.colors.primary[600]} />
         </TouchableOpacity>
       </View>
 
@@ -234,10 +238,10 @@ export default function LocalPrayersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.colors.background.secondary,
   },
   header: {
     flexDirection: 'row',
@@ -245,9 +249,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E7',
+    borderBottomColor: theme.colors.border.primary,
   },
   backButton: {
     padding: 8,
@@ -255,7 +259,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000',
+    color: theme.colors.text.primary,
   },
   placeholder: {
     width: 40,
@@ -271,7 +275,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.text.secondary,
   },
   listContainer: {
     padding: 16,
@@ -280,11 +284,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statsCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface.primary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: theme.colors.neutral[1000],
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -293,7 +297,7 @@ const styles = StyleSheet.create({
   statsTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000',
+    color: theme.colors.text.primary,
     marginBottom: 16,
   },
   statsGrid: {
@@ -307,22 +311,22 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#5B21B6',
+    color: theme.colors.primary[600],
   },
   statLabel: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.text.secondary,
     marginTop: 4,
   },
   tagsContainer: {
     borderTopWidth: 1,
-    borderTopColor: '#E5E5E7',
+    borderTopColor: theme.colors.border.primary,
     paddingTop: 16,
   },
   tagsTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#000',
+    color: theme.colors.text.primary,
     marginBottom: 8,
   },
   tagsList: {
@@ -331,22 +335,22 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tag: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.colors.background.tertiary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   tagText: {
     fontSize: 12,
-    color: '#5B21B6',
+    color: theme.colors.primary[600],
     fontWeight: '500',
   },
   prayerItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface.primary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: theme.colors.neutral[1000],
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -361,28 +365,28 @@ const styles = StyleSheet.create({
   prayerTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000',
+    color: theme.colors.text.primary,
     flex: 1,
     marginRight: 12,
   },
   distanceBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.colors.background.tertiary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   distanceText: {
     fontSize: 12,
-    color: '#5B21B6',
+    color: theme.colors.primary[600],
     fontWeight: '500',
     marginLeft: 4,
   },
   prayerText: {
     fontSize: 14,
     lineHeight: 20,
-    color: '#333',
+    color: theme.colors.text.primary,
     marginBottom: 12,
   },
   prayerFooter: {
@@ -392,12 +396,12 @@ const styles = StyleSheet.create({
   },
   prayerAuthor: {
     fontSize: 12,
-    color: '#5B21B6',
+    color: theme.colors.primary[600],
     fontWeight: '500',
   },
   prayerDate: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.text.secondary,
   },
   emptyState: {
     flex: 1,
@@ -408,13 +412,13 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000',
+    color: theme.colors.text.primary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyStateText: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.text.secondary,
     textAlign: 'center',
     lineHeight: 24,
   },

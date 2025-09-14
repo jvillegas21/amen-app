@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ActivityIndicator, View } from 'react-native';
+import { useTheme } from '@/theme/ThemeContext';
 
 import { RootStackParamList } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
@@ -41,6 +42,7 @@ const Stack = createStackNavigator<RootStackParamList>();
  */
 const RootNavigator: React.FC = () => {
   const { isAuthenticated, isLoading, checkAuthStatus } = useAuthStore();
+  const { theme } = useTheme();
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -57,8 +59,8 @@ const RootNavigator: React.FC = () => {
 
   if (!isReady || isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#5B21B6" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background.primary }}>
+        <ActivityIndicator size="large" color={theme.colors.primary[600]} />
       </View>
     );
   }
@@ -84,9 +86,9 @@ const RootNavigator: React.FC = () => {
                   presentation: 'modal',
                   headerShown: true,
                   headerStyle: {
-                    backgroundColor: '#5B21B6',
+                    backgroundColor: theme.colors.primary[600],
                   },
-                  headerTintColor: '#fff',
+                  headerTintColor: theme.colors.text.inverse,
                 }}
               >
                 <Stack.Screen
@@ -121,9 +123,9 @@ const RootNavigator: React.FC = () => {
                 screenOptions={{
                   headerShown: true,
                   headerStyle: {
-                    backgroundColor: '#5B21B6',
+                    backgroundColor: theme.colors.primary[600],
                   },
-                  headerTintColor: '#fff',
+                  headerTintColor: theme.colors.text.inverse,
                 }}
               >
                 <Stack.Screen

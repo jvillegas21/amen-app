@@ -8,6 +8,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import RootNavigator from '@/navigation/RootNavigator';
 import { useAuthStore } from '@/store/auth/authStore';
 import { notificationManager } from '@/services/notifications/notificationManager';
+import { ThemeProvider } from '@/theme/ThemeContext';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -61,10 +62,12 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={styles.container}>
-        <RootNavigator />
-        <StatusBar style="auto" />
-      </GestureHandlerRootView>
+      <ThemeProvider>
+        <GestureHandlerRootView style={styles.container}>
+          <RootNavigator />
+          <StatusBar style="auto" />
+        </GestureHandlerRootView>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
