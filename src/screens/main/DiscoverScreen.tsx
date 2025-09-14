@@ -107,6 +107,7 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
         { id: '4', name: 'Work & Career', icon: 'briefcase', color: '#F59E0B', prayerCount: 1234 },
         { id: '5', name: 'Peace & Comfort', icon: 'heart', color: '#06B6D4', prayerCount: 987 },
         { id: '6', name: 'Community', icon: 'globe', color: '#8B5CF6', prayerCount: 756 },
+        { id: '7', name: 'AI Bible Studies', icon: 'library', color: '#7C3AED', prayerCount: 0 },
       ];
 
       setTrendingTopics(mockTrendingTopics);
@@ -136,8 +137,12 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
   };
 
   const handleCategoryPress = (category: Category) => {
-    // TODO: Navigate to search with category
-    console.log('Search category:', category.name);
+    if (category.id === '7') { // AI Bible Studies
+      navigation.navigate('BibleStudySuggestions');
+    } else {
+      // TODO: Navigate to search with category
+      console.log('Search category:', category.name);
+    }
   };
 
   const renderSearchBar = () => (

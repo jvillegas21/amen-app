@@ -13,23 +13,10 @@ import {
 } from 'react-native';
 import { MainTabScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
+import { notificationService } from '@/services/api/notificationService';
+import { Notification } from '@/types/database.types';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
-
-interface Notification {
-  id: string;
-  type: 'prayer_response' | 'new_follower' | 'group_invite' | 'prayer_reminder' | 'system' | 'comment' | 'group_update';
-  title: string;
-  message: string;
-  user_id?: string;
-  user_display_name?: string;
-  user_avatar_url?: string;
-  prayer_id?: string;
-  group_id?: string;
-  is_read: boolean;
-  created_at: string;
-  action_data?: any;
-}
 
 /**
  * Notifications Screen - Manage and view all notifications
@@ -49,81 +36,14 @@ const NotificationsScreen: React.FC<MainTabScreenProps<'Notifications'>> = ({ na
   const fetchNotifications = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implement notifications fetch from API
-      // For now, using mock data
-      const mockNotifications: Notification[] = [
-        {
-          id: '1',
-          type: 'prayer_response',
-          title: 'Someone prayed for your request',
-          message: 'Sarah Johnson prayed for your job interview request',
-          user_id: 'user2',
-          user_display_name: 'Sarah Johnson',
-          user_avatar_url: 'https://via.placeholder.com/40',
-          prayer_id: 'prayer1',
-          is_read: false,
-          created_at: new Date(Date.now() - 300000).toISOString(),
-        },
-        {
-          id: '2',
-          type: 'new_follower',
-          title: 'New follower',
-          message: 'Mike Wilson started following you',
-          user_id: 'user3',
-          user_display_name: 'Mike Wilson',
-          user_avatar_url: 'https://via.placeholder.com/40',
-          is_read: false,
-          created_at: new Date(Date.now() - 900000).toISOString(),
-        },
-        {
-          id: '3',
-          type: 'comment',
-          title: 'New comment on your prayer',
-          message: 'Emily Chen commented on your prayer request',
-          user_id: 'user4',
-          user_display_name: 'Emily Chen',
-          user_avatar_url: 'https://via.placeholder.com/40',
-          prayer_id: 'prayer2',
-          is_read: true,
-          created_at: new Date(Date.now() - 1800000).toISOString(),
-        },
-        {
-          id: '4',
-          type: 'group_invite',
-          title: 'Group invitation',
-          message: 'You\'ve been invited to join "Prayer Warriors" group',
-          group_id: 'group1',
-          is_read: false,
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-        },
-        {
-          id: '5',
-          type: 'prayer_reminder',
-          title: 'Daily prayer reminder',
-          message: 'Don\'t forget to share your prayers and support others today',
-          is_read: true,
-          created_at: new Date(Date.now() - 7200000).toISOString(),
-        },
-        {
-          id: '6',
-          type: 'group_update',
-          title: 'Group activity',
-          message: 'New prayer request posted in "Prayer Warriors" group',
-          group_id: 'group1',
-          is_read: true,
-          created_at: new Date(Date.now() - 10800000).toISOString(),
-        },
-        {
-          id: '7',
-          type: 'system',
-          title: 'App update available',
-          message: 'A new version of Amenity is available with exciting features',
-          is_read: true,
-          created_at: new Date(Date.now() - 86400000).toISOString(),
-        },
-      ];
-      setNotifications(mockNotifications);
+      if (!profile?.id) {
+        throw new Error('User not authenticated');
+      }
+      
+      const userNotifications = await notificationService.getNotifications(profile.id);
+      setNotifications(userNotifications);
     } catch (error) {
+      console.error('Failed to fetch notifications:', error);
       Alert.alert('Error', 'Failed to load notifications');
     } finally {
       setIsLoading(false);
@@ -138,25 +58,31 @@ const NotificationsScreen: React.FC<MainTabScreenProps<'Notifications'>> = ({ na
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {
-      // TODO: Implement mark as read API call
+      await notificationService.markAsRead(notificationId);
       setNotifications(prev => prev.map(notification =>
         notification.id === notificationId
-          ? { ...notification, is_read: true }
+          ? { ...notification, read_at: new Date().toISOString() }
           : notification
       ));
     } catch (error) {
+      console.error('Failed to mark notification as read:', error);
       Alert.alert('Error', 'Failed to mark notification as read');
     }
   };
 
   const handleMarkAllAsRead = async () => {
     try {
-      // TODO: Implement mark all as read API call
+      if (!profile?.id) {
+        throw new Error('User not authenticated');
+      }
+      
+      await notificationService.markAllAsRead(profile.id);
       setNotifications(prev => prev.map(notification => ({
         ...notification,
-        is_read: true,
+        read_at: new Date().toISOString(),
       })));
     } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
       Alert.alert('Error', 'Failed to mark all notifications as read');
     }
   };

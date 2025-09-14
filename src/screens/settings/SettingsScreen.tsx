@@ -160,12 +160,8 @@ const SettingsScreen: React.FC<RootStackScreenProps<'Settings'>> = ({ navigation
       <View style={styles.sectionContent}>
         {renderSettingsSection('Edit Profile', 'person-outline', () => navigation.navigate('EditProfile'))}
         {renderSettingsSection('Privacy Settings', 'shield-outline', () => navigation.navigate('Privacy'))}
-        {renderSettingsSection('Change Password', 'key-outline', () => {
-          Alert.alert('Coming Soon', 'Change password feature will be available soon');
-        })}
-        {renderSettingsSection('Account Security', 'lock-closed-outline', () => {
-          Alert.alert('Coming Soon', 'Account security features will be available soon');
-        })}
+        {renderSettingsSection('Change Password', 'key-outline', () => navigation.navigate('ChangePassword'))}
+        {renderSettingsSection('Account Security', 'lock-closed-outline', () => navigation.navigate('AccountSecurity'))}
       </View>
     </View>
   );
@@ -214,18 +210,11 @@ const SettingsScreen: React.FC<RootStackScreenProps<'Settings'>> = ({ navigation
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>App Settings</Text>
       <View style={styles.sectionContent}>
-        {renderSettingsSection('Theme', 'color-palette-outline', () => {
-          Alert.alert('Coming Soon', 'Theme selection will be available soon');
-        })}
-        {renderSettingsSection('Language', 'language-outline', () => {
-          Alert.alert('Coming Soon', 'Language selection will be available soon');
-        })}
-        {renderSettingsSection('Data Usage', 'cellular-outline', () => {
-          Alert.alert('Coming Soon', 'Data usage settings will be available soon');
-        })}
-        {renderSettingsSection('Storage & Backup', 'cloud-outline', () => {
-          Alert.alert('Coming Soon', 'Storage settings will be available soon');
-        })}
+        {renderSettingsSection('Theme', 'color-palette-outline', () => navigation.navigate('Theme'))}
+        {renderSettingsSection('Language', 'language-outline', () => navigation.navigate('Language'))}
+        {renderSettingsSection('Data Usage', 'cellular-outline', () => navigation.navigate('DataUsage'))}
+        {renderSettingsSection('Storage & Backup', 'cloud-outline', () => navigation.navigate('StorageBackup'))}
+        {renderSettingsSection('Location Settings', 'location-outline', () => navigation.navigate('LocationSettings'))}
       </View>
     </View>
   );
@@ -235,10 +224,11 @@ const SettingsScreen: React.FC<RootStackScreenProps<'Settings'>> = ({ navigation
       <Text style={styles.sectionTitle}>Support</Text>
       <View style={styles.sectionContent}>
         {renderSettingsSection('Help & FAQ', 'help-circle-outline', () => navigation.navigate('Help'))}
-        {renderSettingsSection('Contact Support', 'mail-outline', () => navigation.navigate('Support'))}
-        {renderSettingsSection('Report a Problem', 'bug-outline', () => {
-          Alert.alert('Coming Soon', 'Problem reporting will be available soon');
-        })}
+        {renderSettingsSection('Contact Support', 'mail-outline', () => navigation.navigate('SupportTickets'))}
+        {renderSettingsSection('Report a Problem', 'bug-outline', () => navigation.navigate('ReportContent'))}
+        {renderSettingsSection('Blocked Users', 'person-remove-outline', () => navigation.navigate('BlockedUsers'))}
+        {renderSettingsSection('Content Filters', 'filter-outline', () => navigation.navigate('ContentFilters'))}
+        {renderSettingsSection('Analytics', 'bar-chart-outline', () => navigation.navigate('AnalyticsDashboard'))}
         {renderSettingsSection('Rate the App', 'star-outline', () => {
           Alert.alert('Coming Soon', 'App rating will be available soon');
         })}

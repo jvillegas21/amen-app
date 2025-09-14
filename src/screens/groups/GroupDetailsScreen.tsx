@@ -15,8 +15,9 @@ import {
 import { GroupsStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { usePrayerStore } from '@/store/prayer/prayerStore';
+import { groupService } from '@/services/api/groupService';
 import { Ionicons } from '@expo/vector-icons';
-import { Prayer } from '@/types/database.types';
+import { Prayer, Group } from '@/types/database.types';
 import { formatDistanceToNow } from 'date-fns';
 
 /**
@@ -42,79 +43,44 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
 
   const fetchGroupDetails = async () => {
     try {
-      // TODO: Implement group details fetch from API
-      // For now, using mock data
-      const mockGroup = {
-        id: groupId,
-        name: 'Prayer Warriors',
-        description: 'A group dedicated to supporting each other through prayer and encouragement.',
-        privacy: 'public',
-        member_count: 24,
-        creator_id: 'user1',
-        avatar_url: 'https://via.placeholder.com/100',
-        created_at: new Date().toISOString(),
-        is_member: true,
-        user_role: 'member',
-      };
-      setGroup(mockGroup);
-      setIsMember(mockGroup.is_member);
-      setUserRole(mockGroup.user_role);
+      const groupData = await groupService.getGroup(groupId);
+      setGroup(groupData);
+      
+      // Check if current user is a member
+      const members = await groupService.getGroupMembers(groupId);
+      const currentUserMember = members.find(member => member.user_id === profile?.id);
+      
+      if (currentUserMember) {
+        setIsMember(true);
+        setUserRole(currentUserMember.role);
+      } else {
+        setIsMember(false);
+        setUserRole(null);
+      }
     } catch (error) {
+      console.error('Failed to fetch group details:', error);
       Alert.alert('Error', 'Failed to load group details');
     }
   };
 
   const fetchGroupPrayers = async () => {
     try {
-      // TODO: Implement group prayers fetch from API
-      // For now, using mock data
-      const mockPrayers: Prayer[] = [
-        {
-          id: '1',
-          user_id: 'user2',
-          text: 'Please pray for my job interview tomorrow. I really need this position.',
-          location_city: 'Chicago, IL',
-          privacy_level: 'groups',
-          status: 'open',
-          is_anonymous: false,
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-          updated_at: new Date(Date.now() - 3600000).toISOString(),
-          user_display_name: 'Sarah Johnson',
-          user_avatar_url: 'https://via.placeholder.com/40',
-          interaction_count: 8,
-          comment_count: 3,
-          user_interaction: null,
-        },
-        {
-          id: '2',
-          user_id: 'user3',
-          text: 'Praying for healing for my grandmother who is in the hospital.',
-          location_city: 'Dallas, TX',
-          privacy_level: 'groups',
-          status: 'open',
-          is_anonymous: false,
-          created_at: new Date(Date.now() - 7200000).toISOString(),
-          updated_at: new Date(Date.now() - 7200000).toISOString(),
-          user_display_name: 'Mike Wilson',
-          user_avatar_url: 'https://via.placeholder.com/40',
-          interaction_count: 15,
-          comment_count: 7,
-          user_interaction: { type: 'PRAY', created_at: new Date().toISOString() },
-        },
-      ];
-      setGroupPrayers(mockPrayers);
+      const prayers = await groupService.getGroupPrayers(groupId);
+      setGroupPrayers(prayers);
     } catch (error) {
+      console.error('Failed to fetch group prayers:', error);
       Alert.alert('Error', 'Failed to load group prayers');
     }
   };
 
   const handleJoinGroup = async () => {
     try {
-      // TODO: Implement join group API call
+      await groupService.joinGroup(groupId);
       setIsMember(true);
       setUserRole('member');
       Alert.alert('Success', 'You have joined the group!');
     } catch (error) {
+      console.error('Failed to join group:', error);
       Alert.alert('Error', 'Failed to join group');
     }
   };
@@ -130,11 +96,12 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
           style: 'destructive',
           onPress: async () => {
             try {
-              // TODO: Implement leave group API call
+              await groupService.leaveGroup(groupId);
               setIsMember(false);
               setUserRole(null);
               Alert.alert('Success', 'You have left the group');
             } catch (error) {
+              console.error('Failed to leave group:', error);
               Alert.alert('Error', 'Failed to leave group');
             }
           },
