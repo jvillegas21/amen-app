@@ -1,5 +1,5 @@
 import { supabase } from '@/config/supabase';
-import { openaiService } from '@/services/ai/openaiService';
+import { aiService } from '@/services/aiService';
 
 export interface BibleStudy {
   id: string;
@@ -54,7 +54,7 @@ For each suggestion, provide:
 
 Format as JSON array with fields: title, description, scripture_references, difficulty_level, estimated_duration, topics`;
 
-      const response = await openaiService.generateText(prompt);
+      const response = await aiService.generateText(prompt);
       
       // Parse the JSON response
       const suggestions = JSON.parse(response);
@@ -95,7 +95,17 @@ Create a detailed study that includes:
 
 Format as Markdown with proper headings and structure. Make it engaging and spiritually enriching.`;
 
-      const content = await openaiService.generateText(prompt);
+      const studyResult = await aiService.generateBibleStudy(
+        `${suggestion.title}: ${suggestion.description}`,
+        suggestion.topics.join(', ')
+      );
+
+      if (!studyResult.success || !studyResult.data) {
+        throw new Error(studyResult.error || 'Failed to generate Bible study');
+      }
+
+      const bibleStudyData = studyResult.data;
+      const content = `# ${bibleStudyData.title}\n\n## Scripture\n${bibleStudyData.scripture}\n\n## Reflection\n${bibleStudyData.reflection}\n\n## Questions for Reflection\n${bibleStudyData.questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}\n\n## Prayer Focus\n${bibleStudyData.prayer_focus}${bibleStudyData.application ? `\n\n## Practical Application\n${bibleStudyData.application}` : ''}`;
       
       const study: BibleStudy = {
         id: `study-${Date.now()}`,

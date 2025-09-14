@@ -3,17 +3,18 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
-  RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
+import { theme } from '@/theme';
 import { MainTabScreenProps } from '@/types/navigation.types';
 import { Prayer } from '@/types/database.types';
 import { usePrayerStore } from '@/store/prayer/prayerStore';
 import { prayerInteractionService } from '@/services/api/prayerInteractionService';
 import { contentModerationService } from '@/services/api/contentModerationService';
 import PrayerCard from '@/components/prayer/PrayerCard';
+import { OptimizedPrayerList } from '@/components/performance/OptimizedPrayerList';
 import { Ionicons } from '@expo/vector-icons';
 
 /**
@@ -114,19 +115,19 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
     }
   };
 
-  const renderPrayerItem = ({ item }: { item: Prayer }) => (
+  const renderPrayerCard = useCallback((prayer: Prayer) => (
     <PrayerCard
-      prayer={item}
-      onPress={() => handlePrayerPress(item.id)}
-      onPrayPress={() => handlePrayPress(item.id)}
-      onCommentPress={() => handleCommentPress(item.id)}
-      onSharePress={() => handleSharePress(item.id)}
-      onSavePress={() => handleSavePress(item.id)}
-      isSaved={savedPrayers.has(item.id)}
-      onReportPress={() => handleReportPress(item)}
-      onBlockUserPress={() => handleBlockUserPress(item)}
+      prayer={prayer}
+      onPress={() => handlePrayerPress(prayer.id)}
+      onPrayPress={() => handlePrayPress(prayer.id)}
+      onCommentPress={() => handleCommentPress(prayer.id)}
+      onSharePress={() => handleSharePress(prayer.id)}
+      onSavePress={() => handleSavePress(prayer.id)}
+      isSaved={savedPrayers.has(prayer.id)}
+      onReportPress={() => handleReportPress(prayer)}
+      onBlockUserPress={() => handleBlockUserPress(prayer)}
     />
-  );
+  ), [savedPrayers, handlePrayerPress, handlePrayPress, handleCommentPress, handleSharePress, handleSavePress, handleReportPress, handleBlockUserPress]);
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -137,6 +138,10 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
             feedType === 'following' && styles.feedButtonActive,
           ]}
           onPress={() => setFeedType('following')}
+          accessibilityRole="tab"
+          accessibilityLabel="Following feed"
+          accessibilityState={{ selected: feedType === 'following' }}
+          accessibilityHint="Switch to prayers from people you follow"
         >
           <Text
             style={[
@@ -153,6 +158,10 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
             feedType === 'discover' && styles.feedButtonActive,
           ]}
           onPress={() => setFeedType('discover')}
+          accessibilityRole="tab"
+          accessibilityLabel="Discover feed"
+          accessibilityState={{ selected: feedType === 'discover' }}
+          accessibilityHint="Switch to discover new prayers"
         >
           <Text
             style={[
@@ -169,74 +178,69 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
         <TouchableOpacity
           style={styles.headerActionButton}
           onPress={() => navigation.navigate('SavedPrayers')}
+          accessibilityRole="button"
+          accessibilityLabel="Saved prayers"
+          accessibilityHint="View your saved prayers"
         >
-          <Ionicons name="bookmark-outline" size={20} color="#5B21B6" />
+          <Ionicons name="bookmark-outline" size={20} color={theme.colors.primary[600]} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.headerActionButton}
           onPress={() => navigation.navigate('PrayerReminders')}
+          accessibilityRole="button"
+          accessibilityLabel="Prayer reminders"
+          accessibilityHint="Set up prayer reminders"
         >
-          <Ionicons name="alarm-outline" size={20} color="#5B21B6" />
+          <Ionicons name="alarm-outline" size={20} color={theme.colors.primary[600]} />
         </TouchableOpacity>
       </View>
     </View>
   );
 
-  const renderEmpty = () => {
-    if (isLoading) {
-      return (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#5B21B6" />
-        </View>
-      );
+  const renderEmpty = useCallback(() => (
+    <View style={styles.emptyContainer}>
+      <Ionicons name="heart-outline" size={64} color={theme.colors.neutral[300]} />
+      <Text style={styles.emptyTitle}>No prayers yet</Text>
+      <Text style={styles.emptyText}>
+        {feedType === 'following'
+          ? 'Follow others to see their prayers here'
+          : 'Be the first to share a prayer'}
+      </Text>
+      <TouchableOpacity
+        style={styles.emptyButton}
+        onPress={handleCreatePress}
+        accessibilityRole="button"
+        accessibilityLabel="Share a prayer"
+        accessibilityHint="Create and share a new prayer"
+      >
+        <Text style={styles.emptyButtonText}>Share a Prayer</Text>
+      </TouchableOpacity>
+    </View>
+  ), [feedType, handleCreatePress]);
+
+  const handleLoadMoreOptimized = useCallback(async () => {
+    if (!isLoading) {
+      await loadMorePrayers(feedType);
     }
+  }, [feedType, isLoading, loadMorePrayers]);
 
-    return (
-      <View style={styles.emptyContainer}>
-        <Ionicons name="heart-outline" size={64} color="#D1D5DB" />
-        <Text style={styles.emptyTitle}>No prayers yet</Text>
-        <Text style={styles.emptyText}>
-          {feedType === 'following'
-            ? 'Follow others to see their prayers here'
-            : 'Be the first to share a prayer'}
-        </Text>
-        <TouchableOpacity style={styles.emptyButton} onPress={handleCreatePress}>
-          <Text style={styles.emptyButtonText}>Share a Prayer</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
-  const renderFooter = () => {
-    if (!isLoading || prayers.length === 0) return null;
-    return (
-      <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color="#5B21B6" />
-      </View>
-    );
-  };
+  const handleRefreshOptimized = useCallback(async () => {
+    await refreshPrayers(feedType);
+  }, [feedType, refreshPrayers]);
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={prayers}
-        keyExtractor={(item) => item.id}
-        renderItem={renderPrayerItem}
+      <OptimizedPrayerList
+        prayers={prayers}
+        onLoadMore={handleLoadMoreOptimized}
+        onRefresh={handleRefreshOptimized}
+        renderPrayerCard={renderPrayerCard}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmpty}
-        ListFooterComponent={renderFooter}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            colors={['#5B21B6']}
-            tintColor="#5B21B6"
-          />
-        }
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
+        isLoading={isLoading}
+        hasMore={true} // TODO: Get from store
+        refreshing={isRefreshing}
+        testID="home-prayer-list"
       />
 
       {/* Floating Action Button */}
@@ -244,8 +248,11 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
         style={styles.fab}
         onPress={handleCreatePress}
         activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel="Create prayer"
+        accessibilityHint="Double tap to create a new prayer"
       >
-        <Ionicons name="add" size={28} color="#FFFFFF" />
+        <Ionicons name="add" size={28} color={theme.colors.text.inverse} />
       </TouchableOpacity>
     </View>
   );
@@ -254,110 +261,114 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.colors.background.secondary,
   },
   listContent: {
     flexGrow: 1,
   },
   header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: theme.colors.surface.primary,
+    paddingHorizontal: theme.spacing[4],
+    paddingVertical: theme.spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.colors.border.primary,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   feedToggle: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 8,
-    padding: 2,
+    backgroundColor: theme.colors.background.tertiary,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing[0.5],
   },
   feedButton: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: theme.spacing[2],
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: theme.borderRadius.md,
+    minHeight: theme.layout.minTouchTarget,
+    justifyContent: 'center',
   },
   feedButtonActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface.primary,
   },
   feedButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6B7280',
+    ...theme.typography.label.medium,
+    color: theme.colors.text.secondary,
   },
   feedButtonTextActive: {
-    color: '#5B21B6',
+    color: theme.colors.primary[600],
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   headerActionButton: {
-    padding: 8,
-    marginLeft: 8,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    padding: theme.spacing[2],
+    marginLeft: theme.spacing[2],
+    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.background.tertiary,
+    minHeight: theme.layout.minTouchTarget,
+    minWidth: theme.layout.minTouchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 100,
+    paddingVertical: theme.spacing[24],
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 100,
+    paddingHorizontal: theme.spacing[8],
+    paddingVertical: theme.spacing[24],
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#111827',
-    marginTop: 16,
-    marginBottom: 8,
+    ...theme.typography.heading.h2,
+    color: theme.colors.text.primary,
+    marginTop: theme.spacing[4],
+    marginBottom: theme.spacing[2],
+    textAlign: 'center',
   },
   emptyText: {
-    fontSize: 14,
-    color: '#6B7280',
+    ...theme.typography.body.medium,
+    color: theme.colors.text.secondary,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: theme.spacing[6],
   },
   emptyButton: {
-    backgroundColor: '#5B21B6',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: theme.colors.primary[600],
+    paddingHorizontal: theme.spacing[6],
+    paddingVertical: theme.spacing[3],
+    borderRadius: theme.borderRadius.lg,
+    minHeight: theme.layout.minTouchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+    color: theme.colors.text.inverse,
+    ...theme.typography.button.medium,
   },
   footerLoader: {
-    paddingVertical: 20,
+    paddingVertical: theme.spacing[5],
     alignItems: 'center',
   },
   fab: {
     position: 'absolute',
-    right: 16,
-    bottom: 16,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#5B21B6',
+    right: theme.spacing[4],
+    bottom: theme.spacing[4],
+    width: theme.spacing[14],
+    height: theme.spacing[14],
+    borderRadius: theme.spacing[7],
+    backgroundColor: theme.colors.primary[600],
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    ...theme.shadows.lg,
+    shadowColor: theme.colors.neutral[1000],
   },
 });
 

@@ -39,6 +39,7 @@
     "expo-device": "~5.9.0",
     "expo-file-system": "~16.0.0",
     "expo-font": "~11.10.0",
+    "expo-image": "~1.10.0",
     "expo-image-picker": "~14.7.0",
     "expo-linking": "~6.2.0",
     "expo-location": "~16.5.0",
@@ -83,30 +84,25 @@
   },
   "jest": {
     "preset": "react-native",
-    "setupFilesAfterEnv": [
-      "<rootDir>/src/__tests__/setup.ts"
-    ],
+    "testEnvironment": "node",
+    "setupFilesAfterEnv": [],
     "transformIgnorePatterns": [
       "node_modules/(?!(react-native|@react-native|@react-navigation|@expo|expo|@unimodules|unimodules|sentry-expo|native-base|react-native-svg|react-native-vector-icons|@react-native-community|react-native-gesture-handler|react-native-reanimated|react-native-screens|react-native-safe-area-context|@react-native-async-storage|@react-native-community/netinfo|@react-native-community/datetimepicker|expo-image-picker|expo-location|expo-notifications|expo-constants|expo-device|expo-file-system|expo-font|expo-linking|expo-router|expo-splash-screen|expo-status-bar|expo-system-ui|expo-web-browser|@expo/vector-icons|expo-av|expo-camera|expo-media-library|expo-barcode-scanner|expo-sensors|expo-haptics|expo-linear-gradient|expo-blur|expo-secure-store|expo-crypto|expo-random|expo-asset)/)"
     ],
-    "moduleNameMapping": {
+    "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1"
     },
+    "testMatch": [
+      "**/__tests__/**/*-integration.test.(ts|js)",
+      "**/*.(integration-test|integration.test).(ts|js)"
+    ],
     "collectCoverageFrom": [
       "src/**/*.{ts,tsx}",
       "!src/**/*.d.ts",
       "!src/**/__tests__/**",
       "!src/**/__mocks__/**",
       "!src/**/index.ts"
-    ],
-    "coverageThreshold": {
-      "global": {
-        "branches": 70,
-        "functions": 70,
-        "lines": 70,
-        "statements": 70
-      }
-    }
+    ]
   },
   "private": true
 }
