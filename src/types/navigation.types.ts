@@ -17,11 +17,13 @@ export type RootStackParamList = {
   CreateGroup: undefined;
   EditGroup: { groupId: string };
   BibleStudy: { studyId: string };
+  BibleStudyDetails: { studyId: string; prayerId: string };
   Settings: undefined;
   Privacy: undefined;
   Notifications: undefined;
   Support: undefined;
   CreateTicket: undefined;
+  ReportContent: { type: 'prayer' | 'comment' | 'user' | 'group'; id: string };
   TicketDetails: { ticketId: string };
   About: undefined;
   Help: undefined;
@@ -49,10 +51,10 @@ export type AuthStackParamList = {
 export type MainTabParamList = {
   Home: undefined;
   Discover: undefined;
+  Search: undefined;
   Groups: undefined;
   Create: undefined;
   Messages: undefined;
-  Search: undefined;
   Notifications: undefined;
   Profile: undefined;
 };

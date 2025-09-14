@@ -21,6 +21,7 @@ interface PrayerCardProps {
   onSharePress: () => void;
   onSavePress?: () => void;
   isSaved?: boolean;
+  isInteracting?: boolean;
   onReportPress?: () => void;
   onBlockUserPress?: () => void;
 }
@@ -30,7 +31,7 @@ interface PrayerCardProps {
  * Implements Single Responsibility: Only displays prayer information
  */
 const PrayerCard: React.FC<PrayerCardProps> = memo((
-  { prayer, onPress, onPrayPress, onCommentPress, onSharePress, onSavePress, isSaved, onReportPress, onBlockUserPress }
+  { prayer, onPress, onPrayPress, onCommentPress, onSharePress, onSavePress, isSaved, isInteracting, onReportPress, onBlockUserPress }: PrayerCardProps
 ) => {
   const { theme } = useTheme();
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -171,7 +172,7 @@ const PrayerCard: React.FC<PrayerCardProps> = memo((
 
         {prayer.tags && prayer.tags.length > 0 && (
           <View style={styles.tagsContainer}>
-            {prayer.tags.slice(0, 3).map((tag, index) => (
+            {prayer.tags.slice(0, 3).map((tag: string, index: number) => (
               <View key={index} style={styles.tag}>
                 <Text style={styles.tagText}>#{tag}</Text>
               </View>
@@ -182,12 +183,13 @@ const PrayerCard: React.FC<PrayerCardProps> = memo((
 
       <View style={styles.actions}>
         <Pressable
-          style={styles.actionButton}
+          style={[styles.actionButton, isInteracting && styles.actionButtonDisabled]}
           onPress={() => handleActionPress(onPrayPress)}
+          disabled={isInteracting}
           accessibilityRole="button"
           accessibilityLabel={`${prayer.user_interaction?.type === 'PRAY' ? 'Remove prayer' : 'Pray for this'}`}
           accessibilityHint={`Double tap to ${prayer.user_interaction?.type === 'PRAY' ? 'remove your prayer' : 'add your prayer'}`}
-          accessibilityState={{ pressed: prayer.user_interaction?.type === 'PRAY' }}
+          accessibilityState={{ pressed: prayer.user_interaction?.type === 'PRAY', disabled: isInteracting }}
         >
           <Ionicons
             name={prayer.user_interaction?.type === 'PRAY' ? 'heart' : 'heart-outline'}
@@ -196,7 +198,8 @@ const PrayerCard: React.FC<PrayerCardProps> = memo((
           />
           <Text style={[
             styles.actionText,
-            prayer.user_interaction?.type === 'PRAY' && { color: theme.colors.error[500] }
+            prayer.user_interaction?.type === 'PRAY' && { color: theme.colors.error[500] },
+            isInteracting && { opacity: 0.6 }
           ]}>
             Pray
           </Text>
@@ -220,24 +223,27 @@ const PrayerCard: React.FC<PrayerCardProps> = memo((
         </Pressable>
 
         <Pressable
-          style={styles.actionButton}
+          style={[styles.actionButton, isInteracting && styles.actionButtonDisabled]}
           onPress={() => handleActionPress(onSharePress)}
+          disabled={isInteracting}
           accessibilityRole="button"
           accessibilityLabel="Share prayer"
           accessibilityHint="Double tap to share this prayer with others"
+          accessibilityState={{ disabled: isInteracting }}
         >
           <Ionicons name="share-outline" size={20} color={theme.colors.text.secondary} />
-          <Text style={styles.actionText}>Share</Text>
+          <Text style={[styles.actionText, isInteracting && { opacity: 0.6 }]}>Share</Text>
         </Pressable>
 
         {onSavePress && (
           <Pressable
-            style={styles.actionButton}
+            style={[styles.actionButton, isInteracting && styles.actionButtonDisabled]}
             onPress={() => handleActionPress(onSavePress)}
+            disabled={isInteracting}
             accessibilityRole="button"
             accessibilityLabel={`${isSaved ? 'Remove from saved prayers' : 'Save prayer'}`}
             accessibilityHint={`Double tap to ${isSaved ? 'remove from' : 'add to'} your saved prayers`}
-            accessibilityState={{ pressed: isSaved }}
+            accessibilityState={{ pressed: isSaved, disabled: isInteracting }}
           >
             <Ionicons
               name={isSaved ? "bookmark" : "bookmark-outline"}
@@ -246,7 +252,8 @@ const PrayerCard: React.FC<PrayerCardProps> = memo((
             />
             <Text style={[
               styles.actionText,
-              isSaved && { color: theme.colors.primary[600] }
+              isSaved && { color: theme.colors.primary[600] },
+              isInteracting && { opacity: 0.6 }
             ]}>
               Save
             </Text>
@@ -380,6 +387,9 @@ const createStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 4,
     paddingHorizontal: 8,
+  },
+  actionButtonDisabled: {
+    opacity: 0.6,
   },
   actionText: {
     marginLeft: 6,

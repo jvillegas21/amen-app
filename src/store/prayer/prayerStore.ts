@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { Prayer } from '@/types/database.types';
 import { prayerService } from '@/services/api/prayerService';
+import { prayerRealtimeService } from '@/services/realtime/prayerRealtimeService';
+import { offlineService } from '@/services/offline/offlineService';
 
 /**
  * Prayer Store Interface
@@ -14,6 +16,8 @@ interface PrayerState {
   hasMore: boolean;
   currentPage: number;
   error: string | null;
+  currentFeedType: 'following' | 'discover' | null;
+  realtimeSubscriptions: Set<string>;
 
   // Actions
   fetchPrayers: (feedType: 'following' | 'discover', page?: number) => Promise<void>;
@@ -25,12 +29,19 @@ interface PrayerState {
   interactWithPrayer: (prayerId: string, type: 'PRAY' | 'LIKE' | 'SHARE' | 'SAVE') => Promise<void>;
   clearError: () => void;
   setLoading: (loading: boolean) => void;
+  
+  // Real-time actions
+  subscribeToRealtime: (feedType: 'following' | 'discover') => void;
+  unsubscribeFromRealtime: () => void;
+  addPrayerFromRealtime: (prayer: Prayer) => void;
+  updatePrayerFromRealtime: (prayer: Prayer) => void;
+  updatePrayerInteraction: (prayerId: string, interactionCount: number, userInteraction: any) => void;
 }
 
 /**
  * Prayer Store Implementation
  */
-export const usePrayerStore = create<PrayerState>((set, get) => ({
+export const usePrayerStore = create<PrayerState>((set: any, get: any) => ({
   // Initial State
   prayers: [],
   isLoading: false,
@@ -38,6 +49,8 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
   hasMore: true,
   currentPage: 1,
   error: null,
+  currentFeedType: null,
+  realtimeSubscriptions: new Set(),
 
   // Fetch Prayers
   fetchPrayers: async (feedType: 'following' | 'discover', page = 1) => {
@@ -104,14 +117,56 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const newPrayer = await prayerService.createPrayer(prayerData);
+      const isOnline = await offlineService.isOnline();
       
-      set({
-        prayers: [newPrayer, ...get().prayers],
-        isLoading: false,
-      });
+      if (isOnline) {
+        // Online: Create prayer directly
+        const newPrayer = await prayerService.createPrayer(prayerData);
+        
+        set({
+          prayers: [newPrayer, ...get().prayers],
+          isLoading: false,
+        });
 
-      return newPrayer;
+        return newPrayer;
+      } else {
+        // Offline: Queue action and store locally
+        const tempPrayer: Prayer = {
+          id: `temp-${Date.now()}`,
+          user_id: prayerData.user_id,
+          text: prayerData.text,
+          privacy_level: prayerData.privacy_level,
+          location_city: prayerData.location_city,
+          location_lat: prayerData.location_lat,
+          location_lon: prayerData.location_lon,
+          location_granularity: prayerData.location_granularity || 'hidden',
+          group_id: prayerData.group_id,
+          status: 'open',
+          is_anonymous: prayerData.is_anonymous || false,
+          tags: prayerData.tags || [],
+          images: prayerData.images || [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          expires_at: prayerData.expires_at,
+          user: prayerData.user,
+          interaction_count: 0,
+          comment_count: 0,
+        };
+
+        // Store offline and queue for sync
+        await offlineService.storePrayerOffline(tempPrayer);
+        await offlineService.queueAction({
+          type: 'CREATE_PRAYER',
+          data: prayerData,
+        });
+
+        set({
+          prayers: [tempPrayer, ...get().prayers],
+          isLoading: false,
+        });
+
+        return tempPrayer;
+      }
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to create prayer',
@@ -129,7 +184,7 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
       const updatedPrayer = await prayerService.updatePrayer(prayerId, updates);
       
       set({
-        prayers: get().prayers.map(prayer => 
+        prayers: get().prayers.map((prayer: Prayer) => 
           prayer.id === prayerId ? updatedPrayer : prayer
         ),
         isLoading: false,
@@ -150,7 +205,7 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
       await prayerService.deletePrayer(prayerId);
       
       set({
-        prayers: get().prayers.filter(prayer => prayer.id !== prayerId),
+        prayers: get().prayers.filter((prayer: Prayer) => prayer.id !== prayerId),
         isLoading: false,
       });
     } catch (error) {
@@ -163,26 +218,56 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
 
   // Interact with Prayer
   interactWithPrayer: async (prayerId: string, type: 'PRAY' | 'LIKE' | 'SHARE' | 'SAVE') => {
+    const originalPrayers = [...get().prayers];
+    
     try {
-      await prayerService.interactWithPrayer(prayerId, { type });
-      
-      // Update local state optimistically
+      // Optimistic update
       set({
-        prayers: get().prayers.map(prayer => {
+        prayers: get().prayers.map((prayer: Prayer) => {
           if (prayer.id === prayerId) {
+            const isAlreadyInteracted = prayer.user_interaction?.type === type;
             return {
               ...prayer,
-              user_interaction: { type, created_at: new Date().toISOString() },
-              interaction_count: (prayer.interaction_count || 0) + 1,
+              user_interaction: isAlreadyInteracted ? undefined : { 
+                type, 
+                created_at: new Date().toISOString(),
+                id: 'temp-' + Date.now(),
+                prayer_id: prayerId,
+                user_id: 'current-user'
+              },
+              interaction_count: isAlreadyInteracted 
+                ? Math.max(0, (prayer.interaction_count || 0) - 1)
+                : (prayer.interaction_count || 0) + 1,
             };
           }
           return prayer;
         }),
       });
+
+      const isOnline = await offlineService.isOnline();
+      
+      if (isOnline) {
+        // Online: Make API call
+        await prayerService.interactWithPrayer(prayerId, { type });
+      } else {
+        // Offline: Queue action for later sync
+        await offlineService.queueAction({
+          type: 'INTERACT_PRAYER',
+          data: {
+            prayer_id: prayerId,
+            type,
+            committed_at: new Date().toISOString(),
+          },
+        });
+      }
+      
     } catch (error) {
+      // Rollback on error
+      set({ prayers: originalPrayers });
       set({
         error: error instanceof Error ? error.message : 'Failed to interact with prayer',
       });
+      throw error;
     }
   },
 
@@ -191,4 +276,73 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
 
   // Set Loading
   setLoading: (loading: boolean) => set({ isLoading: loading }),
+
+  // Real-time actions
+  subscribeToRealtime: (feedType: 'following' | 'discover') => {
+    const { currentFeedType, realtimeSubscriptions } = get();
+    
+    // Unsubscribe from previous feed if different
+    if (currentFeedType && currentFeedType !== feedType) {
+      get().unsubscribeFromRealtime();
+    }
+    
+    // Subscribe to new feed
+    const channelName = prayerRealtimeService.subscribeToPrayerFeed(
+      feedType,
+      undefined,
+      (prayer: Prayer) => {
+        // Add new prayer to the beginning of the list
+        set({
+          prayers: [prayer, ...get().prayers],
+        });
+      }
+    );
+    
+    set({
+      currentFeedType: feedType,
+      realtimeSubscriptions: new Set([...realtimeSubscriptions, channelName]),
+    });
+  },
+
+  unsubscribeFromRealtime: () => {
+    const { realtimeSubscriptions } = get();
+    
+    realtimeSubscriptions.forEach((channelName: string) => {
+      prayerRealtimeService.unsubscribe(channelName);
+    });
+    
+    set({
+      currentFeedType: null,
+      realtimeSubscriptions: new Set(),
+    });
+  },
+
+  addPrayerFromRealtime: (prayer: Prayer) => {
+    set({
+      prayers: [prayer, ...get().prayers],
+    });
+  },
+
+  updatePrayerFromRealtime: (updatedPrayer: Prayer) => {
+    set({
+      prayers: get().prayers.map((prayer: Prayer) =>
+        prayer.id === updatedPrayer.id ? updatedPrayer : prayer
+      ),
+    });
+  },
+
+  updatePrayerInteraction: (prayerId: string, interactionCount: number, userInteraction: any) => {
+    set({
+      prayers: get().prayers.map((prayer: Prayer) => {
+        if (prayer.id === prayerId) {
+          return {
+            ...prayer,
+            interaction_count: interactionCount,
+            user_interaction: userInteraction,
+          };
+        }
+        return prayer;
+      }),
+    });
+  },
 }));
