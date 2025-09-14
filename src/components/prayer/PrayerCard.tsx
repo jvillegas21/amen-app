@@ -1,14 +1,17 @@
-import React, { memo } from 'react';
+import React, { memo, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   Image,
+  Animated,
+  Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Prayer } from '@/types/database.types';
 import { formatDistanceToNow } from 'date-fns';
+import { useTheme } from '@/theme/ThemeContext';
+import * as Haptics from 'expo-haptics';
 
 interface PrayerCardProps {
   prayer: Prayer;
@@ -29,17 +32,80 @@ interface PrayerCardProps {
 const PrayerCard: React.FC<PrayerCardProps> = memo((
   { prayer, onPress, onPrayPress, onCommentPress, onSharePress, onSavePress, isSaved, onReportPress, onBlockUserPress }
 ) => {
+  const { theme } = useTheme();
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const opacityAnim = useRef(new Animated.Value(1)).current;
+
   const timeAgo = formatDistanceToNow(new Date(prayer.created_at), { addSuffix: true });
   const isAnonymous = prayer.is_anonymous;
   const displayName = isAnonymous ? 'Anonymous' : prayer.user?.display_name || 'User';
   const avatarUrl = isAnonymous ? null : prayer.user?.avatar_url;
 
+  const handlePressIn = useCallback(() => {
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 0.98,
+        useNativeDriver: true,
+        tension: 300,
+        friction: 10,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 0.9,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [scaleAnim, opacityAnim]);
+
+  const handlePressOut = useCallback(() => {
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 300,
+        friction: 10,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [scaleAnim, opacityAnim]);
+
+  const handlePress = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onPress();
+  }, [onPress]);
+
+  const handleActionPress = useCallback(async (action: () => void) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    action();
+  }, []);
+
+  const styles = createStyles(theme);
+
   return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={onPress}
-      activeOpacity={0.7}
+    <Animated.View
+      style={[
+        {
+          transform: [{ scale: scaleAnim }],
+          opacity: opacityAnim,
+        },
+      ]}
     >
+      <Pressable
+        style={styles.container}
+        onPress={handlePress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        accessibilityRole="button"
+        accessibilityLabel={`Prayer by ${displayName}, ${timeAgo}. ${prayer.text}`}
+        accessibilityHint="Double tap to view prayer details"
+        accessibilityState={{
+          selected: prayer.user_interaction?.type === 'PRAY'
+        }}
+      >
       <View style={styles.header}>
         <View style={styles.userInfo}>
           {avatarUrl ? (
@@ -49,7 +115,7 @@ const PrayerCard: React.FC<PrayerCardProps> = memo((
               <Ionicons
                 name={isAnonymous ? 'person-outline' : 'person'}
                 size={20}
-                color="#9CA3AF"
+                color={theme.colors.neutral[400]}
               />
             </View>
           )}
@@ -61,7 +127,7 @@ const PrayerCard: React.FC<PrayerCardProps> = memo((
                 <>
                   <Text style={styles.separator}>•</Text>
                   <View style={styles.locationContainer}>
-                    <Ionicons name="location-outline" size={12} color="#9CA3AF" />
+                    <Ionicons name="location-outline" size={12} color={theme.colors.neutral[400]} />
                     <Text style={styles.locationText}>{prayer.location_city}</Text>
                   </View>
                 </>
@@ -81,14 +147,19 @@ const PrayerCard: React.FC<PrayerCardProps> = memo((
                     : 'people-circle-outline'
                 }
                 size={12}
-                color="#6B7280"
+                color={theme.colors.text.secondary}
               />
             </View>
           )}
           {(onReportPress || onBlockUserPress) && (
-            <TouchableOpacity style={styles.menuButton}>
-              <Ionicons name="ellipsis-horizontal" size={16} color="#6B7280" />
-            </TouchableOpacity>
+            <Pressable
+              style={styles.menuButton}
+              accessibilityRole="button"
+              accessibilityLabel="Prayer options"
+              accessibilityHint="Double tap to see more options for this prayer"
+            >
+              <Ionicons name="ellipsis-horizontal" size={16} color={theme.colors.text.secondary} />
+            </Pressable>
           )}
         </View>
       </View>
@@ -110,112 +181,120 @@ const PrayerCard: React.FC<PrayerCardProps> = memo((
       </View>
 
       <View style={styles.actions}>
-        <TouchableOpacity
+        <Pressable
           style={styles.actionButton}
-          onPress={onPrayPress}
-          activeOpacity={0.7}
+          onPress={() => handleActionPress(onPrayPress)}
+          accessibilityRole="button"
+          accessibilityLabel={`${prayer.user_interaction?.type === 'PRAY' ? 'Remove prayer' : 'Pray for this'}`}
+          accessibilityHint={`Double tap to ${prayer.user_interaction?.type === 'PRAY' ? 'remove your prayer' : 'add your prayer'}`}
+          accessibilityState={{ pressed: prayer.user_interaction?.type === 'PRAY' }}
         >
           <Ionicons
             name={prayer.user_interaction?.type === 'PRAY' ? 'heart' : 'heart-outline'}
             size={20}
-            color={prayer.user_interaction?.type === 'PRAY' ? '#EF4444' : '#6B7280'}
+            color={prayer.user_interaction?.type === 'PRAY' ? theme.colors.error[500] : theme.colors.text.secondary}
           />
           <Text style={[
             styles.actionText,
-            prayer.user_interaction?.type === 'PRAY' && styles.actionTextActive
+            prayer.user_interaction?.type === 'PRAY' && { color: theme.colors.error[500] }
           ]}>
             Pray
           </Text>
           {prayer.interaction_count && prayer.interaction_count > 0 && (
             <Text style={styles.actionCount}>{prayer.interaction_count}</Text>
           )}
-        </TouchableOpacity>
+        </Pressable>
 
-        <TouchableOpacity
+        <Pressable
           style={styles.actionButton}
-          onPress={onCommentPress}
-          activeOpacity={0.7}
+          onPress={() => handleActionPress(onCommentPress)}
+          accessibilityRole="button"
+          accessibilityLabel={`Comment on prayer${prayer.comment_count ? `, ${prayer.comment_count} comments` : ''}`}
+          accessibilityHint="Double tap to view and add comments"
         >
-          <Ionicons name="chatbubble-outline" size={20} color="#6B7280" />
+          <Ionicons name="chatbubble-outline" size={20} color={theme.colors.text.secondary} />
           <Text style={styles.actionText}>Comment</Text>
           {prayer.comment_count && prayer.comment_count > 0 && (
             <Text style={styles.actionCount}>{prayer.comment_count}</Text>
           )}
-        </TouchableOpacity>
+        </Pressable>
 
-        <TouchableOpacity
+        <Pressable
           style={styles.actionButton}
-          onPress={onSharePress}
-          activeOpacity={0.7}
+          onPress={() => handleActionPress(onSharePress)}
+          accessibilityRole="button"
+          accessibilityLabel="Share prayer"
+          accessibilityHint="Double tap to share this prayer with others"
         >
-          <Ionicons name="share-outline" size={20} color="#6B7280" />
+          <Ionicons name="share-outline" size={20} color={theme.colors.text.secondary} />
           <Text style={styles.actionText}>Share</Text>
-        </TouchableOpacity>
+        </Pressable>
 
         {onSavePress && (
-          <TouchableOpacity
+          <Pressable
             style={styles.actionButton}
-            onPress={onSavePress}
-            activeOpacity={0.7}
+            onPress={() => handleActionPress(onSavePress)}
+            accessibilityRole="button"
+            accessibilityLabel={`${isSaved ? 'Remove from saved prayers' : 'Save prayer'}`}
+            accessibilityHint={`Double tap to ${isSaved ? 'remove from' : 'add to'} your saved prayers`}
+            accessibilityState={{ pressed: isSaved }}
           >
             <Ionicons
               name={isSaved ? "bookmark" : "bookmark-outline"}
               size={20}
-              color={isSaved ? "#5B21B6" : "#6B7280"}
+              color={isSaved ? theme.colors.primary[600] : theme.colors.text.secondary}
             />
             <Text style={[
               styles.actionText,
-              isSaved && styles.actionTextActive
+              isSaved && { color: theme.colors.primary[600] }
             ]}>
               Save
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         )}
       </View>
 
-      {prayer.status === 'answered' && (
-        <View style={styles.answeredBadge}>
-          <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-          <Text style={styles.answeredText}>Answered</Text>
-        </View>
-      )}
-    </TouchableOpacity>
+        {prayer.status === 'answered' && (
+          <View style={styles.answeredBadge}>
+            <Ionicons name="checkmark-circle" size={16} color={theme.colors.success[500]} />
+            <Text style={styles.answeredText}>Answered</Text>
+          </View>
+        )}
+      </Pressable>
+    </Animated.View>
   );
 });
 
 PrayerCard.displayName = 'PrayerCard';
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginVertical: 8,
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: theme.colors.surface.card,
+    marginHorizontal: theme.spacing[4],
+    marginVertical: theme.spacing[2],
+    borderRadius: theme.borderRadius.xl,
+    padding: theme.spacing[4],
+    ...theme.shadows.sm,
+    shadowColor: theme.colors.neutral[1000],
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: theme.spacing[3],
   },
   userInfo: {
     flexDirection: 'row',
     flex: 1,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
+    width: theme.spacing[10],
+    height: theme.spacing[10],
+    borderRadius: theme.spacing[5],
+    marginRight: theme.spacing[3],
   },
   avatarPlaceholder: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.colors.background.tertiary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -223,23 +302,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 2,
+    ...theme.typography.label.medium,
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing[0.5],
   },
   metaInfo: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   timeText: {
-    fontSize: 12,
-    color: '#9CA3AF',
+    ...theme.typography.caption.medium,
+    color: theme.colors.text.tertiary,
   },
   separator: {
-    marginHorizontal: 6,
-    color: '#9CA3AF',
-    fontSize: 12,
+    marginHorizontal: theme.spacing[1.5],
+    color: theme.colors.text.tertiary,
+    ...theme.typography.caption.medium,
   },
   locationContainer: {
     flexDirection: 'row',

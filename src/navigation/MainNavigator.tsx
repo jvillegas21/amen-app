@@ -2,15 +2,13 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { MainTabParamList } from '@/types/navigation.types';
+import { theme } from '@/theme';
 
 // Tab Screen imports
 import HomeScreen from '@/screens/main/HomeScreen';
 import DiscoverScreen from '@/screens/main/DiscoverScreen';
 import GroupsNavigator from './GroupsNavigator';
 import CreateScreen from '@/screens/main/CreateScreen';
-import DirectMessagesScreen from '@/screens/messages/DirectMessagesScreen';
-import SearchScreen from '@/screens/search/SearchScreen';
-import NotificationsScreen from '@/screens/notifications/NotificationsScreen';
 import ProfileNavigator from './ProfileNavigator';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -31,22 +29,13 @@ const MainNavigator: React.FC = () => {
               iconName = focused ? 'home' : 'home-outline';
               break;
             case 'Discover':
-              iconName = focused ? 'search' : 'search-outline';
-              break;
-            case 'Groups':
-              iconName = focused ? 'people' : 'people-outline';
+              iconName = focused ? 'compass' : 'compass-outline';
               break;
             case 'Create':
               iconName = focused ? 'add-circle' : 'add-circle-outline';
               break;
-            case 'Messages':
-              iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
-              break;
-            case 'Search':
-              iconName = focused ? 'search' : 'search-outline';
-              break;
-            case 'Notifications':
-              iconName = focused ? 'notifications' : 'notifications-outline';
+            case 'Groups':
+              iconName = focused ? 'people' : 'people-outline';
               break;
             case 'Profile':
               iconName = focused ? 'person' : 'person-outline';
@@ -55,28 +44,32 @@ const MainNavigator: React.FC = () => {
               iconName = 'alert-circle-outline';
           }
 
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons
+            name={iconName}
+            size={size}
+            color={color}
+            accessibilityLabel={`${route.name} tab`}
+          />;
         },
-        tabBarActiveTintColor: '#5B21B6',
-        tabBarInactiveTintColor: '#6B7280',
+        tabBarActiveTintColor: theme.colors.primary[600],
+        tabBarInactiveTintColor: theme.colors.neutral[500],
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.colors.background.primary,
           borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
+          borderTopColor: theme.colors.border.primary,
+          paddingBottom: theme.spacing[1],
+          paddingTop: theme.spacing[1],
+          height: theme.layout.tabBarHeight,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
+          ...theme.typography.tabBar.active,
         },
         headerStyle: {
-          backgroundColor: '#5B21B6',
+          backgroundColor: theme.colors.primary[600],
         },
-        headerTintColor: '#FFFFFF',
+        headerTintColor: theme.colors.text.inverse,
         headerTitleStyle: {
-          fontWeight: 'bold',
+          ...theme.typography.navigation.title,
         },
       })}
     >
@@ -86,62 +79,43 @@ const MainNavigator: React.FC = () => {
         options={{
           title: 'Prayer Feed',
           headerShown: true,
+          tabBarAccessibilityLabel: 'Home, tab 1 of 5',
         }}
       />
       <Tab.Screen
         name="Discover"
         component={DiscoverScreen}
         options={{
-          title: 'Discover',
+          title: 'Discover & Search',
           headerShown: true,
-        }}
-      />
-      <Tab.Screen
-        name="Groups"
-        component={GroupsNavigator}
-        options={{
-          title: 'Groups',
-          headerShown: false, // Groups has its own navigation header
+          tabBarAccessibilityLabel: 'Discover, tab 2 of 5',
         }}
       />
       <Tab.Screen
         name="Create"
         component={CreateScreen}
         options={{
-          title: 'Create',
+          title: 'Create Prayer',
           headerShown: true,
+          tabBarAccessibilityLabel: 'Create, tab 3 of 5',
         }}
       />
       <Tab.Screen
-        name="Messages"
-        component={DirectMessagesScreen}
+        name="Groups"
+        component={GroupsNavigator}
         options={{
-          title: 'Messages',
-          headerShown: true,
-        }}
-      />
-      <Tab.Screen
-        name="Search"
-        component={SearchScreen}
-        options={{
-          title: 'Search',
-          headerShown: true,
-        }}
-      />
-      <Tab.Screen
-        name="Notifications"
-        component={NotificationsScreen}
-        options={{
-          title: 'Notifications',
-          headerShown: true,
+          title: 'Prayer Groups',
+          headerShown: false, // Groups has its own navigation header
+          tabBarAccessibilityLabel: 'Groups, tab 4 of 5',
         }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileNavigator}
         options={{
-          title: 'Profile',
+          title: 'My Profile',
           headerShown: false, // Profile has its own navigation header
+          tabBarAccessibilityLabel: 'Profile, tab 5 of 5',
         }}
       />
     </Tab.Navigator>

@@ -17,6 +17,7 @@ interface BibleStudy {
   reflection: string;
   questions: string[];
   prayer_focus: string;
+  application?: string;
 }
 
 interface AIResponse<T> {
@@ -78,7 +79,8 @@ class AIService {
    */
   async generateBibleStudy(
     prayerText: string,
-    topic?: string
+    topic?: string,
+    userId?: string
   ): Promise<AIResponse<BibleStudy>> {
     try {
       if (!this.apiKey) {
@@ -97,7 +99,16 @@ class AIService {
 
       // Parse the AI response into structured Bible study
       const bibleStudy = this.parseBibleStudy(response.data);
-      
+
+      // Save analytics if user ID provided
+      if (userId) {
+        await this.saveGenerationAnalytics(userId, 'bible_study', {
+          prayer_text: prayerText,
+          topic,
+          generated_study: bibleStudy.title
+        });
+      }
+
       return {
         success: true,
         data: bibleStudy,
@@ -193,11 +204,11 @@ class AIService {
           'Authorization': `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
+          model: 'gpt-4-turbo-preview',
           messages: [
             {
               role: 'system',
-              content: 'You are a helpful AI assistant for a Christian prayer app. Provide thoughtful, encouraging, and biblically-based responses.',
+              content: 'You are a helpful AI assistant for a Christian prayer app. Provide thoughtful, encouraging, and biblically-based responses. Always be compassionate, theologically sound, and focus on God\'s love and grace.',
             },
             {
               role: 'user',
@@ -210,7 +221,8 @@ class AIService {
       });
 
       if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
@@ -268,21 +280,26 @@ Format the response as JSON with this structure:
    * Build prompt for Bible study generation
    */
   private buildBibleStudyPrompt(prayerText: string, topic?: string): string {
-    return `Based on this prayer request: "${prayerText}"${topic ? ` focusing on: ${topic}` : ''}, create a Bible study that would provide spiritual guidance and encouragement.
+    return `Based on this prayer request: "${prayerText}"${topic ? ` focusing on: ${topic}` : ''}, create a comprehensive Bible study that would provide spiritual guidance and encouragement.
 
 Include:
-- A relevant scripture passage (2-3 verses)
-- A thoughtful reflection on how this scripture relates to the prayer request
-- 3-4 discussion questions for personal reflection
-- A prayer focus that ties everything together
+- A compelling and meaningful title
+- A relevant scripture passage (2-3 verses with proper references)
+- A thoughtful reflection on how this scripture relates to the prayer request (200-300 words)
+- 4-5 discussion questions for personal reflection and deeper study
+- A prayer focus statement that ties everything together
+- Practical application suggestions for daily life
+
+Make it encouraging, biblically sound, and personally applicable. Focus on God's character, promises, and love.
 
 Format the response as JSON with this structure:
 {
   "title": "Bible Study Title",
-  "scripture": "Scripture passage text",
-  "reflection": "Thoughtful reflection",
-  "questions": ["Question 1", "Question 2", "Question 3"],
-  "prayer_focus": "Prayer focus statement"
+  "scripture": "Scripture passage text with references",
+  "reflection": "Thoughtful reflection (200-300 words)",
+  "questions": ["Question 1", "Question 2", "Question 3", "Question 4", "Question 5"],
+  "prayer_focus": "Prayer focus statement",
+  "application": "Practical application suggestions"
 }`;
   }
 
@@ -350,20 +367,24 @@ Format the response as JSON with this structure:
         reflection: parsed.reflection || '',
         questions: parsed.questions || [],
         prayer_focus: parsed.prayer_focus || '',
+        application: parsed.application || '',
       };
     } catch (error) {
       console.error('Error parsing Bible study:', error);
-      // Fallback: return mock Bible study
+      // Fallback: return structured Bible study
       return {
         title: 'Finding Peace in Difficult Times',
         scripture: 'Peace I leave with you; my peace I give you. I do not give to you as the world gives. Do not let your hearts be troubled and do not be afraid. - John 14:27',
-        reflection: 'In times of uncertainty, Jesus offers us a peace that transcends our circumstances.',
+        reflection: 'In times of uncertainty and difficulty, Jesus offers us a peace that is fundamentally different from what the world provides. This peace is not dependent on our circumstances, but on His unchanging character and promises. When we feel overwhelmed by life\'s challenges, we can anchor our hearts in this divine peace that surpasses all understanding. Christ\'s peace is not the absence of trouble, but His presence in the midst of our troubles.',
         questions: [
           'What does it mean to have peace that is different from the world\'s peace?',
           'How can we practice not letting our hearts be troubled?',
           'What situations in your life need this kind of peace?',
+          'How does trusting in Jesus\' promises help us find peace?',
+          'What practical steps can you take to cultivate this peace daily?',
         ],
-        prayer_focus: 'Pray for the peace of Christ to fill your heart and mind.',
+        prayer_focus: 'Pray for the peace of Christ to fill your heart and mind, asking Him to help you trust in His promises even in difficult circumstances.',
+        application: 'Practice daily prayer and meditation on Scripture. When anxiety arises, remind yourself of Jesus\' promise of peace and choose to trust rather than worry.',
       };
     }
   }
@@ -410,6 +431,35 @@ Format the response as JSON with this structure:
       configured: true,
       message: 'AI service is properly configured and ready to use.',
     };
+  }
+
+  /**
+   * Save analytics for AI generation
+   */
+  private async saveGenerationAnalytics(userId: string, type: string, data: any): Promise<void> {
+    try {
+      const { supabase } = await import('@/config/supabase');
+      await supabase.from('user_analytics').insert({
+        user_id: userId,
+        event_type: `ai_generation_${type}`,
+        event_data: data,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('Failed to save generation analytics:', error);
+      // Don't throw - analytics is non-critical
+    }
+  }
+
+  /**
+   * Generate text using OpenAI (public method)
+   */
+  async generateText(prompt: string, temperature = 0.7, maxTokens = 1000): Promise<string> {
+    const response = await this.callOpenAI(prompt, temperature, maxTokens);
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to generate text');
+    }
+    return response.data;
   }
 }
 

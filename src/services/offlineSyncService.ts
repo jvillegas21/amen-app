@@ -176,46 +176,195 @@ class OfflineSyncService {
    * Sync prayer item
    */
   private async syncPrayer(item: SyncItem): Promise<boolean> {
-    // TODO: Implement actual API calls to Supabase
-    // For now, simulate API call
-    await this.simulateApiCall();
-    return true;
+    try {
+      const { supabase } = await import('@/config/supabase');
+
+      switch (item.action) {
+        case 'create':
+          const { error: createError } = await supabase
+            .from('prayers')
+            .insert(item.data);
+          if (createError) throw createError;
+          break;
+
+        case 'update':
+          const { error: updateError } = await supabase
+            .from('prayers')
+            .update(item.data)
+            .eq('id', item.data.id);
+          if (updateError) throw updateError;
+          break;
+
+        case 'delete':
+          const { error: deleteError } = await supabase
+            .from('prayers')
+            .delete()
+            .eq('id', item.data.id);
+          if (deleteError) throw deleteError;
+          break;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Failed to sync prayer:', error);
+      return false;
+    }
   }
 
   /**
    * Sync comment item
    */
   private async syncComment(item: SyncItem): Promise<boolean> {
-    // TODO: Implement actual API calls to Supabase
-    await this.simulateApiCall();
-    return true;
+    try {
+      const { supabase } = await import('@/config/supabase');
+
+      switch (item.action) {
+        case 'create':
+          const { error: createError } = await supabase
+            .from('comments')
+            .insert(item.data);
+          if (createError) throw createError;
+          break;
+
+        case 'update':
+          const { error: updateError } = await supabase
+            .from('comments')
+            .update(item.data)
+            .eq('id', item.data.id);
+          if (updateError) throw updateError;
+          break;
+
+        case 'delete':
+          const { error: deleteError } = await supabase
+            .from('comments')
+            .delete()
+            .eq('id', item.data.id);
+          if (deleteError) throw deleteError;
+          break;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Failed to sync comment:', error);
+      return false;
+    }
   }
 
   /**
    * Sync interaction item
    */
   private async syncInteraction(item: SyncItem): Promise<boolean> {
-    // TODO: Implement actual API calls to Supabase
-    await this.simulateApiCall();
-    return true;
+    try {
+      const { supabase } = await import('@/config/supabase');
+
+      switch (item.action) {
+        case 'create':
+          const { error: createError } = await supabase
+            .from('interactions')
+            .insert(item.data);
+          if (createError) throw createError;
+          break;
+
+        case 'update':
+          const { error: updateError } = await supabase
+            .from('interactions')
+            .update(item.data)
+            .eq('id', item.data.id);
+          if (updateError) throw updateError;
+          break;
+
+        case 'delete':
+          const { error: deleteError } = await supabase
+            .from('interactions')
+            .delete()
+            .eq('id', item.data.id);
+          if (deleteError) throw deleteError;
+          break;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Failed to sync interaction:', error);
+      return false;
+    }
   }
 
   /**
    * Sync message item
    */
   private async syncMessage(item: SyncItem): Promise<boolean> {
-    // TODO: Implement actual API calls to Supabase
-    await this.simulateApiCall();
-    return true;
+    try {
+      const { supabase } = await import('@/config/supabase');
+
+      switch (item.action) {
+        case 'create':
+          const { error: createError } = await supabase
+            .from('messages')
+            .insert(item.data);
+          if (createError) throw createError;
+          break;
+
+        case 'update':
+          const { error: updateError } = await supabase
+            .from('messages')
+            .update(item.data)
+            .eq('id', item.data.id);
+          if (updateError) throw updateError;
+          break;
+
+        case 'delete':
+          const { error: deleteError } = await supabase
+            .from('messages')
+            .delete()
+            .eq('id', item.data.id);
+          if (deleteError) throw deleteError;
+          break;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Failed to sync message:', error);
+      return false;
+    }
   }
 
   /**
    * Sync profile item
    */
   private async syncProfile(item: SyncItem): Promise<boolean> {
-    // TODO: Implement actual API calls to Supabase
-    await this.simulateApiCall();
-    return true;
+    try {
+      const { supabase } = await import('@/config/supabase');
+
+      switch (item.action) {
+        case 'create':
+          const { error: createError } = await supabase
+            .from('profiles')
+            .insert(item.data);
+          if (createError) throw createError;
+          break;
+
+        case 'update':
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update(item.data)
+            .eq('id', item.data.id);
+          if (updateError) throw updateError;
+          break;
+
+        case 'delete':
+          const { error: deleteError } = await supabase
+            .from('profiles')
+            .delete()
+            .eq('id', item.data.id);
+          if (deleteError) throw deleteError;
+          break;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Failed to sync profile:', error);
+      return false;
+    }
   }
 
   /**
@@ -241,37 +390,90 @@ class OfflineSyncService {
   ): Promise<any> {
     switch (strategy) {
       case 'server_wins':
+        console.log('Conflict resolved: server wins', { localData, serverData });
         return serverData;
-      
+
       case 'client_wins':
+        console.log('Conflict resolved: client wins', { localData, serverData });
         return localData;
-      
+
       case 'merge':
-        return this.mergeData(localData, serverData);
-      
+        const merged = this.mergeData(localData, serverData);
+        console.log('Conflict resolved: merged', { localData, serverData, merged });
+        return merged;
+
       case 'manual':
-        // TODO: Implement manual conflict resolution UI
+        console.log('Conflict requires manual resolution', { localData, serverData });
+        // For now, default to server wins until manual resolution UI is implemented
         return serverData;
-      
+
       default:
+        console.log('Unknown conflict resolution strategy, defaulting to server wins');
         return serverData;
     }
   }
 
   /**
-   * Merge local and server data
+   * Merge local and server data intelligently
    */
   private mergeData(localData: any, serverData: any): any {
-    // Simple merge strategy - server data takes precedence for most fields
-    // but preserve local timestamps and user-specific data
-    return {
+    // Intelligent merge strategy based on timestamps and data types
+    const localTimestamp = new Date(localData.updated_at || localData.created_at).getTime();
+    const serverTimestamp = new Date(serverData.updated_at || serverData.created_at).getTime();
+
+    const merged = {
       ...serverData,
-      ...localData,
       updated_at: new Date().toISOString(),
-      // Preserve local user-specific fields
-      local_created_at: localData.created_at,
-      local_updated_at: localData.updated_at,
+      // Preserve conflict resolution metadata
+      sync_resolved_at: new Date().toISOString(),
+      sync_strategy: 'merge',
     };
+
+    // Field-specific merge logic
+    Object.keys(localData).forEach(key => {
+      switch (key) {
+        case 'text':
+        case 'content':
+          // Use local version if it's newer or longer (more complete)
+          if (localTimestamp > serverTimestamp ||
+              (localData[key]?.length || 0) > (serverData[key]?.length || 0)) {
+            merged[key] = localData[key];
+          }
+          break;
+
+        case 'tags':
+        case 'images':
+          // Merge arrays, removing duplicates
+          const localArray = Array.isArray(localData[key]) ? localData[key] : [];
+          const serverArray = Array.isArray(serverData[key]) ? serverData[key] : [];
+          merged[key] = [...new Set([...serverArray, ...localArray])];
+          break;
+
+        case 'status':
+          // Use most restrictive status
+          const statusPriority = { open: 1, answered: 2, closed: 3 };
+          const localPriority = statusPriority[localData[key]] || 0;
+          const serverPriority = statusPriority[serverData[key]] || 0;
+          merged[key] = localPriority > serverPriority ? localData[key] : serverData[key];
+          break;
+
+        case 'privacy_level':
+          // Use more restrictive privacy level
+          const privacyPriority = { public: 1, friends: 2, private: 3 };
+          const localPrivacy = privacyPriority[localData[key]] || 0;
+          const serverPrivacy = privacyPriority[serverData[key]] || 0;
+          merged[key] = localPrivacy > serverPrivacy ? localData[key] : serverData[key];
+          break;
+
+        default:
+          // For other fields, use local if newer, otherwise keep server
+          if (localTimestamp > serverTimestamp && localData[key] !== undefined) {
+            merged[key] = localData[key];
+          }
+      }
+    });
+
+    return merged;
   }
 
   /**
