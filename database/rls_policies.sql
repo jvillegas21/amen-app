@@ -337,7 +337,7 @@ BEGIN
     LIMIT limit_count
     OFFSET offset_count;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
