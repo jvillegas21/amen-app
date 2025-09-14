@@ -17,7 +17,7 @@ import {
 import { RootStackScreenProps } from '@/types/navigation.types';
 import { usePrayerStore } from '@/store/prayer/prayerStore';
 import { useAuthStore } from '@/store/auth/authStore';
-import { openAIService } from '@/services/ai/openaiService';
+import { useAIIntegration } from '@/hooks/useAIIntegration';
 import { imageUploadService, ImageUploadResult } from '@/services/api/imageUploadService';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -30,6 +30,14 @@ import * as Location from 'expo-location';
 const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ navigation, route }) => {
   const { createPrayer, isLoading } = usePrayerStore();
   const { profile } = useAuthStore();
+  const { 
+    suggestions, 
+    isLoadingSuggestions, 
+    generateSuggestions, 
+    isGeneratingStudy, 
+    generateFullStudy,
+    isConfigured 
+  } = useAIIntegration();
   
   const [prayerText, setPrayerText] = useState('');
   const [privacyLevel, setPrivacyLevel] = useState<'public' | 'friends' | 'groups' | 'private'>('public');
@@ -38,8 +46,6 @@ const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ na
   const [location, setLocation] = useState<{ city?: string; lat?: number; lon?: number } | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showBibleStudyModal, setShowBibleStudyModal] = useState(false);
-  const [bibleStudySuggestions, setBibleStudySuggestions] = useState<any[]>([]);
-  const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
   
   const textInputRef = useRef<TextInput>(null);
   const debounceRef = useRef<NodeJS.Timeout>();
@@ -48,7 +54,7 @@ const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ na
 
   useEffect(() => {
     // Auto-generate Bible study suggestions when prayer text changes
-    if (prayerText.length > 20) {
+    if (prayerText.length > 20 && isConfigured) {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
@@ -63,22 +69,17 @@ const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ na
         clearTimeout(debounceRef.current);
       }
     };
-  }, [prayerText]);
+  }, [prayerText, isConfigured]);
 
   const generateBibleStudySuggestions = async () => {
-    if (prayerText.length < 20) return;
+    if (prayerText.length < 20 || !isConfigured) return;
 
-    setIsGeneratingSuggestions(true);
     try {
-      const suggestions = await openAIService.generateStudySuggestions({
-        prayer_text: prayerText,
-        user_id: profile?.id || '',
-      });
-      setBibleStudySuggestions(suggestions.suggestions);
+      // Generate a temporary prayer ID for suggestions
+      const tempPrayerId = `temp-${Date.now()}`;
+      await generateSuggestions(prayerText, tempPrayerId);
     } catch (error) {
       console.log('Failed to generate Bible study suggestions:', error);
-    } finally {
-      setIsGeneratingSuggestions(false);
     }
   };
 
@@ -194,19 +195,23 @@ const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ na
         </View>
 
         <ScrollView style={styles.suggestionsContainer}>
-          {isGeneratingSuggestions ? (
+          {isLoadingSuggestions ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#5B21B6" />
               <Text style={styles.loadingText}>Generating suggestions...</Text>
             </View>
           ) : (
-            bibleStudySuggestions.map((suggestion, index) => (
+            suggestions.map((suggestion, index) => (
               <TouchableOpacity
                 key={index}
                 style={styles.suggestionCard}
                 onPress={() => {
-                  // Navigate to Bible study screen
+                  // Navigate to Bible study details screen
                   setShowBibleStudyModal(false);
+                  navigation.navigate('BibleStudyDetails', {
+                    studyId: suggestion.id,
+                    prayerId: suggestion.prayerId,
+                  });
                 }}
               >
                 <Text style={styles.suggestionTitle}>{suggestion.title}</Text>
@@ -290,7 +295,7 @@ const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ na
                 </Text>
               </TouchableOpacity>
 
-              {bibleStudySuggestions.length > 0 && (
+              {suggestions.length > 0 && (
                 <TouchableOpacity
                   style={styles.actionButton}
                   onPress={() => setShowBibleStudyModal(true)}
