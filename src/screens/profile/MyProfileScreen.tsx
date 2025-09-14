@@ -152,14 +152,14 @@ const MyProfileScreen: React.FC<ProfileStackScreenProps<'MyProfile'>> = ({ navig
 
         <TouchableOpacity style={styles.quickAction} onPress={handleViewStatistics}>
           <View style={styles.quickActionIcon}>
-            <Ionicons name="bar-chart-outline" size={24} color="#10B981" />
+            <Ionicons name="bar-chart-outline" size={24} color="theme.colors.success[700]" />
           </View>
           <Text style={styles.quickActionText}>Statistics</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.quickAction} onPress={handleViewSavedPrayers}>
           <View style={styles.quickActionIcon}>
-            <Ionicons name="bookmark-outline" size={24} color="#F59E0B" />
+            <Ionicons name="bookmark-outline" size={24} color="theme.colors.warning[700]" />
           </View>
           <Text style={styles.quickActionText}>Saved Prayers</Text>
         </TouchableOpacity>

@@ -142,7 +142,7 @@ const AboutScreen: React.FC<RootStackScreenProps<'About'>> = ({ navigation }) =>
       
       <TouchableOpacity style={styles.linkItem} onPress={handleRateApp}>
         <View style={styles.linkContent}>
-          <Ionicons name="star" size={20} color="#F59E0B" />
+          <Ionicons name="star" size={20} color="theme.colors.warning[700]" />
           <Text style={styles.linkText}>Rate the App</Text>
         </View>
         <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
@@ -150,7 +150,7 @@ const AboutScreen: React.FC<RootStackScreenProps<'About'>> = ({ navigation }) =>
 
       <TouchableOpacity style={styles.linkItem} onPress={handleShareApp}>
         <View style={styles.linkContent}>
-          <Ionicons name="share" size={20} color="#10B981" />
+          <Ionicons name="share" size={20} color="theme.colors.success[700]" />
           <Text style={styles.linkText}>Share Amenity</Text>
         </View>
         <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />

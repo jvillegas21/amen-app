@@ -159,7 +159,7 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
 
       <View style={styles.prayerStats}>
         <View style={styles.statItem}>
-          <Ionicons name="heart" size={16} color="#EF4444" />
+          <Ionicons name="heart" size={16} color="theme.colors.error[700]" />
           <Text style={styles.statText}>{prayer.interaction_count || 0}</Text>
         </View>
         <View style={styles.statItem}>
@@ -230,7 +230,7 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
               )}
               
               <TouchableOpacity style={styles.leaveButton} onPress={handleLeaveGroup}>
-                <Ionicons name="exit" size={20} color="#EF4444" />
+                <Ionicons name="exit" size={20} color="theme.colors.error[700]" />
                 <Text style={styles.leaveButtonText}>Leave</Text>
               </TouchableOpacity>
             </>
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   leaveButtonText: {
-    color: '#EF4444',
+    color: 'theme.colors.error[700]',
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 6,

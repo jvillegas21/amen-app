@@ -86,9 +86,9 @@ export default function SupportTicketsScreen() {
       case 'open':
         return '#3B82F6';
       case 'in_progress':
-        return '#F59E0B';
+        return 'theme.colors.warning[700]';
       case 'resolved':
-        return '#10B981';
+        return 'theme.colors.success[700]';
       case 'closed':
         return '#6B7280';
       default:
@@ -114,13 +114,13 @@ export default function SupportTicketsScreen() {
   const getPriorityColor = (priority: SupportTicket['priority']) => {
     switch (priority) {
       case 'urgent':
-        return '#EF4444';
+        return 'theme.colors.error[700]';
       case 'high':
-        return '#F59E0B';
+        return 'theme.colors.warning[700]';
       case 'medium':
         return '#3B82F6';
       case 'low':
-        return '#10B981';
+        return 'theme.colors.success[700]';
       default:
         return '#6B7280';
     }

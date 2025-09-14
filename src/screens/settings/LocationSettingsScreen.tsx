@@ -177,7 +177,7 @@ export default function LocationSettingsScreen() {
                 <Ionicons 
                   name={locationAvailable ? "checkmark-circle" : "close-circle"} 
                   size={24} 
-                  color={locationAvailable ? "#10B981" : "#EF4444"} 
+                  color={locationAvailable ? "theme.colors.success[700]" : "theme.colors.error[700]"} 
                 />
                 <View style={styles.settingText}>
                   <Text style={styles.settingName}>

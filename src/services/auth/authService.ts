@@ -194,7 +194,7 @@ class AuthService implements IAuthService {
       const state = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
         Math.random().toString(),
-        { encoding: Crypto.CryptoEncoding.BASE64URL }
+        { encoding: Crypto.CryptoEncoding.BASE64 }
       );
 
       // Create the OAuth URL
@@ -259,7 +259,7 @@ class AuthService implements IAuthService {
       const state = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
         Math.random().toString(),
-        { encoding: Crypto.CryptoEncoding.BASE64URL }
+        { encoding: Crypto.CryptoEncoding.BASE64 }
       );
 
       // Create the OAuth URL
@@ -309,6 +309,53 @@ class AuthService implements IAuthService {
       console.error('Apple sign in error:', error);
       throw error;
     }
+  }
+
+  /**
+   * Enable Multi-Factor Authentication (MFA)
+   */
+  async enableMFA(): Promise<{ qrCode: string; secret: string }> {
+    const { data, error } = await supabase.auth.mfa.enroll({
+      factorType: 'totp'
+    });
+    
+    if (error) throw error;
+    return {
+      qrCode: data.totp?.qr_code || '',
+      secret: data.totp?.secret || ''
+    };
+  }
+
+  /**
+   * Verify MFA token
+   */
+  async verifyMFA(token: string, challengeId: string): Promise<void> {
+    const { error } = await supabase.auth.mfa.verify({
+      factorId: 'current-factor-id', // This should be the actual factor ID
+      challengeId,
+      code: token
+    });
+    
+    if (error) throw error;
+  }
+
+  /**
+   * Disable MFA
+   */
+  async disableMFA(): Promise<void> {
+    const { error } = await supabase.auth.mfa.unenroll({
+      factorId: 'current-factor-id' // This should be the actual factor ID
+    });
+    
+    if (error) throw error;
+  }
+
+  /**
+   * Check if user has MFA enabled
+   */
+  async hasMFAEnabled(): Promise<boolean> {
+    const { data: { user } } = await supabase.auth.getUser();
+    return !!(user?.factors && user.factors.length > 0);
   }
 
   /**

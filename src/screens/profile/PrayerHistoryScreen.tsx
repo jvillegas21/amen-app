@@ -107,7 +107,7 @@ const PrayerHistoryScreen: React.FC<ProfileStackScreenProps<'PrayerHistory'>> = 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'answered':
-        return '#10B981';
+        return 'theme.colors.success[700]';
       case 'active':
         return '#5B21B6';
       case 'private':
@@ -174,7 +174,7 @@ const PrayerHistoryScreen: React.FC<ProfileStackScreenProps<'PrayerHistory'>> = 
             style={styles.actionButton}
             onPress={() => handleDeletePrayer(item.id)}
           >
-            <Ionicons name="trash" size={16} color="#EF4444" />
+            <Ionicons name="trash" size={16} color="theme.colors.error[700]" />
           </TouchableOpacity>
         </View>
       </View>
@@ -186,7 +186,7 @@ const PrayerHistoryScreen: React.FC<ProfileStackScreenProps<'PrayerHistory'>> = 
       <View style={styles.prayerFooter}>
         <View style={styles.prayerStats}>
           <View style={styles.statItem}>
-            <Ionicons name="heart" size={14} color="#EF4444" />
+            <Ionicons name="heart" size={14} color="theme.colors.error[700]" />
             <Text style={styles.statText}>{item.prayerCount}</Text>
           </View>
           <View style={styles.statItem}>

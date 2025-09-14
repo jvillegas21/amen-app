@@ -388,7 +388,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontWeight: '500',
   },
   actionTextActive: {
-    color: '#EF4444',
+    color: 'theme.colors.error[700]',
   },
   actionCount: {
     marginLeft: 4,
@@ -409,7 +409,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   answeredText: {
     marginLeft: 4,
     fontSize: 12,
-    color: '#10B981',
+    color: 'theme.colors.success[700]',
     fontWeight: '600',
   },
 });

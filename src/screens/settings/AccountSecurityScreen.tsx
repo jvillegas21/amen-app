@@ -197,7 +197,7 @@ const AccountSecurityScreen: React.FC<RootStackScreenProps<'AccountSecurity'>> =
   const renderSecurityInfo = () => (
     <View style={styles.securityInfo}>
       <View style={styles.securityInfoContent}>
-        <Ionicons name="shield-checkmark" size={24} color="#10B981" />
+        <Ionicons name="shield-checkmark" size={24} color="theme.colors.success[700]" />
         <Text style={styles.securityInfoTitle}>Secure Your Account</Text>
         <Text style={styles.securityInfoText}>
           These security features help protect your account from unauthorized access. 
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   biometricButtonTextEnabled: {
-    color: '#DC2626',
+    color: 'theme.colors.error[700]',
   },
   biometricButtonTextDisabled: {
     color: '#5B21B6',

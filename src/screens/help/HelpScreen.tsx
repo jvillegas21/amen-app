@@ -291,7 +291,7 @@ const HelpScreen: React.FC<RootStackScreenProps<'Help'>> = ({ navigation }) => {
                 <Ionicons
                   name={item.is_helpful ? 'thumbs-up' : 'thumbs-up-outline'}
                   size={16}
-                  color={item.is_helpful ? '#10B981' : '#6B7280'}
+                  color={item.is_helpful ? 'theme.colors.success[700]' : '#6B7280'}
                 />
                 <Text style={[
                   styles.helpfulText,
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   helpfulTextActive: {
-    color: '#10B981',
+    color: 'theme.colors.success[700]',
   },
   emptyState: {
     alignItems: 'center',

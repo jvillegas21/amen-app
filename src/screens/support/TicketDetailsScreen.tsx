@@ -150,9 +150,9 @@ const TicketDetailsScreen: React.FC<RootStackScreenProps<'TicketDetails'>> = ({ 
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'open': return '#EF4444';
-      case 'in_progress': return '#F59E0B';
-      case 'resolved': return '#10B981';
+      case 'open': return 'theme.colors.error[700]';
+      case 'in_progress': return 'theme.colors.warning[700]';
+      case 'resolved': return 'theme.colors.success[700]';
       case 'closed': return '#6B7280';
       default: return '#6B7280';
     }
@@ -160,10 +160,10 @@ const TicketDetailsScreen: React.FC<RootStackScreenProps<'TicketDetails'>> = ({ 
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return '#EF4444';
-      case 'high': return '#F59E0B';
+      case 'urgent': return 'theme.colors.error[700]';
+      case 'high': return 'theme.colors.warning[700]';
       case 'medium': return '#3B82F6';
-      case 'low': return '#10B981';
+      case 'low': return 'theme.colors.success[700]';
       default: return '#6B7280';
     }
   };
@@ -309,7 +309,7 @@ const TicketDetailsScreen: React.FC<RootStackScreenProps<'TicketDetails'>> = ({ 
             );
           }}
         >
-          <Ionicons name="close-circle" size={20} color="#EF4444" />
+          <Ionicons name="close-circle" size={20} color="theme.colors.error[700]" />
           <Text style={styles.actionButtonText}>Close Ticket</Text>
         </TouchableOpacity>
       </View>
@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
     borderColor: '#FECACA',
   },
   actionButtonText: {
-    color: '#EF4444',
+    color: 'theme.colors.error[700]',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,

@@ -32,9 +32,9 @@ export function SupabaseTestComponent() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'PASS': return '#10B981';
-      case 'FAIL': return '#EF4444';
-      case 'SKIP': return '#F59E0B';
+      case 'PASS': return 'theme.colors.success[700]';
+      case 'FAIL': return 'theme.colors.error[700]';
+      case 'SKIP': return 'theme.colors.warning[700]';
       default: return '#6B7280';
     }
   };
@@ -92,19 +92,19 @@ export function SupabaseTestComponent() {
             <Text style={styles.summaryTitle}>Test Summary</Text>
             <View style={styles.summaryStats}>
               <View style={styles.statItem}>
-                <Text style={[styles.statNumber, { color: '#10B981' }]}>
+                <Text style={[styles.statNumber, { color: 'theme.colors.success[700]' }]}>
                   {results.summary.passed}
                 </Text>
                 <Text style={styles.statLabel}>Passed</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={[styles.statNumber, { color: '#EF4444' }]}>
+                <Text style={[styles.statNumber, { color: 'theme.colors.error[700]' }]}>
                   {results.summary.failed}
                 </Text>
                 <Text style={styles.statLabel}>Failed</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={[styles.statNumber, { color: '#F59E0B' }]}>
+                <Text style={[styles.statNumber, { color: 'theme.colors.warning[700]' }]}>
                   {results.summary.skipped}
                 </Text>
                 <Text style={styles.statLabel}>Skipped</Text>

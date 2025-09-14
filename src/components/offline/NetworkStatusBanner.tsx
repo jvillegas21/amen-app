@@ -45,8 +45,8 @@ const NetworkStatusBanner: React.FC<NetworkStatusBannerProps> = ({ onPress }) =>
   }, [isOnline, pendingItemsCount, showBanner, slideAnim]);
 
   const getBannerColor = (): string => {
-    if (!isOnline) return '#EF4444';
-    if (isSyncing) return '#F59E0B';
+    if (!isOnline) return 'theme.colors.error[700]';
+    if (isSyncing) return 'theme.colors.warning[700]';
     return '#3B82F6';
   };
 

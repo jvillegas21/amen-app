@@ -168,7 +168,7 @@ export default function ContentFiltersScreen() {
           style={styles.deleteButton}
           onPress={() => handleDeleteFilter(filter.id)}
         >
-          <Ionicons name="trash-outline" size={20} color="#EF4444" />
+          <Ionicons name="trash-outline" size={20} color="theme.colors.error[700]" />
         </TouchableOpacity>
       </View>
     </View>
