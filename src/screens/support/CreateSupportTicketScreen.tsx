@@ -35,10 +35,10 @@ export default function CreateSupportTicketScreen() {
   ];
 
   const priorities = [
-    { id: 'low', name: 'Low', color: '#10B981' },
+    { id: 'low', name: 'Low', color: 'theme.colors.success[700]' },
     { id: 'medium', name: 'Medium', color: '#3B82F6' },
-    { id: 'high', name: 'High', color: '#F59E0B' },
-    { id: 'urgent', name: 'Urgent', color: '#EF4444' },
+    { id: 'high', name: 'High', color: 'theme.colors.warning[700]' },
+    { id: 'urgent', name: 'Urgent', color: 'theme.colors.error[700]' },
   ];
 
   const handleInputChange = (field: string, value: string) => {

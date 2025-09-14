@@ -41,4 +41,10 @@ export interface IAuthService {
   onAuthStateChange(callback: (user: User | null, session: Session | null) => void): {
     data: { subscription: any };
   };
+
+  // Multi-Factor Authentication methods
+  enableMFA(): Promise<{ qrCode: string; secret: string }>;
+  verifyMFA(token: string, challengeId: string): Promise<void>;
+  disableMFA(): Promise<void>;
+  hasMFAEnabled(): Promise<boolean>;
 }

@@ -67,10 +67,10 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
   };
 
   const getStatusColor = (): string => {
-    if (!isOnline) return '#EF4444';
-    if (isSyncing) return '#F59E0B';
+    if (!isOnline) return 'theme.colors.error[700]';
+    if (isSyncing) return 'theme.colors.warning[700]';
     if (pendingItemsCount > 0) return '#3B82F6';
-    return '#10B981';
+    return 'theme.colors.success[700]';
   };
 
   const getStatusIcon = (): string => {
@@ -123,7 +123,7 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
           <Ionicons
             name={isOnline ? 'wifi' : 'wifi-off'}
             size={16}
-            color={isOnline ? '#10B981' : '#EF4444'}
+            color={isOnline ? 'theme.colors.success[700]' : 'theme.colors.error[700]'}
           />
           <Text style={styles.statusItemText}>
             {isOnline ? 'Online' : 'Offline'}
@@ -134,7 +134,7 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
           <Ionicons
             name={isSyncing ? 'sync' : 'checkmark-circle'}
             size={16}
-            color={isSyncing ? '#F59E0B' : '#10B981'}
+            color={isSyncing ? 'theme.colors.warning[700]' : 'theme.colors.success[700]'}
           />
           <Text style={styles.statusItemText}>
             {isSyncing ? 'Syncing...' : 'Ready'}
@@ -176,7 +176,7 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
             style={[styles.actionButton, styles.clearButton]}
             onPress={handleClearQueue}
           >
-            <Ionicons name="trash" size={16} color="#EF4444" />
+            <Ionicons name="trash" size={16} color="theme.colors.error[700]" />
             <Text style={[styles.actionButtonText, styles.clearButtonText]}>
               Clear Queue
             </Text>
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   clearButtonText: {
-    color: '#EF4444',
+    color: 'theme.colors.error[700]',
   },
 });
 

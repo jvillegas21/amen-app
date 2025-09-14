@@ -309,7 +309,7 @@ const UserProfileScreen: React.FC<ProfileStackScreenProps<'MyProfile'>> = ({ nav
               <View style={styles.nameContainer}>
                 <Text style={styles.displayName}>{userProfile.display_name}</Text>
                 {userProfile.is_verified && (
-                  <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                  <Ionicons name="checkmark-circle" size={20} color="theme.colors.success[700]" />
                 )}
               </View>
               {userProfile.bio && (
@@ -339,7 +339,7 @@ const UserProfileScreen: React.FC<ProfileStackScreenProps<'MyProfile'>> = ({ nav
 
         {/* Sign Out Button */}
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+          <Ionicons name="log-out-outline" size={20} color="theme.colors.error[700]" />
           <Text style={styles.signOutButtonText}>Sign Out</Text>
         </TouchableOpacity>
 
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
     borderColor: '#FECACA',
   },
   signOutButtonText: {
-    color: '#EF4444',
+    color: 'theme.colors.error[700]',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,

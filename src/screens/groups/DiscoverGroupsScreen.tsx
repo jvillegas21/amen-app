@@ -155,7 +155,7 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
             <Ionicons
               name={item.privacy === 'public' ? 'globe' : 'lock-closed'}
               size={14}
-              color={item.privacy === 'public' ? '#10B981' : '#F59E0B'}
+              color={item.privacy === 'public' ? 'theme.colors.success[700]' : 'theme.colors.warning[700]'}
             />
           </View>
         </View>

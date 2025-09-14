@@ -181,8 +181,8 @@ const GroupMemberManagementScreen: React.FC<GroupsStackScreenProps<'GroupMembers
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'admin': return '#EF4444';
-      case 'moderator': return '#F59E0B';
+      case 'admin': return 'theme.colors.error[700]';
+      case 'moderator': return 'theme.colors.warning[700]';
       case 'member': return '#6B7280';
       default: return '#6B7280';
     }
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#10B981',
+    backgroundColor: 'theme.colors.success[700]',
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },

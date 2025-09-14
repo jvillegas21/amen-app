@@ -73,9 +73,9 @@ const MyGroupsScreen: React.FC<GroupsStackScreenProps<'MyGroups'>> = ({ navigati
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin':
-        return '#EF4444';
+        return 'theme.colors.error[700]';
       case 'moderator':
-        return '#F59E0B';
+        return 'theme.colors.warning[700]';
       default:
         return '#6B7280';
     }
@@ -144,7 +144,7 @@ const MyGroupsScreen: React.FC<GroupsStackScreenProps<'MyGroups'>> = ({ navigati
           style={styles.actionButton}
           onPress={() => handleLeaveGroup(item.id, item.name)}
         >
-          <Ionicons name="exit" size={20} color="#EF4444" />
+          <Ionicons name="exit" size={20} color="theme.colors.error[700]" />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   unreadBadge: {
-    backgroundColor: '#EF4444',
+    backgroundColor: 'theme.colors.error[700]',
     borderRadius: 10,
     minWidth: 20,
     height: 20,

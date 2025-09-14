@@ -101,10 +101,10 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
       ];
 
       const mockCategories: Category[] = [
-        { id: '1', name: 'Health & Healing', icon: 'medical', color: '#EF4444', prayerCount: 2341 },
-        { id: '2', name: 'Family & Relationships', icon: 'people', color: '#10B981', prayerCount: 1892 },
+        { id: '1', name: 'Health & Healing', icon: 'medical', color: 'theme.colors.error[700]', prayerCount: 2341 },
+        { id: '2', name: 'Family & Relationships', icon: 'people', color: 'theme.colors.success[700]', prayerCount: 1892 },
         { id: '3', name: 'Spiritual Growth', icon: 'book', color: '#5B21B6', prayerCount: 1654 },
-        { id: '4', name: 'Work & Career', icon: 'briefcase', color: '#F59E0B', prayerCount: 1234 },
+        { id: '4', name: 'Work & Career', icon: 'briefcase', color: 'theme.colors.warning[700]', prayerCount: 1234 },
         { id: '5', name: 'Peace & Comfort', icon: 'heart', color: '#06B6D4', prayerCount: 987 },
         { id: '6', name: 'Community', icon: 'globe', color: '#8B5CF6', prayerCount: 756 },
         { id: '7', name: 'AI Bible Studies', icon: 'library', color: '#7C3AED', prayerCount: 0 },
@@ -207,7 +207,7 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
         <Text style={styles.trendingCategory}>{item.category}</Text>
       </View>
       <View style={styles.trendingStats}>
-        <Ionicons name="heart" size={16} color="#EF4444" />
+        <Ionicons name="heart" size={16} color="theme.colors.error[700]" />
         <Text style={styles.trendingCount}>{item.prayerCount}</Text>
       </View>
     </TouchableOpacity>
@@ -240,7 +240,7 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
       
       <View style={styles.prayerStats}>
         <View style={styles.statItem}>
-          <Ionicons name="heart" size={16} color="#EF4444" />
+          <Ionicons name="heart" size={16} color="theme.colors.error[700]" />
           <Text style={styles.statText}>{item.prayerCount} praying</Text>
         </View>
         <View style={styles.statItem}>
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontSize: 14,
     fontWeight: '500',
-    color: '#EF4444',
+    color: 'theme.colors.error[700]',
   },
   featuredItem: {
     backgroundColor: '#FFFFFF',

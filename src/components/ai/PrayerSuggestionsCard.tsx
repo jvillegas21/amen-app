@@ -90,7 +90,7 @@ const PrayerSuggestionsCard: React.FC<PrayerSuggestionsCardProps> = ({
 
   const renderErrorState = () => (
     <View style={styles.errorContainer}>
-      <Ionicons name="alert-circle" size={24} color="#EF4444" />
+      <Ionicons name="alert-circle" size={24} color="theme.colors.error[700]" />
       <Text style={styles.errorText}>
         {suggestionsError || 'Failed to generate prayer suggestions'}
       </Text>
@@ -146,7 +146,7 @@ const PrayerSuggestionsCard: React.FC<PrayerSuggestionsCardProps> = ({
             </View>
           </View>
           {isSelected && (
-            <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+            <Ionicons name="checkmark-circle" size={20} color="theme.colors.success[700]" />
           )}
         </View>
 
@@ -202,11 +202,11 @@ const PrayerSuggestionsCard: React.FC<PrayerSuggestionsCardProps> = ({
 
   const getCategoryColor = (category: string): string => {
     const colors: { [key: string]: string } = {
-      'Healing': '#10B981',
-      'Strength': '#F59E0B',
+      'Healing': 'theme.colors.success[700]',
+      'Strength': 'theme.colors.warning[700]',
       'Peace': '#3B82F6',
       'Guidance': '#8B5CF6',
-      'Gratitude': '#EF4444',
+      'Gratitude': 'theme.colors.error[700]',
       'Protection': '#6B7280',
       'Wisdom': '#5B21B6',
       'Comfort': '#F97316',
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 14,
-    color: '#EF4444',
+    color: 'theme.colors.error[700]',
     textAlign: 'center',
     marginTop: 8,
     marginBottom: 12,

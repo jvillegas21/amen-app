@@ -88,9 +88,9 @@ class AccessibilityService {
       text: '#111827',
       textSecondary: '#6B7280',
       border: '#E5E7EB',
-      error: '#EF4444',
-      success: '#10B981',
-      warning: '#F59E0B',
+      error: 'theme.colors.error[700]',
+      success: 'theme.colors.success[700]',
+      warning: 'theme.colors.warning[700]',
       info: '#3B82F6',
     };
 
