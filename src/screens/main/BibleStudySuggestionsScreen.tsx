@@ -68,9 +68,9 @@ const BibleStudySuggestionsScreen: React.FC<RootStackScreenProps<'BibleStudySugg
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'beginner': return '#10B981';
-      case 'intermediate': return '#F59E0B';
-      case 'advanced': return '#EF4444';
+      case 'beginner': return 'theme.colors.success[700]';
+      case 'intermediate': return 'theme.colors.warning[700]';
+      case 'advanced': return 'theme.colors.error[700]';
       default: return '#6B7280';
     }
   };

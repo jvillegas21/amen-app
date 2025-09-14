@@ -210,7 +210,7 @@ const ChangePasswordScreen: React.FC<RootStackScreenProps<'ChangePassword'>> = (
 
           {/* Security Info */}
           <View style={styles.securityInfo}>
-            <Ionicons name="shield-checkmark" size={20} color="#10B981" />
+            <Ionicons name="shield-checkmark" size={20} color="theme.colors.success[700]" />
             <Text style={styles.securityInfoText}>
               Your password is encrypted and stored securely. We never store your password in plain text.
             </Text>

@@ -85,7 +85,7 @@ const BibleStudyCard: React.FC<BibleStudyCardProps> = ({
 
   const renderErrorState = () => (
     <View style={styles.errorContainer}>
-      <Ionicons name="alert-circle" size={24} color="#EF4444" />
+      <Ionicons name="alert-circle" size={24} color="theme.colors.error[700]" />
       <Text style={styles.errorText}>
         {bibleStudyError || 'Failed to generate Bible study'}
       </Text>
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 14,
-    color: '#EF4444',
+    color: 'theme.colors.error[700]',
     textAlign: 'center',
     marginTop: 8,
     marginBottom: 12,
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
   completeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#10B981',
+    backgroundColor: 'theme.colors.success[700]',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 6,

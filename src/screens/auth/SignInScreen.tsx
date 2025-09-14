@@ -158,7 +158,7 @@ const SignInScreen: React.FC<AuthStackScreenProps<'SignIn'>> = ({ navigation }) 
             {/* Error Message */}
             {error && (
               <View style={styles.errorContainer}>
-                <Ionicons name="alert-circle" size={16} color="#EF4444" />
+                <Ionicons name="alert-circle" size={16} color="theme.colors.error[700]" />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             )}
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 14,
-    color: '#EF4444',
+    color: 'theme.colors.error[700]',
     marginLeft: 8,
     flex: 1,
   },

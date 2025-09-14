@@ -159,7 +159,7 @@ const BlockedUsersScreen: React.FC<RootStackScreenProps<'BlockedUsers'>> = ({ na
           style={styles.unblockButton}
           onPress={() => handleUnblockUser(user.user_id, user.user_display_name)}
         >
-          <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+          <Ionicons name="checkmark-circle" size={20} color="theme.colors.success[700]" />
           <Text style={styles.unblockButtonText}>Unblock</Text>
         </TouchableOpacity>
       </View>
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
   unblockButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#10B981',
+    color: 'theme.colors.success[700]',
     marginLeft: 4,
   },
   emptyState: {

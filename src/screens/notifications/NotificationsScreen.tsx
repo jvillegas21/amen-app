@@ -133,11 +133,11 @@ const NotificationsScreen: React.FC<MainTabScreenProps<'Notifications'>> = ({ na
 
   const getNotificationColor = (type: string) => {
     switch (type) {
-      case 'prayer_response': return '#EF4444';
-      case 'new_follower': return '#10B981';
+      case 'prayer_response': return 'theme.colors.error[700]';
+      case 'new_follower': return 'theme.colors.success[700]';
       case 'comment': return '#3B82F6';
       case 'group_invite': return '#8B5CF6';
-      case 'group_update': return '#F59E0B';
+      case 'group_update': return 'theme.colors.warning[700]';
       case 'prayer_reminder': return '#5B21B6';
       case 'system': return '#6B7280';
       default: return '#6B7280';
