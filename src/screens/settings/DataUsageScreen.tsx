@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useThemeStore } from '@/store/theme/themeStore';
+import { useTheme } from '@/theme/ThemeContext';
 
 interface DataUsageSettings {
   autoDownloadImages: boolean;
@@ -23,7 +23,7 @@ interface DataUsageSettings {
 
 export default function DataUsageScreen() {
   const router = useRouter();
-  const { colors } = useThemeStore();
+  const { theme } = useTheme();
   
   const [settings, setSettings] = useState<DataUsageSettings>({
     autoDownloadImages: true,
@@ -83,38 +83,38 @@ export default function DataUsageScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.primary} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Data Usage</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Data Usage</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.content}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
           Manage your data usage
         </Text>
-        <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
+        <Text style={[styles.sectionDescription, { color: theme.colors.textSecondary }]}>
           Control how the app uses your data and storage
         </Text>
 
         {/* Data Usage Settings */}
         <View style={styles.section}>
-          <Text style={[styles.sectionHeader, { color: colors.text }]}>
+          <Text style={[styles.sectionHeader, { color: theme.colors.text }]}>
             Data Usage
           </Text>
           
-          <View style={[styles.settingItem, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.settingItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
             <View style={styles.settingContent}>
               <View style={styles.settingLeft}>
-                <Ionicons name="image-outline" size={24} color={colors.primary} />
+                <Ionicons name="image-outline" size={24} color={theme.colors.primary} />
                 <View style={styles.settingText}>
-                  <Text style={[styles.settingName, { color: colors.text }]}>
+                  <Text style={[styles.settingName, { color: theme.colors.text }]}>
                     Auto-download Images
                   </Text>
-                  <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
+                  <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
                     Automatically download images in prayers and groups
                   </Text>
                 </View>
@@ -122,21 +122,21 @@ export default function DataUsageScreen() {
               <Switch
                 value={settings.autoDownloadImages}
                 onValueChange={(value) => handleSettingChange('autoDownloadImages', value)}
-                trackColor={{ false: colors.border, true: colors.primary + '40' }}
-                thumbColor={settings.autoDownloadImages ? colors.primary : colors.textSecondary}
+                trackColor={{ false: theme.colors.border, true: theme.colors.primary + '40' }}
+                thumbColor={settings.autoDownloadImages ? theme.colors.primary : theme.colors.textSecondary}
               />
             </View>
           </View>
 
-          <View style={[styles.settingItem, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.settingItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
             <View style={styles.settingContent}>
               <View style={styles.settingLeft}>
-                <Ionicons name="wifi-outline" size={24} color={colors.primary} />
+                <Ionicons name="wifi-outline" size={24} color={theme.colors.primary} />
                 <View style={styles.settingText}>
-                  <Text style={[styles.settingName, { color: colors.text }]}>
+                  <Text style={[styles.settingName, { color: theme.colors.text }]}>
                     Wi-Fi Only Downloads
                   </Text>
-                  <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
+                  <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
                     Only download content when connected to Wi-Fi
                   </Text>
                 </View>
@@ -144,21 +144,21 @@ export default function DataUsageScreen() {
               <Switch
                 value={settings.useWiFiOnly}
                 onValueChange={(value) => handleSettingChange('useWiFiOnly', value)}
-                trackColor={{ false: colors.border, true: colors.primary + '40' }}
-                thumbColor={settings.useWiFiOnly ? colors.primary : colors.textSecondary}
+                trackColor={{ false: theme.colors.border, true: theme.colors.primary + '40' }}
+                thumbColor={settings.useWiFiOnly ? theme.colors.primary : theme.colors.textSecondary}
               />
             </View>
           </View>
 
-          <View style={[styles.settingItem, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.settingItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
             <View style={styles.settingContent}>
               <View style={styles.settingLeft}>
-                <Ionicons name="speedometer-outline" size={24} color={colors.primary} />
+                <Ionicons name="speedometer-outline" size={24} color={theme.colors.primary} />
                 <View style={styles.settingText}>
-                  <Text style={[styles.settingName, { color: colors.text }]}>
+                  <Text style={[styles.settingName, { color: theme.colors.text }]}>
                     Reduce Data Usage
                   </Text>
-                  <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
+                  <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
                     Compress images and reduce data usage
                   </Text>
                 </View>
@@ -166,8 +166,8 @@ export default function DataUsageScreen() {
               <Switch
                 value={settings.reduceDataUsage}
                 onValueChange={(value) => handleSettingChange('reduceDataUsage', value)}
-                trackColor={{ false: colors.border, true: colors.primary + '40' }}
-                thumbColor={settings.reduceDataUsage ? colors.primary : colors.textSecondary}
+                trackColor={{ false: theme.colors.border, true: theme.colors.primary + '40' }}
+                thumbColor={settings.reduceDataUsage ? theme.colors.primary : theme.colors.textSecondary}
               />
             </View>
           </View>
@@ -175,25 +175,25 @@ export default function DataUsageScreen() {
 
         {/* Storage Settings */}
         <View style={styles.section}>
-          <Text style={[styles.sectionHeader, { color: colors.text }]}>
+          <Text style={[styles.sectionHeader, { color: theme.colors.text }]}>
             Storage
           </Text>
           
-          <View style={[styles.settingItem, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.settingItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
             <View style={styles.settingContent}>
               <View style={styles.settingLeft}>
-                <Ionicons name="folder-outline" size={24} color={colors.primary} />
+                <Ionicons name="folder-outline" size={24} color={theme.colors.primary} />
                 <View style={styles.settingText}>
-                  <Text style={[styles.settingName, { color: colors.text }]}>
+                  <Text style={[styles.settingName, { color: theme.colors.text }]}>
                     Cache Size
                   </Text>
-                  <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
+                  <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
                     Currently using {formatCacheSize(settings.cacheSize)}
                   </Text>
                 </View>
               </View>
               <TouchableOpacity
-                style={[styles.clearButton, { backgroundColor: colors.error }]}
+                style={[styles.clearButton, { backgroundColor: theme.colors.error }]}
                 onPress={handleClearCache}
               >
                 <Text style={styles.clearButtonText}>Clear</Text>
@@ -203,9 +203,9 @@ export default function DataUsageScreen() {
         </View>
 
         {/* Data Usage Info */}
-        <View style={[styles.infoContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Ionicons name="information-circle-outline" size={20} color={colors.info} />
-          <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+        <View style={[styles.infoContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <Ionicons name="information-circle-outline" size={20} color={theme.colors.info} />
+          <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
             These settings help you control how much data the app uses. Reducing data usage may affect image quality and loading speed.
           </Text>
         </View>

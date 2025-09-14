@@ -9,14 +9,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useThemeStore, Theme } from '@/store/theme/themeStore';
+import { useThemeMode, ThemeMode, useTheme } from '@/theme/ThemeContext';
 
 export default function ThemeScreen() {
   const router = useRouter();
-  const { theme, setTheme, colors } = useThemeStore();
+  const { themeMode, colorScheme, setThemeMode } = useThemeMode();
+  const { theme } = useTheme();
 
-  const handleThemeSelect = (selectedTheme: Theme) => {
-    setTheme(selectedTheme);
+  const handleThemeSelect = (selectedTheme: ThemeMode) => {
+    setThemeMode(selectedTheme);
     Alert.alert(
       'Theme Updated',
       `App theme has been changed to ${selectedTheme === 'system' ? 'System Default' : selectedTheme}.`,
@@ -26,19 +27,19 @@ export default function ThemeScreen() {
 
   const themeOptions = [
     {
-      id: 'light' as Theme,
+      id: 'light' as ThemeMode,
       name: 'Light',
       description: 'Always use light theme',
       icon: 'sunny-outline',
     },
     {
-      id: 'dark' as Theme,
+      id: 'dark' as ThemeMode,
       name: 'Dark',
       description: 'Always use dark theme',
       icon: 'moon-outline',
     },
     {
-      id: 'system' as Theme,
+      id: 'system' as ThemeMode,
       name: 'System',
       description: 'Follow system theme',
       icon: 'phone-portrait-outline',
@@ -46,20 +47,20 @@ export default function ThemeScreen() {
   ];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.primary} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary[600]} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Theme</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>Theme</Text>
         <View style={styles.placeholder} />
       </View>
 
       <View style={styles.content}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
           Choose your preferred theme
         </Text>
-        <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
+        <Text style={[styles.sectionDescription, { color: theme.colors.text.secondary }]}>
           The theme will be applied throughout the app
         </Text>
 
@@ -70,43 +71,43 @@ export default function ThemeScreen() {
               style={[
                 styles.optionItem,
                 { 
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                  borderWidth: theme === option.id ? 2 : 1,
+                  backgroundColor: theme.colors.surface.primary,
+                  borderColor: theme.colors.border.primary,
+                  borderWidth: themeMode === option.id ? 2 : 1,
                 }
               ]}
               onPress={() => handleThemeSelect(option.id)}
             >
               <View style={styles.optionContent}>
                 <View style={styles.optionLeft}>
-                  <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                  <View style={[styles.iconContainer, { backgroundColor: theme.colors.primary[600] + '20' }]}>
                     <Ionicons 
                       name={option.icon as any} 
                       size={24} 
-                      color={colors.primary} 
+                      color={theme.colors.primary[600]} 
                     />
                   </View>
                   <View style={styles.optionText}>
-                    <Text style={[styles.optionName, { color: colors.text }]}>
+                    <Text style={[styles.optionName, { color: theme.colors.text.primary }]}>
                       {option.name}
                     </Text>
-                    <Text style={[styles.optionDescription, { color: colors.textSecondary }]}>
+                    <Text style={[styles.optionDescription, { color: theme.colors.text.secondary }]}>
                       {option.description}
                     </Text>
                   </View>
                 </View>
                 
-                {theme === option.id && (
-                  <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                {themeMode === option.id && (
+                  <Ionicons name="checkmark-circle" size={24} color={theme.colors.primary[600]} />
                 )}
               </View>
             </TouchableOpacity>
           ))}
         </View>
 
-        <View style={[styles.infoContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Ionicons name="information-circle-outline" size={20} color={colors.info} />
-          <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+        <View style={[styles.infoContainer, { backgroundColor: theme.colors.surface.primary, borderColor: theme.colors.border.primary }]}>
+          <Ionicons name="information-circle-outline" size={20} color={theme.colors.info[500]} />
+          <Text style={[styles.infoText, { color: theme.colors.text.secondary }]}>
             System theme will automatically switch between light and dark based on your device settings.
           </Text>
         </View>
@@ -126,7 +127,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E7',
   },
   backButton: {
     padding: 8,

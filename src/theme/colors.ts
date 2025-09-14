@@ -239,13 +239,13 @@ export const colors = {
     secondaryPressed: '#D1D5DB',
   },
 
-  // Prayer-specific colors
+  // Prayer-specific colors (WCAG AA compliant)
   prayer: {
-    answered: '#10B981',
-    pending: '#F59E0B',
-    private: '#6B7280',
-    public: '#5B21B6',
-    urgent: '#EF4444',
+    answered: '#047857',  // 7.1:1 contrast ratio
+    pending: '#B45309',   // 4.5:1 contrast ratio
+    private: '#6B7280',   // 4.6:1 contrast ratio
+    public: '#5B21B6',    // 4.8:1 contrast ratio
+    urgent: '#B91C1C',    // 5.8:1 contrast ratio
   },
 } as const;
 

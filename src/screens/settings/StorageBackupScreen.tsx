@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useThemeStore } from '@/store/theme/themeStore';
+import { useTheme } from '@/theme/ThemeContext';
 
 interface BackupSettings {
   autoBackup: boolean;
@@ -24,7 +24,7 @@ interface BackupSettings {
 
 export default function StorageBackupScreen() {
   const router = useRouter();
-  const { colors } = useThemeStore();
+  const { theme } = useTheme();
   
   const [settings, setSettings] = useState<BackupSettings>({
     autoBackup: true,
@@ -121,42 +121,42 @@ export default function StorageBackupScreen() {
   ];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.primary} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Storage & Backup</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Storage & Backup</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.content}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
           Manage your data backup
         </Text>
-        <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
+        <Text style={[styles.sectionDescription, { color: theme.colors.textSecondary }]}>
           Keep your prayers and data safe with automatic backups
         </Text>
 
         {/* Backup Status */}
         <View style={styles.section}>
-          <Text style={[styles.sectionHeader, { color: colors.text }]}>
+          <Text style={[styles.sectionHeader, { color: theme.colors.text }]}>
             Backup Status
           </Text>
           
-          <View style={[styles.statusCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.statusCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
             <View style={styles.statusContent}>
-              <Ionicons name="cloud-done-outline" size={24} color={colors.success} />
+              <Ionicons name="cloud-done-outline" size={24} color={theme.colors.success} />
               <View style={styles.statusText}>
-                <Text style={[styles.statusTitle, { color: colors.text }]}>
+                <Text style={[styles.statusTitle, { color: theme.colors.text }]}>
                   Last Backup
                 </Text>
-                <Text style={[styles.statusValue, { color: colors.textSecondary }]}>
+                <Text style={[styles.statusValue, { color: theme.colors.textSecondary }]}>
                   {formatLastBackup(settings.lastBackup)}
                 </Text>
               </View>
             </View>
-            <Text style={[styles.backupSize, { color: colors.textSecondary }]}>
+            <Text style={[styles.backupSize, { color: theme.colors.textSecondary }]}>
               {formatBackupSize(settings.backupSize)}
             </Text>
           </View>
@@ -164,19 +164,19 @@ export default function StorageBackupScreen() {
 
         {/* Backup Settings */}
         <View style={styles.section}>
-          <Text style={[styles.sectionHeader, { color: colors.text }]}>
+          <Text style={[styles.sectionHeader, { color: theme.colors.text }]}>
             Backup Settings
           </Text>
           
-          <View style={[styles.settingItem, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.settingItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
             <View style={styles.settingContent}>
               <View style={styles.settingLeft}>
-                <Ionicons name="cloud-upload-outline" size={24} color={colors.primary} />
+                <Ionicons name="cloud-upload-outline" size={24} color={theme.colors.primary} />
                 <View style={styles.settingText}>
-                  <Text style={[styles.settingName, { color: colors.text }]}>
+                  <Text style={[styles.settingName, { color: theme.colors.text }]}>
                     Automatic Backup
                   </Text>
-                  <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
+                  <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
                     Automatically backup your data
                   </Text>
                 </View>
@@ -184,21 +184,21 @@ export default function StorageBackupScreen() {
               <Switch
                 value={settings.autoBackup}
                 onValueChange={(value) => handleSettingChange('autoBackup', value)}
-                trackColor={{ false: colors.border, true: colors.primary + '40' }}
-                thumbColor={settings.autoBackup ? colors.primary : colors.textSecondary}
+                trackColor={{ false: theme.colors.border, true: theme.colors.primary + '40' }}
+                thumbColor={settings.autoBackup ? theme.colors.primary : theme.colors.textSecondary}
               />
             </View>
           </View>
 
-          <View style={[styles.settingItem, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.settingItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
             <View style={styles.settingContent}>
               <View style={styles.settingLeft}>
-                <Ionicons name="time-outline" size={24} color={colors.primary} />
+                <Ionicons name="time-outline" size={24} color={theme.colors.primary} />
                 <View style={styles.settingText}>
-                  <Text style={[styles.settingName, { color: colors.text }]}>
+                  <Text style={[styles.settingName, { color: theme.colors.text }]}>
                     Backup Frequency
                   </Text>
-                  <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
+                  <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
                     How often to backup your data
                   </Text>
                 </View>
@@ -211,8 +211,8 @@ export default function StorageBackupScreen() {
                       styles.frequencyOption,
                       {
                         backgroundColor: settings.backupFrequency === option.id 
-                          ? colors.primary 
-                          : colors.border,
+                          ? theme.colors.primary 
+                          : theme.colors.border,
                       }
                     ]}
                     onPress={() => handleSettingChange('backupFrequency', option.id)}
@@ -222,7 +222,7 @@ export default function StorageBackupScreen() {
                       {
                         color: settings.backupFrequency === option.id 
                           ? '#FFFFFF' 
-                          : colors.text,
+                          : theme.colors.text,
                       }
                     ]}>
                       {option.name}
@@ -233,15 +233,15 @@ export default function StorageBackupScreen() {
             </View>
           </View>
 
-          <View style={[styles.settingItem, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.settingItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
             <View style={styles.settingContent}>
               <View style={styles.settingLeft}>
-                <Ionicons name="image-outline" size={24} color={colors.primary} />
+                <Ionicons name="image-outline" size={24} color={theme.colors.primary} />
                 <View style={styles.settingText}>
-                  <Text style={[styles.settingName, { color: colors.text }]}>
+                  <Text style={[styles.settingName, { color: theme.colors.text }]}>
                     Include Images
                   </Text>
-                  <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
+                  <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
                     Include images in backup (increases size)
                   </Text>
                 </View>
@@ -249,8 +249,8 @@ export default function StorageBackupScreen() {
               <Switch
                 value={settings.includeImages}
                 onValueChange={(value) => handleSettingChange('includeImages', value)}
-                trackColor={{ false: colors.border, true: colors.primary + '40' }}
-                thumbColor={settings.includeImages ? colors.primary : colors.textSecondary}
+                trackColor={{ false: theme.colors.border, true: theme.colors.primary + '40' }}
+                thumbColor={settings.includeImages ? theme.colors.primary : theme.colors.textSecondary}
               />
             </View>
           </View>
@@ -258,12 +258,12 @@ export default function StorageBackupScreen() {
 
         {/* Backup Actions */}
         <View style={styles.section}>
-          <Text style={[styles.sectionHeader, { color: colors.text }]}>
+          <Text style={[styles.sectionHeader, { color: theme.colors.text }]}>
             Backup Actions
           </Text>
           
           <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: colors.primary }]}
+            style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
             onPress={handleBackupNow}
             disabled={isBackingUp}
           >
@@ -278,7 +278,7 @@ export default function StorageBackupScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: colors.secondary }]}
+            style={[styles.actionButton, { backgroundColor: theme.colors.secondary }]}
             onPress={handleRestoreBackup}
             disabled={isRestoring}
           >
@@ -294,9 +294,9 @@ export default function StorageBackupScreen() {
         </View>
 
         {/* Info */}
-        <View style={[styles.infoContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Ionicons name="information-circle-outline" size={20} color={colors.info} />
-          <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+        <View style={[styles.infoContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <Ionicons name="information-circle-outline" size={20} color={theme.colors.info} />
+          <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
             Backups are stored securely in the cloud and can be restored on any device. Your data is encrypted and private.
           </Text>
         </View>
