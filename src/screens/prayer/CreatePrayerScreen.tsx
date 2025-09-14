@@ -18,6 +18,7 @@ import { RootStackScreenProps } from '@/types/navigation.types';
 import { usePrayerStore } from '@/store/prayer/prayerStore';
 import { useAuthStore } from '@/store/auth/authStore';
 import { openAIService } from '@/services/ai/openaiService';
+import { imageUploadService, ImageUploadResult } from '@/services/api/imageUploadService';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -33,7 +34,7 @@ const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ na
   const [prayerText, setPrayerText] = useState('');
   const [privacyLevel, setPrivacyLevel] = useState<'public' | 'friends' | 'groups' | 'private'>('public');
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<ImageUploadResult[]>([]);
   const [location, setLocation] = useState<{ city?: string; lat?: number; lon?: number } | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showBibleStudyModal, setShowBibleStudyModal] = useState(false);
@@ -88,17 +89,19 @@ const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ na
     }
 
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
-      });
+      const result = await imageUploadService.pickImageFromLibrary(
+        imageUploadService.getImagePickerOptions('prayer')
+      );
 
-      if (!result.canceled && result.assets[0]) {
-        setImages(prev => [...prev, result.assets[0].uri]);
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // Upload the image
+        const uploadResult = await imageUploadService.uploadPrayerImage(asset.uri, 'temp');
+        setImages(prev => [...prev, uploadResult]);
       }
     } catch (error) {
+      console.error('Error picking image:', error);
       Alert.alert('Error', 'Failed to select image');
     }
   };
@@ -150,7 +153,7 @@ const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ na
         privacy_level: privacyLevel,
         group_id: groupId,
         is_anonymous: isAnonymous,
-        images: images,
+        images: images.map(img => img.url),
         location: location ? {
           city: location.city,
           lat: location.lat,
@@ -253,7 +256,7 @@ const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ na
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {images.map((image, index) => (
                     <View key={index} style={styles.imageWrapper}>
-                      <Image source={{ uri: image }} style={styles.image} />
+                      <Image source={{ uri: image.url }} style={styles.image} />
                       <TouchableOpacity
                         style={styles.removeImageButton}
                         onPress={() => removeImage(index)}

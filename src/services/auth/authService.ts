@@ -3,6 +3,9 @@ import { supabase } from '@/config/supabase';
 import { Profile } from '@/types/database.types';
 import { IAuthService } from './authService.interface';
 import { profileService } from '@/services/api/profileService';
+import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+import * as Crypto from 'expo-crypto';
 
 /**
  * Authentication Service Implementation
@@ -176,6 +179,136 @@ class AuthService implements IAuthService {
     // Then delete auth account
     const { error } = await supabase.auth.admin.deleteUser(user.id);
     if (error) throw error;
+  }
+
+  /**
+   * Sign in with Google
+   */
+  async signInWithGoogle(): Promise<{
+    user: User;
+    session: Session;
+    profile: Profile | null;
+  }> {
+    try {
+      // Create a random state parameter for security
+      const state = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        Math.random().toString(),
+        { encoding: Crypto.CryptoEncoding.BASE64URL }
+      );
+
+      // Create the OAuth URL
+      const redirectUrl = AuthSession.makeRedirectUri({
+        scheme: 'amenity',
+        path: 'auth/callback',
+      });
+
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID}&` +
+        `redirect_uri=${encodeURIComponent(redirectUrl)}&` +
+        `response_type=code&` +
+        `scope=openid%20email%20profile&` +
+        `state=${state}`;
+
+      // Start the OAuth flow
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
+
+      if (result.type === 'success' && result.url) {
+        const url = new URL(result.url);
+        const code = url.searchParams.get('code');
+        
+        if (!code) {
+          throw new Error('No authorization code received');
+        }
+
+        // Exchange code for session
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+        
+        if (error) throw error;
+        if (!data.user || !data.session) {
+          throw new Error('Failed to create session');
+        }
+
+        // Get or create user profile
+        const profile = await profileService.getOrCreateProfile(data.user.id, data.user.email);
+
+        return {
+          user: data.user,
+          session: data.session,
+          profile,
+        };
+      } else {
+        throw new Error('Authentication was cancelled');
+      }
+    } catch (error) {
+      console.error('Google sign in error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sign in with Apple
+   */
+  async signInWithApple(): Promise<{
+    user: User;
+    session: Session;
+    profile: Profile | null;
+  }> {
+    try {
+      // Create a random state parameter for security
+      const state = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        Math.random().toString(),
+        { encoding: Crypto.CryptoEncoding.BASE64URL }
+      );
+
+      // Create the OAuth URL
+      const redirectUrl = AuthSession.makeRedirectUri({
+        scheme: 'amenity',
+        path: 'auth/callback',
+      });
+
+      const authUrl = `https://appleid.apple.com/auth/authorize?` +
+        `client_id=${process.env.EXPO_PUBLIC_APPLE_CLIENT_ID}&` +
+        `redirect_uri=${encodeURIComponent(redirectUrl)}&` +
+        `response_type=code&` +
+        `scope=name%20email&` +
+        `state=${state}`;
+
+      // Start the OAuth flow
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
+
+      if (result.type === 'success' && result.url) {
+        const url = new URL(result.url);
+        const code = url.searchParams.get('code');
+        
+        if (!code) {
+          throw new Error('No authorization code received');
+        }
+
+        // Exchange code for session
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+        
+        if (error) throw error;
+        if (!data.user || !data.session) {
+          throw new Error('Failed to create session');
+        }
+
+        // Get or create user profile
+        const profile = await profileService.getOrCreateProfile(data.user.id, data.user.email);
+
+        return {
+          user: data.user,
+          session: data.session,
+          profile,
+        };
+      } else {
+        throw new Error('Authentication was cancelled');
+      }
+    } catch (error) {
+      console.error('Apple sign in error:', error);
+      throw error;
+    }
   }
 
   /**

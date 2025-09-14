@@ -7,7 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 
 import RootNavigator from '@/navigation/RootNavigator';
 import { useAuthStore } from '@/store/auth/authStore';
-import { notificationService } from '@/services/notifications/notificationService';
+import { notificationManager } from '@/services/notifications/notificationManager';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -28,7 +28,7 @@ const queryClient = new QueryClient({
  * Implements Dependency Injection Pattern: Provides global services to the app
  */
 export default function App() {
-  const checkAuthStatus = useAuthStore((state) => state.checkAuthStatus);
+  const { checkAuthStatus, profile } = useAuthStore();
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -36,8 +36,10 @@ export default function App() {
         // Check authentication status
         await checkAuthStatus();
 
-        // Initialize notification service
-        await notificationService.initialize();
+        // Initialize notification system if user is authenticated
+        if (profile?.id) {
+          await notificationManager.initialize(profile.id);
+        }
 
         // Hide splash screen
         await SplashScreen.hideAsync();
@@ -48,6 +50,13 @@ export default function App() {
     };
 
     initializeApp();
+  }, [checkAuthStatus, profile?.id]);
+
+  // Cleanup notification system when app unmounts
+  useEffect(() => {
+    return () => {
+      notificationManager.cleanup();
+    };
   }, []);
 
   return (

@@ -11,6 +11,8 @@ import {
 import { MainTabScreenProps } from '@/types/navigation.types';
 import { Prayer } from '@/types/database.types';
 import { usePrayerStore } from '@/store/prayer/prayerStore';
+import { prayerInteractionService } from '@/services/api/prayerInteractionService';
+import { contentModerationService } from '@/services/api/contentModerationService';
 import PrayerCard from '@/components/prayer/PrayerCard';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -30,6 +32,7 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
   } = usePrayerStore();
 
   const [feedType, setFeedType] = useState<'following' | 'discover'>('following');
+  const [savedPrayers, setSavedPrayers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchPrayers(feedType);
@@ -74,6 +77,43 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
     }
   };
 
+  const handleSavePress = async (prayerId: string) => {
+    try {
+      await prayerInteractionService.savePrayer(prayerId);
+      setSavedPrayers(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(prayerId)) {
+          newSet.delete(prayerId);
+        } else {
+          newSet.add(prayerId);
+        }
+        return newSet;
+      });
+    } catch (error) {
+      console.error('Failed to save prayer:', error);
+    }
+  };
+
+  const handleReportPress = (prayer: Prayer) => {
+    navigation.navigate('ReportContent', {
+      type: 'prayer',
+      id: prayer.id,
+      prayerId: prayer.id,
+    });
+  };
+
+  const handleBlockUserPress = async (prayer: Prayer) => {
+    if (!prayer.user?.id) return;
+    
+    try {
+      await contentModerationService.blockUser(prayer.user.id, 'User requested block');
+      Alert.alert('Success', 'User has been blocked');
+    } catch (error) {
+      console.error('Failed to block user:', error);
+      Alert.alert('Error', 'Failed to block user');
+    }
+  };
+
   const renderPrayerItem = ({ item }: { item: Prayer }) => (
     <PrayerCard
       prayer={item}
@@ -81,6 +121,10 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
       onPrayPress={() => handlePrayPress(item.id)}
       onCommentPress={() => handleCommentPress(item.id)}
       onSharePress={() => handleSharePress(item.id)}
+      onSavePress={() => handleSavePress(item.id)}
+      isSaved={savedPrayers.has(item.id)}
+      onReportPress={() => handleReportPress(item)}
+      onBlockUserPress={() => handleBlockUserPress(item)}
     />
   );
 
@@ -118,6 +162,21 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
           >
             Discover
           </Text>
+        </TouchableOpacity>
+      </View>
+      
+      <View style={styles.headerActions}>
+        <TouchableOpacity
+          style={styles.headerActionButton}
+          onPress={() => navigation.navigate('SavedPrayers')}
+        >
+          <Ionicons name="bookmark-outline" size={20} color="#5B21B6" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.headerActionButton}
+          onPress={() => navigation.navigate('PrayerReminders')}
+        >
+          <Ionicons name="alarm-outline" size={20} color="#5B21B6" />
         </TouchableOpacity>
       </View>
     </View>
@@ -206,6 +265,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   feedToggle: {
     flexDirection: 'row',
@@ -229,6 +291,16 @@ const styles = StyleSheet.create({
   },
   feedButtonTextActive: {
     color: '#5B21B6',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerActionButton: {
+    padding: 8,
+    marginLeft: 8,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
   },
   centerContainer: {
     flex: 1,

@@ -12,18 +12,8 @@ import {
 } from 'react-native';
 import { RootStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
+import { privacyService, PrivacySettings } from '@/services/api/privacyService';
 import { Ionicons } from '@expo/vector-icons';
-
-interface PrivacySettings {
-  profile_visibility: 'public' | 'friends' | 'private';
-  show_location: boolean;
-  allow_following: boolean;
-  show_online_status: boolean;
-  allow_messages: 'everyone' | 'friends' | 'none';
-  show_prayer_history: boolean;
-  allow_search: boolean;
-  data_sharing: boolean;
-}
 
 /**
  * Privacy Settings Screen - Manage privacy and visibility settings
@@ -42,20 +32,14 @@ const PrivacyScreen: React.FC<RootStackScreenProps<'Privacy'>> = ({ navigation }
   const fetchPrivacySettings = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implement privacy settings fetch from API
-      // For now, using mock data
-      const mockSettings: PrivacySettings = {
-        profile_visibility: 'public',
-        show_location: true,
-        allow_following: true,
-        show_online_status: false,
-        allow_messages: 'friends',
-        show_prayer_history: true,
-        allow_search: true,
-        data_sharing: false,
-      };
-      setPrivacySettings(mockSettings);
+      if (!profile?.id) {
+        throw new Error('User not authenticated');
+      }
+      
+      const settings = await privacyService.getPrivacySettings(profile.id);
+      setPrivacySettings(settings);
     } catch (error) {
+      console.error('Failed to fetch privacy settings:', error);
       Alert.alert('Error', 'Failed to load privacy settings');
     } finally {
       setIsLoading(false);
@@ -65,12 +49,17 @@ const PrivacyScreen: React.FC<RootStackScreenProps<'Privacy'>> = ({ navigation }
   const handleToggleSetting = async (setting: keyof PrivacySettings, value: boolean | string) => {
     try {
       setIsSaving(true);
-      // TODO: Implement privacy settings update API call
+      if (!profile?.id) {
+        throw new Error('User not authenticated');
+      }
+      
+      await privacyService.updatePrivacySettings(profile.id, { [setting]: value });
       setPrivacySettings(prev => prev ? {
         ...prev,
         [setting]: value,
       } : null);
     } catch (error) {
+      console.error('Failed to update privacy setting:', error);
       Alert.alert('Error', 'Failed to update privacy setting');
     } finally {
       setIsSaving(false);
@@ -80,9 +69,14 @@ const PrivacyScreen: React.FC<RootStackScreenProps<'Privacy'>> = ({ navigation }
   const handleSaveSettings = async () => {
     try {
       setIsSaving(true);
-      // TODO: Implement save privacy settings API call
+      if (!profile?.id || !privacySettings) {
+        throw new Error('User not authenticated or settings not loaded');
+      }
+      
+      await privacyService.updatePrivacySettings(profile.id, privacySettings);
       Alert.alert('Success', 'Privacy settings updated successfully');
     } catch (error) {
+      console.error('Failed to save privacy settings:', error);
       Alert.alert('Error', 'Failed to save privacy settings');
     } finally {
       setIsSaving(false);

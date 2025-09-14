@@ -16,6 +16,10 @@ interface PrayerCardProps {
   onPrayPress: () => void;
   onCommentPress: () => void;
   onSharePress: () => void;
+  onSavePress?: () => void;
+  isSaved?: boolean;
+  onReportPress?: () => void;
+  onBlockUserPress?: () => void;
 }
 
 /**
@@ -23,7 +27,7 @@ interface PrayerCardProps {
  * Implements Single Responsibility: Only displays prayer information
  */
 const PrayerCard: React.FC<PrayerCardProps> = memo((
-  { prayer, onPress, onPrayPress, onCommentPress, onSharePress }
+  { prayer, onPress, onPrayPress, onCommentPress, onSharePress, onSavePress, isSaved, onReportPress, onBlockUserPress }
 ) => {
   const timeAgo = formatDistanceToNow(new Date(prayer.created_at), { addSuffix: true });
   const isAnonymous = prayer.is_anonymous;
@@ -65,21 +69,28 @@ const PrayerCard: React.FC<PrayerCardProps> = memo((
             </View>
           </View>
         </View>
-        {prayer.privacy_level !== 'public' && (
-          <View style={styles.privacyBadge}>
-            <Ionicons
-              name={
-                prayer.privacy_level === 'private'
-                  ? 'lock-closed-outline'
-                  : prayer.privacy_level === 'friends'
-                  ? 'people-outline'
-                  : 'people-circle-outline'
-              }
-              size={12}
-              color="#6B7280"
-            />
-          </View>
-        )}
+        <View style={styles.headerRight}>
+          {prayer.privacy_level !== 'public' && (
+            <View style={styles.privacyBadge}>
+              <Ionicons
+                name={
+                  prayer.privacy_level === 'private'
+                    ? 'lock-closed-outline'
+                    : prayer.privacy_level === 'friends'
+                    ? 'people-outline'
+                    : 'people-circle-outline'
+                }
+                size={12}
+                color="#6B7280"
+              />
+            </View>
+          )}
+          {(onReportPress || onBlockUserPress) && (
+            <TouchableOpacity style={styles.menuButton}>
+              <Ionicons name="ellipsis-horizontal" size={16} color="#6B7280" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <View style={styles.content}>
@@ -140,6 +151,26 @@ const PrayerCard: React.FC<PrayerCardProps> = memo((
           <Ionicons name="share-outline" size={20} color="#6B7280" />
           <Text style={styles.actionText}>Share</Text>
         </TouchableOpacity>
+
+        {onSavePress && (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={onSavePress}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={isSaved ? "bookmark" : "bookmark-outline"}
+              size={20}
+              color={isSaved ? "#5B21B6" : "#6B7280"}
+            />
+            <Text style={[
+              styles.actionText,
+              isSaved && styles.actionTextActive
+            ]}>
+              Save
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {prayer.status === 'answered' && (
@@ -219,11 +250,19 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginLeft: 2,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   privacyBadge: {
     backgroundColor: '#F3F4F6',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+  },
+  menuButton: {
+    padding: 4,
   },
   content: {
     marginBottom: 12,

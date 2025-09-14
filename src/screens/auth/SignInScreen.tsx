@@ -20,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
  * Based on login_signup mockups
  */
 const SignInScreen: React.FC<AuthStackScreenProps<'SignIn'>> = ({ navigation }) => {
-  const { signIn, isLoading, error, clearError } = useAuthStore();
+  const { signIn, signInWithGoogle, signInWithApple, isLoading, error, clearError } = useAuthStore();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -47,6 +47,24 @@ const SignInScreen: React.FC<AuthStackScreenProps<'SignIn'>> = ({ navigation }) 
 
   const handleSignUp = () => {
     navigation.navigate('SignUp');
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      clearError();
+      await signInWithGoogle();
+    } catch (error) {
+      // Error is handled by the store
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    try {
+      clearError();
+      await signInWithApple();
+    } catch (error) {
+      // Error is handled by the store
+    }
   };
 
   return (
@@ -166,12 +184,20 @@ const SignInScreen: React.FC<AuthStackScreenProps<'SignIn'>> = ({ navigation }) 
             </View>
 
             {/* Social Sign In */}
-            <TouchableOpacity style={styles.socialButton} disabled={isLoading}>
+            <TouchableOpacity 
+              style={styles.socialButton} 
+              disabled={isLoading}
+              onPress={handleGoogleSignIn}
+            >
               <Ionicons name="logo-google" size={20} color="#4285F4" />
               <Text style={styles.socialButtonText}>Continue with Google</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.socialButton} disabled={isLoading}>
+            <TouchableOpacity 
+              style={styles.socialButton} 
+              disabled={isLoading}
+              onPress={handleAppleSignIn}
+            >
               <Ionicons name="logo-apple" size={20} color="#000000" />
               <Text style={styles.socialButtonText}>Continue with Apple</Text>
             </TouchableOpacity>

@@ -12,18 +12,8 @@ import {
 import { GroupsStackScreenProps } from '@/types/navigation.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth/authStore';
-
-interface Group {
-  id: string;
-  name: string;
-  description: string;
-  memberCount: number;
-  privacy: 'public' | 'private' | 'invite_only';
-  role: 'admin' | 'moderator' | 'member';
-  lastActivity: string;
-  unreadCount: number;
-  avatarUrl?: string;
-}
+import { groupService } from '@/services/api/groupService';
+import { Group } from '@/types/database.types';
 
 /**
  * My Groups Screen - Display user's joined groups with quick actions
@@ -40,50 +30,12 @@ const MyGroupsScreen: React.FC<GroupsStackScreenProps<'MyGroups'>> = ({ navigati
   const fetchMyGroups = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implement real API calls
-      const mockGroups: Group[] = [
-        {
-          id: '1',
-          name: 'Prayer Warriors',
-          description: 'A community dedicated to supporting each other through prayer',
-          memberCount: 45,
-          privacy: 'public',
-          role: 'admin',
-          lastActivity: '2 hours ago',
-          unreadCount: 3,
-        },
-        {
-          id: '2',
-          name: 'Family Prayer Circle',
-          description: 'Praying for families and their needs',
-          memberCount: 23,
-          privacy: 'private',
-          role: 'member',
-          lastActivity: '1 day ago',
-          unreadCount: 0,
-        },
-        {
-          id: '3',
-          name: 'Healing & Recovery',
-          description: 'Supporting those on their healing journey',
-          memberCount: 67,
-          privacy: 'public',
-          role: 'moderator',
-          lastActivity: '3 days ago',
-          unreadCount: 1,
-        },
-        {
-          id: '4',
-          name: 'Youth Ministry',
-          description: 'Prayer group for young adults',
-          memberCount: 34,
-          privacy: 'invite_only',
-          role: 'member',
-          lastActivity: '1 week ago',
-          unreadCount: 0,
-        },
-      ];
-      setGroups(mockGroups);
+      if (!profile?.id) {
+        throw new Error('User not authenticated');
+      }
+      
+      const userGroups = await groupService.getUserGroups(profile.id);
+      setGroups(userGroups);
     } catch (error) {
       console.error('Failed to fetch my groups:', error);
       Alert.alert('Error', 'Failed to load groups');
