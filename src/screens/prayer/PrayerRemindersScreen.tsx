@@ -115,7 +115,7 @@ export default function PrayerRemindersScreen() {
         <View style={styles.reminderContent}>
           <View style={styles.reminderHeader}>
             <Text style={styles.reminderTitle} numberOfLines={2}>
-              {reminder.prayer.title}
+              Prayer Reminder
             </Text>
             <View style={[styles.statusBadge, { backgroundColor: reminderStatus.color }]}>
               <Text style={styles.statusText}>{reminderStatus.text}</Text>
@@ -123,7 +123,7 @@ export default function PrayerRemindersScreen() {
           </View>
           
           <Text style={styles.reminderText} numberOfLines={2}>
-            {reminder.prayer.content}
+            {reminder.prayer.text}
           </Text>
           
           <View style={styles.reminderMeta}>

@@ -61,7 +61,7 @@ const NotificationsScreen: React.FC<MainTabScreenProps<'Notifications'>> = ({ na
       await notificationService.markAsRead(notificationId);
       setNotifications(prev => prev.map(notification =>
         notification.id === notificationId
-          ? { ...notification, read_at: new Date().toISOString() }
+          ? { ...notification, read: true }
           : notification
       ));
     } catch (error) {
@@ -79,7 +79,7 @@ const NotificationsScreen: React.FC<MainTabScreenProps<'Notifications'>> = ({ na
       await notificationService.markAllAsRead(profile.id);
       setNotifications(prev => prev.map(notification => ({
         ...notification,
-        read_at: new Date().toISOString(),
+        read: true,
       })));
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
@@ -89,7 +89,7 @@ const NotificationsScreen: React.FC<MainTabScreenProps<'Notifications'>> = ({ na
 
   const handleNotificationPress = (notification: Notification) => {
     // Mark as read
-    if (!notification.is_read) {
+    if (!notification.read) {
       handleMarkAsRead(notification.id);
     }
 
@@ -149,7 +149,7 @@ const NotificationsScreen: React.FC<MainTabScreenProps<'Notifications'>> = ({ na
 
     switch (filter) {
       case 'unread':
-        filtered = notifications.filter(n => !n.is_read);
+        filtered = notifications.filter(n => !n.read);
         break;
       case 'prayers':
         filtered = notifications.filter(n => ['prayer_response', 'comment', 'prayer_reminder'].includes(n.type));
@@ -168,7 +168,7 @@ const NotificationsScreen: React.FC<MainTabScreenProps<'Notifications'>> = ({ na
   const renderFilterTabs = () => {
     const filters = [
       { key: 'all', label: 'All', count: notifications.length },
-      { key: 'unread', label: 'Unread', count: notifications.filter(n => !n.is_read).length },
+      { key: 'unread', label: 'Unread', count: notifications.filter(n => !n.read).length },
       { key: 'prayers', label: 'Prayers', count: notifications.filter(n => ['prayer_response', 'comment', 'prayer_reminder'].includes(n.type)).length },
       { key: 'social', label: 'Social', count: notifications.filter(n => ['new_follower', 'group_invite', 'group_update'].includes(n.type)).length },
       { key: 'system', label: 'System', count: notifications.filter(n => n.type === 'system').length },
@@ -220,7 +220,7 @@ const NotificationsScreen: React.FC<MainTabScreenProps<'Notifications'>> = ({ na
       key={notification.id}
       style={[
         styles.notificationItem,
-        !notification.is_read && styles.unreadNotification
+        !notification.read && styles.unreadNotification
       ]}
       onPress={() => handleNotificationPress(notification)}
       activeOpacity={0.7}
@@ -240,7 +240,7 @@ const NotificationsScreen: React.FC<MainTabScreenProps<'Notifications'>> = ({ na
         <View style={styles.notificationText}>
           <Text style={[
             styles.notificationTitle,
-            !notification.is_read && styles.unreadText
+            !notification.read && styles.unreadText
           ]}>
             {notification.title}
           </Text>
@@ -259,7 +259,7 @@ const NotificationsScreen: React.FC<MainTabScreenProps<'Notifications'>> = ({ na
           />
         )}
         
-        {!notification.is_read && (
+        {!notification.read && (
           <View style={styles.unreadDot} />
         )}
       </View>
@@ -292,7 +292,7 @@ const NotificationsScreen: React.FC<MainTabScreenProps<'Notifications'>> = ({ na
   const renderHeader = () => (
     <View style={styles.header}>
       <Text style={styles.headerTitle}>Notifications</Text>
-      {notifications.some(n => !n.is_read) && (
+      {notifications.some(n => !n.read) && (
         <TouchableOpacity onPress={handleMarkAllAsRead}>
           <Text style={styles.markAllButton}>Mark all read</Text>
         </TouchableOpacity>

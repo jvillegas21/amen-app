@@ -121,7 +121,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       set(state => ({
         notifications: state.notifications.map(notification =>
           notification.id === notificationId
-            ? { ...notification, read_at: new Date().toISOString() }
+            ? { ...notification, read: true }
             : notification
         ),
         unreadCount: Math.max(0, state.unreadCount - 1),
@@ -146,7 +146,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       set(state => ({
         notifications: state.notifications.map(notification => ({
           ...notification,
-          read_at: new Date().toISOString(),
+          read: true,
         })),
         unreadCount: 0,
       }));
@@ -162,7 +162,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       
       set(state => ({
         notifications: state.notifications.filter(notification => notification.id !== notificationId),
-        unreadCount: state.notifications.find(n => n.id === notificationId && !n.read_at) 
+        unreadCount: state.notifications.find(n => n.id === notificationId && !n.read) 
           ? Math.max(0, state.unreadCount - 1) 
           : state.unreadCount,
       }));
