@@ -1,0 +1,495 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  SafeAreaView,
+  TextInput,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import { ProfileStackScreenProps } from '@/types/navigation.types';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuthStore } from '@/store/auth/authStore';
+
+interface SavedPrayer {
+  id: string;
+  text: string;
+  authorName: string;
+  authorId: string;
+  prayerCount: number;
+  commentCount: number;
+  savedAt: string;
+  category?: string;
+  isPublic: boolean;
+}
+
+/**
+ * Saved Prayers Screen - Display user's saved prayers with search and filtering
+ */
+const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({ navigation }) => {
+  const { profile } = useAuthStore();
+  const [savedPrayers, setSavedPrayers] = useState<SavedPrayer[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchSavedPrayers();
+  }, []);
+
+  const fetchSavedPrayers = async () => {
+    try {
+      setIsLoading(true);
+      // TODO: Implement real API calls
+      const mockSavedPrayers: SavedPrayer[] = [
+        {
+          id: '1',
+          text: 'Please pray for my family during this difficult time. We need strength and guidance.',
+          authorName: 'John Doe',
+          authorId: 'user1',
+          prayerCount: 45,
+          commentCount: 12,
+          savedAt: '2 days ago',
+          category: 'Family',
+          isPublic: true,
+        },
+        {
+          id: '2',
+          text: 'Praying for healing and recovery for all those who are struggling with illness.',
+          authorName: 'Jane Smith',
+          authorId: 'user2',
+          prayerCount: 78,
+          commentCount: 23,
+          savedAt: '1 week ago',
+          category: 'Health',
+          isPublic: true,
+        },
+        {
+          id: '3',
+          text: 'Thanking God for answered prayers and asking for continued blessings.',
+          authorName: 'Mike Johnson',
+          authorId: 'user3',
+          prayerCount: 34,
+          commentCount: 8,
+          savedAt: '2 weeks ago',
+          category: 'Gratitude',
+          isPublic: true,
+        },
+        {
+          id: '4',
+          text: 'Praying for peace in our community and for those who are struggling.',
+          authorName: 'Sarah Wilson',
+          authorId: 'user4',
+          prayerCount: 56,
+          commentCount: 15,
+          savedAt: '3 weeks ago',
+          category: 'Community',
+          isPublic: true,
+        },
+        {
+          id: '5',
+          text: 'Asking for guidance in making important life decisions.',
+          authorName: 'David Brown',
+          authorId: 'user5',
+          prayerCount: 29,
+          commentCount: 6,
+          savedAt: '1 month ago',
+          category: 'Guidance',
+          isPublic: true,
+        },
+      ];
+      setSavedPrayers(mockSavedPrayers);
+    } catch (error) {
+      console.error('Failed to fetch saved prayers:', error);
+      Alert.alert('Error', 'Failed to load saved prayers');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUnsavePrayer = (prayerId: string) => {
+    Alert.alert(
+      'Remove Prayer',
+      'Are you sure you want to remove this prayer from your saved prayers?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            // TODO: Implement unsave prayer API call
+            setSavedPrayers(prev => prev.filter(prayer => prayer.id !== prayerId));
+          },
+        },
+      ]
+    );
+  };
+
+  const handlePrayerPress = (prayerId: string) => {
+    // TODO: Navigate to prayer details
+    console.log('View prayer:', prayerId);
+  };
+
+  const handleAuthorPress = (authorId: string) => {
+    navigation.navigate('UserProfile', { userId: authorId });
+  };
+
+  const categories = ['All', 'Family', 'Health', 'Gratitude', 'Community', 'Guidance'];
+
+  const filteredPrayers = savedPrayers.filter(prayer => {
+    const matchesSearch = searchQuery === '' || 
+      prayer.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      prayer.authorName.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = selectedCategory === null || 
+      selectedCategory === 'All' || 
+      prayer.category === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
+
+  const renderSearchBar = () => (
+    <View style={styles.searchContainer}>
+      <View style={styles.searchBar}>
+        <Ionicons name="search" size={20} color="#9CA3AF" />
+        <TextInput
+          style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Search saved prayers..."
+          placeholderTextColor="#9CA3AF"
+          returnKeyType="search"
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+
+  const renderCategoryFilter = () => (
+    <View style={styles.categoryContainer}>
+      <FlatList
+        data={categories}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[
+              styles.categoryChip,
+              selectedCategory === item && styles.selectedCategoryChip
+            ]}
+            onPress={() => setSelectedCategory(selectedCategory === item ? null : item)}
+          >
+            <Text style={[
+              styles.categoryChipText,
+              selectedCategory === item && styles.selectedCategoryChipText
+            ]}>
+              {item}
+            </Text>
+          </TouchableOpacity>
+        )}
+        keyExtractor={(item) => item}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoryList}
+      />
+    </View>
+  );
+
+  const renderPrayerItem = ({ item }: { item: SavedPrayer }) => (
+    <TouchableOpacity
+      style={styles.prayerItem}
+      onPress={() => handlePrayerPress(item.id)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.prayerHeader}>
+        <TouchableOpacity
+          style={styles.authorInfo}
+          onPress={() => handleAuthorPress(item.authorId)}
+        >
+          <View style={styles.authorAvatar}>
+            <Ionicons name="person" size={16} color="#6B7280" />
+          </View>
+          <Text style={styles.authorName}>{item.authorName}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.unsaveButton}
+          onPress={() => handleUnsavePrayer(item.id)}
+        >
+          <Ionicons name="bookmark" size={20} color="#5B21B6" />
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.prayerText} numberOfLines={3}>
+        {item.text}
+      </Text>
+
+      <View style={styles.prayerFooter}>
+        <View style={styles.prayerStats}>
+          <View style={styles.statItem}>
+            <Ionicons name="heart" size={14} color="#EF4444" />
+            <Text style={styles.statText}>{item.prayerCount}</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Ionicons name="chatbubble" size={14} color="#6B7280" />
+            <Text style={styles.statText}>{item.commentCount}</Text>
+          </View>
+        </View>
+        <View style={styles.prayerMeta}>
+          {item.category && (
+            <View style={styles.categoryTag}>
+              <Text style={styles.categoryTagText}>{item.category}</Text>
+            </View>
+          )}
+          <Text style={styles.savedDate}>Saved {item.savedAt}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyStateContainer}>
+      <Ionicons name="bookmark-outline" size={64} color="#D1D5DB" />
+      <Text style={styles.emptyStateTitle}>No Saved Prayers</Text>
+      <Text style={styles.emptyStateText}>
+        {searchQuery || selectedCategory ? 
+          'No prayers match your current filters' : 
+          'Start saving prayers to see them here'
+        }
+      </Text>
+    </View>
+  );
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <Text style={styles.headerTitle}>Saved Prayers</Text>
+      <Text style={styles.headerSubtitle}>
+        {savedPrayers.length} prayer{savedPrayers.length !== 1 ? 's' : ''} saved
+      </Text>
+    </View>
+  );
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        {renderHeader()}
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#5B21B6" />
+          <Text style={styles.loadingText}>Loading saved prayers...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {renderHeader()}
+      {renderSearchBar()}
+      {renderCategoryFilter()}
+      <FlatList
+        data={filteredPrayers}
+        renderItem={renderPrayerItem}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContainer}
+        ListEmptyComponent={renderEmptyState}
+      />
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  header: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  searchContainer: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#111827',
+  },
+  categoryContainer: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  categoryList: {
+    paddingHorizontal: 16,
+  },
+  categoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  selectedCategoryChip: {
+    backgroundColor: '#5B21B6',
+    borderColor: '#5B21B6',
+  },
+  categoryChipText: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
+  },
+  selectedCategoryChipText: {
+    color: '#FFFFFF',
+  },
+  listContainer: {
+    padding: 16,
+  },
+  prayerItem: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  prayerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  authorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  authorAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  authorName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#5B21B6',
+  },
+  unsaveButton: {
+    padding: 4,
+  },
+  prayerText: {
+    fontSize: 16,
+    color: '#374151',
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  prayerFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  prayerStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  statText: {
+    marginLeft: 4,
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  prayerMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  categoryTag: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  categoryTagText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  savedDate: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 64,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#111827',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#6B7280',
+  },
+});
+
+export default SavedPrayersScreen;
