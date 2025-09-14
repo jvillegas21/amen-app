@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { RootStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
+import { groupService } from '@/services/api/groupService';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -79,28 +80,29 @@ const CreateGroupScreen: React.FC<RootStackScreenProps<'CreateGroup'>> = ({ navi
 
     setIsLoading(true);
     try {
-      // TODO: Implement group creation API call
       const groupData = {
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
-        privacy: formData.privacy,
-        max_members: formData.maxMembers,
+        privacy_level: formData.privacy,
         avatar_url: avatar || undefined,
-        creator_id: profile?.id,
+        tags: [], // TODO: Add tag selection
       };
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const createdGroup = await groupService.createGroup(groupData);
       
       Alert.alert(
         'Group Created!',
         'Your prayer group has been created successfully.',
         [
-          { text: 'OK', onPress: () => navigation.goBack() }
+          { 
+            text: 'OK', 
+            onPress: () => navigation.navigate('GroupDetails', { groupId: createdGroup.id })
+          }
         ]
       );
     } catch (error) {
-      Alert.alert('Error', 'Failed to create group');
+      console.error('Failed to create group:', error);
+      Alert.alert('Error', 'Failed to create group. Please try again.');
     } finally {
       setIsLoading(false);
     }
