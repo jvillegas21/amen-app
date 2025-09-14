@@ -2,9 +2,12 @@
 -- Single script to create all tables, types, indexes, and functions
 -- Based on comprehensive PRD specifications
 
+-- Create extensions schema for better security
+CREATE SCHEMA IF NOT EXISTS extensions;
+
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm" SCHEMA extensions;
 
 -- Create custom types (only if they don't exist)
 DO $$ BEGIN
@@ -364,7 +367,9 @@ CREATE INDEX IF NOT EXISTS idx_user_analytics_session_id ON user_analytics(sessi
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+SET search_path = public
+AS $$
 BEGIN
     NEW.updated_at = now();
     RETURN NEW;
@@ -389,7 +394,9 @@ CREATE TRIGGER update_support_tickets_updated_at BEFORE UPDATE ON support_ticket
 
 -- Create member count trigger function
 CREATE OR REPLACE FUNCTION update_group_member_count()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+SET search_path = public
+AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
         UPDATE groups SET member_count = member_count + 1 WHERE id = NEW.group_id;
@@ -410,7 +417,9 @@ CREATE TRIGGER update_group_member_count_trigger
 
 -- Create function to generate invite codes
 CREATE OR REPLACE FUNCTION generate_invite_code()
-RETURNS text AS $$
+RETURNS text 
+SET search_path = public
+AS $$
 BEGIN
     RETURN upper(substring(md5(random()::text) from 1 for 8));
 END;
@@ -418,7 +427,9 @@ $$ language 'plpgsql';
 
 -- Create function to update last_active timestamp
 CREATE OR REPLACE FUNCTION update_last_active()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+SET search_path = public
+AS $$
 BEGIN
     UPDATE profiles SET last_active = now() WHERE id = NEW.user_id;
     RETURN NEW;
@@ -443,7 +454,9 @@ CREATE TRIGGER update_last_active_on_interaction
 
 -- Create function to automatically generate invite codes for new groups
 CREATE OR REPLACE FUNCTION set_group_invite_code()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+SET search_path = public
+AS $$
 BEGIN
     IF NEW.invite_code IS NULL THEN
         NEW.invite_code = generate_invite_code();
@@ -459,7 +472,9 @@ CREATE TRIGGER set_group_invite_code_trigger
 
 -- Create function to clean up expired notifications
 CREATE OR REPLACE FUNCTION cleanup_expired_notifications()
-RETURNS void AS $$
+RETURNS void 
+SET search_path = public
+AS $$
 BEGIN
     DELETE FROM notifications WHERE expires_at < now();
 END;
@@ -467,7 +482,9 @@ $$ language 'plpgsql';
 
 -- Create function to get prayer interaction counts
 CREATE OR REPLACE FUNCTION get_prayer_interaction_counts(prayer_uuid uuid)
-RETURNS jsonb AS $$
+RETURNS jsonb 
+SET search_path = public
+AS $$
 DECLARE
     result jsonb;
 BEGIN
@@ -486,7 +503,9 @@ $$ language 'plpgsql';
 
 -- Create function to get user's prayer statistics
 CREATE OR REPLACE FUNCTION get_user_prayer_stats(user_uuid uuid)
-RETURNS jsonb AS $$
+RETURNS jsonb 
+SET search_path = public
+AS $$
 DECLARE
     result jsonb;
 BEGIN
@@ -511,7 +530,8 @@ END;
 $$ language 'plpgsql';
 
 -- Create view for prayer feed with user info
-CREATE OR REPLACE VIEW prayer_feed AS
+CREATE OR REPLACE VIEW prayer_feed 
+WITH (security_invoker = true) AS
 SELECT 
     p.*,
     pr.display_name,
@@ -525,7 +545,8 @@ WHERE p.privacy_level = 'public'
 GROUP BY p.id, pr.display_name, pr.avatar_url;
 
 -- Create view for group activity
-CREATE OR REPLACE VIEW group_activity AS
+CREATE OR REPLACE VIEW group_activity 
+WITH (security_invoker = true) AS
 SELECT 
     g.*,
     pr.display_name as creator_name,
@@ -541,6 +562,7 @@ GROUP BY g.id, pr.display_name, pr.avatar_url;
 
 -- Grant necessary permissions (adjust based on your RLS policies)
 -- These will be set up in the RLS policies file
+GRANT USAGE ON SCHEMA extensions TO anon, authenticated;
 
 -- Add some helpful comments
 COMMENT ON TABLE profiles IS 'User profiles with privacy controls and location settings';
