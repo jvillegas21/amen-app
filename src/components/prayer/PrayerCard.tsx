@@ -1,0 +1,300 @@
+import React, { memo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Prayer } from '@/types/database.types';
+import { formatDistanceToNow } from 'date-fns';
+
+interface PrayerCardProps {
+  prayer: Prayer;
+  onPress: () => void;
+  onPrayPress: () => void;
+  onCommentPress: () => void;
+  onSharePress: () => void;
+}
+
+/**
+ * Prayer Card Component
+ * Implements Single Responsibility: Only displays prayer information
+ */
+const PrayerCard: React.FC<PrayerCardProps> = memo((
+  { prayer, onPress, onPrayPress, onCommentPress, onSharePress }
+) => {
+  const timeAgo = formatDistanceToNow(new Date(prayer.created_at), { addSuffix: true });
+  const isAnonymous = prayer.is_anonymous;
+  const displayName = isAnonymous ? 'Anonymous' : prayer.user?.display_name || 'User';
+  const avatarUrl = isAnonymous ? null : prayer.user?.avatar_url;
+
+  return (
+    <TouchableOpacity
+      style={styles.container}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={styles.header}>
+        <View style={styles.userInfo}>
+          {avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <Ionicons
+                name={isAnonymous ? 'person-outline' : 'person'}
+                size={20}
+                color="#9CA3AF"
+              />
+            </View>
+          )}
+          <View style={styles.userDetails}>
+            <Text style={styles.userName}>{displayName}</Text>
+            <View style={styles.metaInfo}>
+              <Text style={styles.timeText}>{timeAgo}</Text>
+              {prayer.location_city && prayer.location_granularity !== 'hidden' && (
+                <>
+                  <Text style={styles.separator}>•</Text>
+                  <View style={styles.locationContainer}>
+                    <Ionicons name="location-outline" size={12} color="#9CA3AF" />
+                    <Text style={styles.locationText}>{prayer.location_city}</Text>
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
+        </View>
+        {prayer.privacy_level !== 'public' && (
+          <View style={styles.privacyBadge}>
+            <Ionicons
+              name={
+                prayer.privacy_level === 'private'
+                  ? 'lock-closed-outline'
+                  : prayer.privacy_level === 'friends'
+                  ? 'people-outline'
+                  : 'people-circle-outline'
+              }
+              size={12}
+              color="#6B7280"
+            />
+          </View>
+        )}
+      </View>
+
+      <View style={styles.content}>
+        <Text style={styles.prayerText} numberOfLines={4}>
+          {prayer.text}
+        </Text>
+
+        {prayer.tags && prayer.tags.length > 0 && (
+          <View style={styles.tagsContainer}>
+            {prayer.tags.slice(0, 3).map((tag, index) => (
+              <View key={index} style={styles.tag}>
+                <Text style={styles.tagText}>#{tag}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+
+      <View style={styles.actions}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={onPrayPress}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name={prayer.user_interaction?.type === 'PRAY' ? 'heart' : 'heart-outline'}
+            size={20}
+            color={prayer.user_interaction?.type === 'PRAY' ? '#EF4444' : '#6B7280'}
+          />
+          <Text style={[
+            styles.actionText,
+            prayer.user_interaction?.type === 'PRAY' && styles.actionTextActive
+          ]}>
+            Pray
+          </Text>
+          {prayer.interaction_count && prayer.interaction_count > 0 && (
+            <Text style={styles.actionCount}>{prayer.interaction_count}</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={onCommentPress}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="chatbubble-outline" size={20} color="#6B7280" />
+          <Text style={styles.actionText}>Comment</Text>
+          {prayer.comment_count && prayer.comment_count > 0 && (
+            <Text style={styles.actionCount}>{prayer.comment_count}</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={onSharePress}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="share-outline" size={20} color="#6B7280" />
+          <Text style={styles.actionText}>Share</Text>
+        </TouchableOpacity>
+      </View>
+
+      {prayer.status === 'answered' && (
+        <View style={styles.answeredBadge}>
+          <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+          <Text style={styles.answeredText}>Answered</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+});
+
+PrayerCard.displayName = 'PrayerCard';
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginVertical: 8,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  userInfo: {
+    flexDirection: 'row',
+    flex: 1,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  userDetails: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  metaInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timeText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  separator: {
+    marginHorizontal: 6,
+    color: '#9CA3AF',
+    fontSize: 12,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  locationText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginLeft: 2,
+  },
+  privacyBadge: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  content: {
+    marginBottom: 12,
+  },
+  prayerText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#374151',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 8,
+  },
+  tag: {
+    backgroundColor: '#EDE9FE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginRight: 6,
+    marginBottom: 4,
+  },
+  tagText: {
+    fontSize: 12,
+    color: '#5B21B6',
+    fontWeight: '500',
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  actionText: {
+    marginLeft: 6,
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  actionTextActive: {
+    color: '#EF4444',
+  },
+  actionCount: {
+    marginLeft: 4,
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  answeredBadge: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  answeredText: {
+    marginLeft: 4,
+    fontSize: 12,
+    color: '#10B981',
+    fontWeight: '600',
+  },
+});
+
+export default PrayerCard;
