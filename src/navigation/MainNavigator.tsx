@@ -1,5 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MainTabParamList } from '@/types/navigation.types';
 import { theme } from '@/theme';
@@ -76,19 +77,36 @@ const MainNavigator: React.FC = () => {
       <Tab.Screen
         name="Home"
         component={HomeScreen}
-        options={{
+        options={({ navigation }) => ({
           title: 'Prayer Feed',
           headerShown: true,
-          tabBarAccessibilityLabel: 'Home, tab 1 of 5',
-        }}
+          tabBarLabel: 'Home',
+          tabBarAccessibilityLabel: 'Home, tab 1 of 4',
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Discover')}
+              style={{ marginRight: theme.spacing[4] }}
+              accessibilityLabel="Search"
+              accessibilityRole="button"
+              accessibilityHint="Navigate to search and discover"
+            >
+              <Ionicons
+                name="search"
+                size={24}
+                color={theme.colors.text.inverse}
+              />
+            </TouchableOpacity>
+          ),
+        })}
       />
       <Tab.Screen
         name="Discover"
         component={DiscoverScreen}
         options={{
-          title: 'Discover & Search',
+          title: 'Discover',
           headerShown: true,
-          tabBarAccessibilityLabel: 'Discover, tab 2 of 5',
+          tabBarLabel: 'Discover',
+          tabBarAccessibilityLabel: 'Discover, tab 2 of 4',
         }}
       />
       <Tab.Screen
@@ -97,25 +115,28 @@ const MainNavigator: React.FC = () => {
         options={{
           title: 'Create Prayer',
           headerShown: true,
-          tabBarAccessibilityLabel: 'Create, tab 3 of 5',
+          tabBarLabel: '',
+          tabBarAccessibilityLabel: 'Create prayer',
         }}
       />
       <Tab.Screen
         name="Groups"
         component={GroupsNavigator}
         options={{
-          title: 'Prayer Groups',
+          title: 'Groups',
           headerShown: false, // Groups has its own navigation header
-          tabBarAccessibilityLabel: 'Groups, tab 4 of 5',
+          tabBarLabel: 'Groups',
+          tabBarAccessibilityLabel: 'Groups, tab 3 of 4',
         }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileNavigator}
         options={{
-          title: 'My Profile',
+          title: 'Profile',
           headerShown: false, // Profile has its own navigation header
-          tabBarAccessibilityLabel: 'Profile, tab 5 of 5',
+          tabBarLabel: 'Profile',
+          tabBarAccessibilityLabel: 'Profile, tab 4 of 4',
         }}
       />
     </Tab.Navigator>
