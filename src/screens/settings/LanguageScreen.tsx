@@ -9,11 +9,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useThemeStore } from '@/store/theme/themeStore';
+import { useTheme } from '@/theme/ThemeContext';
 
 export default function LanguageScreen() {
   const router = useRouter();
-  const { colors } = useThemeStore();
+  const { theme } = useTheme();
 
   const handleLanguageSelect = (language: string) => {
     Alert.alert(
@@ -87,20 +87,20 @@ export default function LanguageScreen() {
   ];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.primary} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Language</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Language</Text>
         <View style={styles.placeholder} />
       </View>
 
       <View style={styles.content}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
           Choose your preferred language
         </Text>
-        <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
+        <Text style={[styles.sectionDescription, { color: theme.colors.textSecondary }]}>
           The language will be applied throughout the app
         </Text>
 
@@ -111,8 +111,8 @@ export default function LanguageScreen() {
               style={[
                 styles.optionItem,
                 { 
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
                 }
               ]}
               onPress={() => handleLanguageSelect(option.name)}
@@ -121,24 +121,24 @@ export default function LanguageScreen() {
                 <View style={styles.optionLeft}>
                   <Text style={styles.flag}>{option.flag}</Text>
                   <View style={styles.optionText}>
-                    <Text style={[styles.optionName, { color: colors.text }]}>
+                    <Text style={[styles.optionName, { color: theme.colors.text }]}>
                       {option.name}
                     </Text>
-                    <Text style={[styles.optionNativeName, { color: colors.textSecondary }]}>
+                    <Text style={[styles.optionNativeName, { color: theme.colors.textSecondary }]}>
                       {option.nativeName}
                     </Text>
                   </View>
                 </View>
                 
-                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
               </View>
             </TouchableOpacity>
           ))}
         </View>
 
-        <View style={[styles.infoContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Ionicons name="information-circle-outline" size={20} color={colors.info} />
-          <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+        <View style={[styles.infoContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <Ionicons name="information-circle-outline" size={20} color={theme.colors.info} />
+          <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
             Language changes will be applied after restarting the app.
           </Text>
         </View>
