@@ -53,12 +53,12 @@ class PrayerService {
         user:profiles!user_id(*),
         interaction_count:interactions(count),
         comment_count:comments(count),
-        user_interaction:interactions!inner(
+        user_interaction:interactions(
           *
         )
       `)
       .eq('id', prayerId)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     if (!data) throw new Error('Prayer not found');

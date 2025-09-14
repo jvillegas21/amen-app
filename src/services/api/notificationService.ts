@@ -31,7 +31,7 @@ class NotificationService {
   async markAsRead(notificationId: string): Promise<void> {
     const { error } = await supabase
       .from('notifications')
-      .update({ read_at: new Date().toISOString() })
+      .update({ read: true })
       .eq('id', notificationId);
 
     if (error) throw error;
@@ -43,9 +43,9 @@ class NotificationService {
   async markAllAsRead(userId: string): Promise<void> {
     const { error } = await supabase
       .from('notifications')
-      .update({ read_at: new Date().toISOString() })
+      .update({ read: true })
       .eq('user_id', userId)
-      .is('read_at', null);
+      .eq('read', false);
 
     if (error) throw error;
   }
@@ -70,7 +70,7 @@ class NotificationService {
       .from('notifications')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .is('read_at', null);
+      .eq('read', false);
 
     if (error) throw error;
     return count || 0;

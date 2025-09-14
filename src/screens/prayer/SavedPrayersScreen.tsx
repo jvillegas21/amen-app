@@ -95,10 +95,10 @@ export default function SavedPrayersScreen() {
     >
       <View style={styles.prayerContent}>
         <Text style={styles.prayerTitle} numberOfLines={2}>
-          {prayer.title}
+          Prayer Request
         </Text>
         <Text style={styles.prayerText} numberOfLines={3}>
-          {prayer.content}
+          {prayer.text}
         </Text>
         
         <View style={styles.prayerMeta}>

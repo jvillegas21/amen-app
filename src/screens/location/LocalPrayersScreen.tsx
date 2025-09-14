@@ -115,7 +115,7 @@ export default function LocalPrayersScreen() {
       >
         <View style={styles.prayerHeader}>
           <Text style={styles.prayerTitle} numberOfLines={2}>
-            {prayer.title || 'Prayer Request'}
+            Prayer Request
           </Text>
           <View style={styles.distanceBadge}>
             <Ionicons name="location" size={12} color="#5B21B6" />

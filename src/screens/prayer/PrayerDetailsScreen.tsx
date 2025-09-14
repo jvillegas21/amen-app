@@ -43,6 +43,8 @@ export default function PrayerDetailsScreen() {
   
   const scrollViewRef = useRef<ScrollView>(null);
   const commentInputRef = useRef<TextInput>(null);
+  const commentSubscriptionRef = useRef<any>(null);
+  const interactionSubscriptionRef = useRef<any>(null);
 
   useEffect(() => {
     if (prayerId) {
@@ -52,9 +54,11 @@ export default function PrayerDetailsScreen() {
 
     return () => {
       // Cleanup subscriptions
-      if (prayerId) {
-        commentService.unsubscribeFromComments(commentSubscription);
-        prayerInteractionService.unsubscribeFromPrayerInteractions(interactionSubscription);
+      if (commentSubscriptionRef.current) {
+        commentService.unsubscribeFromComments(commentSubscriptionRef.current);
+      }
+      if (interactionSubscriptionRef.current) {
+        prayerInteractionService.unsubscribeFromPrayerInteractions(interactionSubscriptionRef.current);
       }
     };
   }, [prayerId]);
@@ -81,13 +85,13 @@ export default function PrayerDetailsScreen() {
 
   const setupRealtimeSubscriptions = () => {
     // Subscribe to new comments
-    commentService.subscribeToComments(prayerId!, (newComment) => {
+    commentSubscriptionRef.current = commentService.subscribeToComments(prayerId!, (newComment) => {
       setComments(prev => [...prev, newComment]);
       setInteractions(prev => ({ ...prev, comments: prev.comments + 1 }));
     });
 
     // Subscribe to interaction changes
-    prayerInteractionService.subscribeToPrayerInteractions(prayerId!, (newInteractions) => {
+    interactionSubscriptionRef.current = prayerInteractionService.subscribeToPrayerInteractions(prayerId!, (newInteractions) => {
       setInteractions(newInteractions);
     });
   };
@@ -133,8 +137,8 @@ export default function PrayerDetailsScreen() {
 
     try {
       const shareOptions = {
-        message: `Check out this prayer: "${prayer.title}"\n\n${prayer.content}`,
-        title: prayer.title,
+        message: `Check out this prayer: "${prayer.text}"`,
+        title: 'Prayer Request',
       };
 
       const result = await Share.share(shareOptions);
@@ -247,8 +251,7 @@ export default function PrayerDetailsScreen() {
       >
         {/* Prayer Content */}
         <View style={styles.prayerContainer}>
-          <Text style={styles.prayerTitle}>{prayer.title}</Text>
-          <Text style={styles.prayerContent}>{prayer.content}</Text>
+          <Text style={styles.prayerContent}>{prayer.text}</Text>
           
           <View style={styles.prayerMeta}>
             <Text style={styles.prayerAuthor}>by {prayer.user?.display_name || 'Anonymous'}</Text>
@@ -401,12 +404,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E7',
-  },
-  prayerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000',
-    marginBottom: 12,
   },
   prayerContent: {
     fontSize: 16,
