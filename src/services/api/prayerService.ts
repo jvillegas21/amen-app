@@ -23,34 +23,116 @@ class PrayerService {
       .select(`
         *,
         user:profiles!user_id(*),
-        interaction_count:interactions(count),
-        comment_count:comments(count),
-        user_interaction:interactions!left(
-          *
-        )
+        comment_count:comments(count)
       `)
       .order('created_at', { ascending: false })
       .range((params.page - 1) * params.limit, params.page * params.limit - 1);
-
-    // Filter user_interaction to only show current user's interactions
-    if (userId) {
-      query = query.eq('user_interaction.user_id', userId);
-    }
 
     // Apply filters based on feed type
     if (params.groupId) {
       query = query.eq('group_id', params.groupId);
     } else if (params.feedType === 'discover') {
+      // Discover feed - show public prayers from all users
       query = query.eq('privacy_level', 'public');
     } else {
-      // Following feed - would need to join with following table
-      query = query.in('privacy_level', ['public', 'friends']);
+      // Following feed - show prayers from users the current user follows
+      if (userId) {
+        // Use the database function for following feed
+        const { data: followingData, error: followingError } = await supabase
+          .rpc('get_user_feed_prayers', {
+            user_uuid: userId,
+            limit_count: params.limit,
+            offset_count: (params.page - 1) * params.limit
+          });
+
+        if (followingError) throw followingError;
+
+        // Transform the data to match our Prayer interface
+        const prayersWithCounts = await Promise.all(
+          (followingData || []).map(async (prayer: any) => {
+            // Get user profile
+            const { data: userProfile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', prayer.user_id)
+              .single();
+
+            // Get user's interaction for this prayer
+            let userInteraction = null;
+            const { data: userInteractions } = await supabase
+              .from('interactions')
+              .select('*')
+              .eq('prayer_id', prayer.id)
+              .eq('user_id', userId)
+              .limit(1);
+            
+            userInteraction = userInteractions?.[0] || null;
+
+            // Get interaction counts using the database function
+            const { data: interactionCounts } = await supabase
+              .rpc('get_prayer_interaction_counts', { prayer_uuid: prayer.id });
+
+            return {
+              id: prayer.id,
+              user_id: prayer.user_id,
+              text: prayer.text,
+              privacy_level: prayer.privacy_level,
+              status: prayer.status,
+              created_at: prayer.created_at,
+              user: userProfile,
+              pray_count: interactionCounts?.pray_count || 0,
+              like_count: interactionCounts?.like_count || 0,
+              comment_count: prayer.comment_count || 0,
+              user_interaction: userInteraction,
+            };
+          })
+        );
+
+        return prayersWithCounts;
+      } else {
+        // Fallback to public prayers if not authenticated
+        query = query.eq('privacy_level', 'public');
+      }
     }
 
     const { data, error } = await query;
 
     if (error) throw error;
-    return data || [];
+    
+    // Get interaction counts and user interactions for each prayer
+    const prayersWithCounts = await Promise.all(
+      (data || []).map(async (prayer) => {
+        const { data: interactions } = await supabase
+          .from('interactions')
+          .select('type')
+          .eq('prayer_id', prayer.id);
+
+        const prayCount = interactions?.filter(i => i.type === 'PRAY').length || 0;
+        const likeCount = interactions?.filter(i => i.type === 'LIKE').length || 0;
+
+        // Get user's interaction for this prayer
+        let userInteraction = null;
+        if (userId) {
+          const { data: userInteractions } = await supabase
+            .from('interactions')
+            .select('*')
+            .eq('prayer_id', prayer.id)
+            .eq('user_id', userId)
+            .limit(1);
+          
+          userInteraction = userInteractions?.[0] || null;
+        }
+
+        return {
+          ...prayer,
+          pray_count: prayCount,
+          like_count: likeCount,
+          user_interaction: userInteraction,
+        };
+      })
+    );
+
+    return prayersWithCounts;
   }
 
   /**
@@ -60,29 +142,47 @@ class PrayerService {
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id;
 
-    let query = supabase
+    const { data, error } = await supabase
       .from('prayers')
       .select(`
         *,
         user:profiles!user_id(*),
-        interaction_count:interactions(count),
-        comment_count:comments(count),
-        user_interaction:interactions!left(
-          *
-        )
+        comment_count:comments(count)
       `)
-      .eq('id', prayerId);
-
-    // Filter user_interaction to only show current user's interactions
-    if (userId) {
-      query = query.eq('user_interaction.user_id', userId);
-    }
-
-    const { data, error } = await query.maybeSingle();
+      .eq('id', prayerId)
+      .maybeSingle();
 
     if (error) throw error;
     if (!data) throw new Error('Prayer not found');
-    return data;
+
+    // Get interaction counts for this prayer
+    const { data: interactions } = await supabase
+      .from('interactions')
+      .select('type')
+      .eq('prayer_id', prayerId);
+
+    const prayCount = interactions?.filter(i => i.type === 'PRAY').length || 0;
+    const likeCount = interactions?.filter(i => i.type === 'LIKE').length || 0;
+
+    // Get user's interaction for this prayer
+    let userInteraction = null;
+    if (userId) {
+      const { data: userInteractions } = await supabase
+        .from('interactions')
+        .select('*')
+        .eq('prayer_id', prayerId)
+        .eq('user_id', userId)
+        .limit(1);
+      
+      userInteraction = userInteractions?.[0] || null;
+    }
+
+    return {
+      ...data,
+      pray_count: prayCount,
+      like_count: likeCount,
+      user_interaction: userInteraction,
+    };
   }
 
   /**
@@ -197,42 +297,58 @@ class PrayerService {
     prayerId: string,
     interaction: PrayerInteractionRequest
   ): Promise<void> {
+    console.log('prayerService.interactWithPrayer called with:', prayerId, interaction);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
+    console.log('User authenticated:', user.id);
 
     // Check if interaction already exists
-    const { data: existing } = await supabase
+    const { data: existing, error: checkError } = await supabase
       .from('interactions')
       .select('id')
       .eq('prayer_id', prayerId)
       .eq('user_id', user.id)
       .eq('type', interaction.type)
-      .single();
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('Error checking existing interaction:', checkError);
+      throw checkError;
+    }
+
+    console.log('Existing interaction found:', existing);
 
     if (existing) {
-      // Update existing interaction
+      // Delete existing interaction (toggle off)
+      console.log('Deleting existing interaction:', existing.id);
       const { error } = await supabase
         .from('interactions')
-        .update({
-          committed_at: interaction.committed_at,
-          reminder_frequency: interaction.reminder_frequency,
-        })
+        .delete()
         .eq('id', existing.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting interaction:', error);
+        throw error;
+      }
+      console.log('Successfully deleted interaction');
     } else {
       // Create new interaction
+      console.log('Creating new interaction');
       const { error } = await supabase
         .from('interactions')
         .insert({
           prayer_id: prayerId,
           user_id: user.id,
           type: interaction.type,
-          committed_at: interaction.committed_at,
-          reminder_frequency: interaction.reminder_frequency,
+          committed_at: interaction.committed_at || new Date().toISOString(),
+          reminder_frequency: interaction.reminder_frequency || 'none',
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating interaction:', error);
+        throw error;
+      }
+      console.log('Successfully created interaction');
     }
   }
 

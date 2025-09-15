@@ -14,26 +14,28 @@ class PrayerInteractionService {
 
     // Check if already liked
     const { data: existing } = await supabase
-      .from('prayer_likes')
+      .from('interactions')
       .select('id')
       .eq('prayer_id', prayerId)
       .eq('user_id', user.id)
+      .eq('type', 'LIKE')
       .single();
 
     if (existing) {
       // Unlike
       const { error } = await supabase
-        .from('prayer_likes')
+        .from('interactions')
         .delete()
         .eq('id', existing.id);
       if (error) throw error;
     } else {
       // Like
       const { error } = await supabase
-        .from('prayer_likes')
+        .from('interactions')
         .insert({
           prayer_id: prayerId,
           user_id: user.id,
+          type: 'LIKE',
         });
       if (error) throw error;
     }
@@ -48,28 +50,101 @@ class PrayerInteractionService {
 
     // Check if already saved
     const { data: existing } = await supabase
-      .from('saved_prayers')
+      .from('interactions')
       .select('id')
       .eq('prayer_id', prayerId)
       .eq('user_id', user.id)
+      .eq('type', 'SAVE')
       .single();
 
     if (existing) {
       // Unsave
       const { error } = await supabase
-        .from('saved_prayers')
+        .from('interactions')
         .delete()
         .eq('id', existing.id);
       if (error) throw error;
     } else {
       // Save
       const { error } = await supabase
-        .from('saved_prayers')
+        .from('interactions')
         .insert({
           prayer_id: prayerId,
           user_id: user.id,
+          type: 'SAVE',
         });
       if (error) throw error;
+    }
+  }
+
+  /**
+   * Unsave a prayer
+   */
+  async unsavePrayer(prayerId: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const { error } = await supabase
+      .from('interactions')
+      .delete()
+      .eq('prayer_id', prayerId)
+      .eq('user_id', user.id)
+      .eq('type', 'SAVE');
+
+    if (error) throw error;
+  }
+
+  /**
+   * Pray for a prayer
+   */
+  async prayForPrayer(prayerId: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    // Check if already prayed for
+    const { data: existing, error: checkError } = await supabase
+      .from('interactions')
+      .select('id')
+      .eq('prayer_id', prayerId)
+      .eq('user_id', user.id)
+      .eq('type', 'PRAY')
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('Error checking existing interaction:', checkError);
+      throw checkError;
+    }
+
+    console.log('Existing interaction found:', existing);
+
+    if (existing) {
+      // Remove prayer
+      console.log('Removing prayer interaction:', existing.id);
+      const { error } = await supabase
+        .from('interactions')
+        .delete()
+        .eq('id', existing.id);
+      if (error) {
+        console.error('Error removing interaction:', error);
+        throw error;
+      }
+      console.log('Successfully removed prayer interaction');
+    } else {
+      // Pray for it
+      console.log('Adding prayer interaction');
+      const { error } = await supabase
+        .from('interactions')
+        .insert({
+          prayer_id: prayerId,
+          user_id: user.id,
+          type: 'PRAY',
+          committed_at: new Date().toISOString(),
+        });
+      if (error) {
+        console.error('Error adding interaction:', error);
+        throw error;
+      }
+      console.log('Successfully added prayer interaction');
     }
   }
 
@@ -82,11 +157,11 @@ class PrayerInteractionService {
 
     // Record the share
     const { error } = await supabase
-      .from('prayer_shares')
+      .from('interactions')
       .insert({
         prayer_id: prayerId,
         user_id: user.id,
-        platform,
+        type: 'SHARE',
       });
 
     if (error) throw error;
@@ -96,19 +171,20 @@ class PrayerInteractionService {
    * Get prayer interaction counts
    */
   async getPrayerInteractionCounts(prayerId: string): Promise<{
+    prayers: number;
     likes: number;
     comments: number;
-    shares: number;
+    isPrayed: boolean;
     isLiked: boolean;
     isSaved: boolean;
   }> {
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id;
 
-    // Get likes count
-    const { count: likesCount } = await supabase
-      .from('prayer_likes')
-      .select('*', { count: 'exact', head: true })
+    // Get interaction counts using the unified interactions table
+    const { data: interactions } = await supabase
+      .from('interactions')
+      .select('type')
       .eq('prayer_id', prayerId);
 
     // Get comments count
@@ -117,39 +193,32 @@ class PrayerInteractionService {
       .select('*', { count: 'exact', head: true })
       .eq('prayer_id', prayerId);
 
-    // Get shares count
-    const { count: sharesCount } = await supabase
-      .from('prayer_shares')
-      .select('*', { count: 'exact', head: true })
-      .eq('prayer_id', prayerId);
+    // Count interactions by type
+    const prayersCount = interactions?.filter(i => i.type === 'PRAY').length || 0;
+    const likesCount = interactions?.filter(i => i.type === 'LIKE').length || 0;
 
-    // Check if user has liked/saved
+    // Check if user has prayed/liked/saved
+    let isPrayed = false;
     let isLiked = false;
     let isSaved = false;
 
     if (userId) {
-      const { data: likeData } = await supabase
-        .from('prayer_likes')
-        .select('id')
+      const { data: userInteractions } = await supabase
+        .from('interactions')
+        .select('type')
         .eq('prayer_id', prayerId)
-        .eq('user_id', userId)
-        .single();
+        .eq('user_id', userId);
 
-      const { data: saveData } = await supabase
-        .from('saved_prayers')
-        .select('id')
-        .eq('prayer_id', prayerId)
-        .eq('user_id', userId)
-        .single();
-
-      isLiked = !!likeData;
-      isSaved = !!saveData;
+      isPrayed = userInteractions?.some(i => i.type === 'PRAY') || false;
+      isLiked = userInteractions?.some(i => i.type === 'LIKE') || false;
+      isSaved = userInteractions?.some(i => i.type === 'SAVE') || false;
     }
 
     return {
-      likes: likesCount || 0,
+      prayers: prayersCount,
+      likes: likesCount,
       comments: commentsCount || 0,
-      shares: sharesCount || 0,
+      isPrayed,
       isLiked,
       isSaved,
     };
@@ -160,7 +229,7 @@ class PrayerInteractionService {
    */
   async getSavedPrayers(userId: string, page = 1, limit = 20): Promise<Prayer[]> {
     const { data, error } = await supabase
-      .from('saved_prayers')
+      .from('interactions')
       .select(`
         prayer:prayers!prayer_id(
           *,
@@ -168,6 +237,7 @@ class PrayerInteractionService {
         )
       `)
       .eq('user_id', userId)
+      .eq('type', 'SAVE')
       .order('created_at', { ascending: false })
       .range((page - 1) * limit, page * limit - 1);
 
@@ -234,24 +304,13 @@ class PrayerInteractionService {
         {
           event: '*',
           schema: 'public',
-          table: 'prayer_likes',
+          table: 'interactions',
           filter: `prayer_id=eq.${prayerId}`,
         },
-        async () => {
+        async (payload) => {
+          console.log('Real-time interaction change detected:', payload);
           const interactions = await this.getPrayerInteractionCounts(prayerId);
-          callback(interactions);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'saved_prayers',
-          filter: `prayer_id=eq.${prayerId}`,
-        },
-        async () => {
-          const interactions = await this.getPrayerInteractionCounts(prayerId);
+          console.log('Updated interactions:', interactions);
           callback(interactions);
         }
       )

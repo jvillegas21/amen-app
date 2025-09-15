@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ActivityIndicator,
   TouchableOpacity,
   Alert,
 } from 'react-native';
@@ -38,9 +37,11 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
 
   const [feedType, setFeedType] = useState<'following' | 'discover'>('following');
   const [savedPrayers, setSavedPrayers] = useState<Set<string>>(new Set());
-  const [interactingPrayers, setInteractingPrayers] = useState<Set<string>>(new Set());
+  const [prayingPrayers, setPrayingPrayers] = useState<Set<string>>(new Set());
+  const [savingPrayers, setSavingPrayers] = useState<Set<string>>(new Set());
   
   const { sharePrayer, isSharing } = useSharing();
+
 
   useEffect(() => {
     fetchPrayers(feedType);
@@ -53,15 +54,6 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
     };
   }, [feedType, fetchPrayers, subscribeToRealtime, unsubscribeFromRealtime]);
 
-  const handleRefresh = useCallback(() => {
-    refreshPrayers(feedType);
-  }, [feedType, refreshPrayers]);
-
-  const handleLoadMore = useCallback(() => {
-    if (!isLoading) {
-      loadMorePrayers(feedType);
-    }
-  }, [feedType, isLoading, loadMorePrayers]);
 
   const handlePrayerPress = (prayerId: string) => {
     navigation.navigate('PrayerDetails', { prayerId });
@@ -72,14 +64,14 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
   };
 
   const handlePrayPress = async (prayerId: string) => {
-    setInteractingPrayers(prev => new Set(prev).add(prayerId));
+    setPrayingPrayers(prev => new Set(prev).add(prayerId));
     try {
       await interactWithPrayer(prayerId, 'PRAY');
     } catch (error) {
       console.error('Failed to interact with prayer:', error);
       Alert.alert('Error', 'Failed to pray for this request. Please try again.');
     } finally {
-      setInteractingPrayers(prev => {
+      setPrayingPrayers(prev => {
         const newSet = new Set(prev);
         newSet.delete(prayerId);
         return newSet;
@@ -92,7 +84,6 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
   };
 
   const handleSharePress = async (prayerId: string) => {
-    setInteractingPrayers(prev => new Set(prev).add(prayerId));
     try {
       await interactWithPrayer(prayerId, 'SHARE');
       // Use the sharing service
@@ -107,17 +98,11 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
     } catch (error) {
       console.error('Failed to share prayer:', error);
       Alert.alert('Error', 'Failed to share prayer. Please try again.');
-    } finally {
-      setInteractingPrayers(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(prayerId);
-        return newSet;
-      });
     }
   };
 
   const handleSavePress = async (prayerId: string) => {
-    setInteractingPrayers(prev => new Set(prev).add(prayerId));
+    setSavingPrayers(prev => new Set(prev).add(prayerId));
     try {
       await prayerInteractionService.savePrayer(prayerId);
       setSavedPrayers((prev: Set<string>) => {
@@ -133,7 +118,7 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
       console.error('Failed to save prayer:', error);
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
     } finally {
-      setInteractingPrayers(prev => {
+      setSavingPrayers(prev => {
         const newSet = new Set(prev);
         newSet.delete(prayerId);
         return newSet;
@@ -145,7 +130,6 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
     navigation.navigate('ReportContent', {
       type: 'prayer',
       id: prayer.id,
-      prayerId: prayer.id,
     });
   };
 
@@ -161,7 +145,7 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
     }
   };
 
-  const renderPrayerCard = useCallback((prayer: Prayer) => (
+  const renderPrayerCard = (prayer: Prayer) => (
     <PrayerCard
       prayer={prayer}
       onPress={() => handlePrayerPress(prayer.id)}
@@ -170,11 +154,13 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
       onSharePress={() => handleSharePress(prayer.id)}
       onSavePress={() => handleSavePress(prayer.id)}
       isSaved={savedPrayers.has(prayer.id)}
-      isInteracting={interactingPrayers.has(prayer.id) || isSharing}
+      isPraying={prayingPrayers.has(prayer.id)}
+      isSharing={isSharing}
+      isSaving={savingPrayers.has(prayer.id)}
       onReportPress={() => handleReportPress(prayer)}
       onBlockUserPress={() => handleBlockUserPress(prayer)}
     />
-  ), [savedPrayers, interactingPrayers, isSharing, handlePrayerPress, handlePrayPress, handleCommentPress, handleSharePress, handleSavePress, handleReportPress, handleBlockUserPress]);
+  );
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -224,7 +210,7 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
       <View style={styles.headerActions}>
         <TouchableOpacity
           style={styles.headerActionButton}
-          onPress={() => navigation.navigate('SavedPrayers')}
+          onPress={() => navigation.navigate('Profile')}
           accessibilityRole="button"
           accessibilityLabel="Saved prayers"
           accessibilityHint="View your saved prayers"
@@ -233,12 +219,12 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.headerActionButton}
-          onPress={() => navigation.navigate('PrayerReminders')}
+          onPress={() => navigation.navigate('Settings')}
           accessibilityRole="button"
-          accessibilityLabel="Prayer reminders"
-          accessibilityHint="Set up prayer reminders"
+          accessibilityLabel="Settings"
+          accessibilityHint="Open app settings"
         >
-          <Ionicons name="alarm-outline" size={20} color={theme.colors.primary[600]} />
+          <Ionicons name="settings-outline" size={20} color={theme.colors.primary[600]} />
         </TouchableOpacity>
       </View>
     </View>

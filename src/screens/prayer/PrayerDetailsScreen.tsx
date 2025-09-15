@@ -13,26 +13,32 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '@/store/auth/authStore';
+import { usePrayerStore } from '@/store/prayer/prayerStore';
+import { RootStackScreenProps } from '@/types/navigation.types';
 import { prayerService } from '@/services/api/prayerService';
 import { commentService } from '@/services/api/commentService';
 import { prayerInteractionService } from '@/services/api/prayerInteractionService';
 import { Prayer, Comment } from '@/types/database.types';
 import { formatDistanceToNow } from 'date-fns';
 
+type PrayerDetailsScreenProps = RootStackScreenProps<'PrayerDetails'>;
+
 export default function PrayerDetailsScreen() {
-  const { prayerId } = useLocalSearchParams<{ prayerId: string }>();
-  const router = useRouter();
+  const route = useRoute<PrayerDetailsScreenProps['route']>();
+  const navigation = useNavigation<PrayerDetailsScreenProps['navigation']>();
+  const { prayerId } = route.params;
   const { profile } = useAuthStore();
+  const { interactWithPrayer, prayers } = usePrayerStore();
   
-  const [prayer, setPrayer] = useState<Prayer | null>(null);
+  // Get the prayer from the store instead of local state
+  const prayer = prayers.find(p => p.id === prayerId) || null;
   const [comments, setComments] = useState<Comment[]>([]);
   const [interactions, setInteractions] = useState({
-    likes: 0,
+    prayers: 0,
     comments: 0,
-    shares: 0,
-    isLiked: false,
+    isPrayed: false,
     isSaved: false,
   });
   const [newComment, setNewComment] = useState('');
@@ -66,13 +72,11 @@ export default function PrayerDetailsScreen() {
   const fetchPrayerDetails = async () => {
     try {
       setLoading(true);
-      const [prayerData, commentsData, interactionsData] = await Promise.all([
-        prayerService.getPrayer(prayerId!),
+      const [commentsData, interactionsData] = await Promise.all([
         commentService.getPrayerComments(prayerId!),
         prayerInteractionService.getPrayerInteractionCounts(prayerId!),
       ]);
 
-      setPrayer(prayerData);
       setComments(commentsData);
       setInteractions(interactionsData);
     } catch (error) {
@@ -102,20 +106,21 @@ export default function PrayerDetailsScreen() {
     setRefreshing(false);
   };
 
-  const handleLike = async () => {
+  const handlePray = async () => {
     if (!prayerId || interacting) return;
 
     try {
       setInteracting(true);
-      await prayerInteractionService.likePrayer(prayerId);
-      // Real-time subscription will update the UI
+      // Use the same optimistic update approach as the prayer card
+      await interactWithPrayer(prayerId, 'PRAY');
     } catch (error) {
-      console.error('Error liking prayer:', error);
-      Alert.alert('Error', 'Failed to like prayer');
+      console.error('Error praying for prayer:', error);
+      Alert.alert('Error', 'Failed to pray for this request');
     } finally {
       setInteracting(false);
     }
   };
+
 
   const handleSave = async () => {
     if (!prayerId || interacting) return;
@@ -221,7 +226,7 @@ export default function PrayerDetailsScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Prayer not found</Text>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -233,7 +238,7 @@ export default function PrayerDetailsScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Prayer Details</Text>
@@ -264,19 +269,20 @@ export default function PrayerDetailsScreen() {
         {/* Interaction Buttons */}
         <View style={styles.interactionContainer}>
           <TouchableOpacity
-            style={[styles.interactionButton, interactions.isLiked && styles.interactionButtonActive]}
-            onPress={handleLike}
+            style={[styles.interactionButton, prayer?.user_interaction?.type === 'PRAY' && styles.interactionButtonActive]}
+            onPress={handlePray}
             disabled={interacting}
           >
             <Ionicons
-              name={interactions.isLiked ? "heart" : "heart-outline"}
+              name={prayer?.user_interaction?.type === 'PRAY' ? "heart" : "heart-outline"}
               size={20}
-              color={interactions.isLiked ? "#FF3B30" : "#666"}
+              color={prayer?.user_interaction?.type === 'PRAY' ? "#FF3B30" : "#666"}
             />
-            <Text style={[styles.interactionText, interactions.isLiked && styles.interactionTextActive]}>
-              {interactions.likes}
+            <Text style={[styles.interactionText, prayer?.user_interaction?.type === 'PRAY' && styles.interactionTextActive]}>
+              {prayer?.pray_count || 0}
             </Text>
           </TouchableOpacity>
+
 
           <TouchableOpacity style={styles.interactionButton}>
             <Ionicons name="chatbubble-outline" size={20} color="#666" />
@@ -285,7 +291,6 @@ export default function PrayerDetailsScreen() {
 
           <TouchableOpacity style={styles.interactionButton} onPress={handleShare}>
             <Ionicons name="share-outline" size={20} color="#666" />
-            <Text style={styles.interactionText}>{interactions.shares}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

@@ -27,7 +27,8 @@ import { formatDistanceToNow } from 'date-fns';
 const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ navigation, route }) => {
   const { groupId } = route.params;
   const { profile } = useAuthStore();
-  const { prayers, isLoading, isRefreshing, fetchPrayers, refreshPrayers } = usePrayerStore();
+  const { prayers, isLoading } = usePrayerStore();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const [group, setGroup] = useState<any>(null);
   const [groupPrayers, setGroupPrayers] = useState<Prayer[]>([]);
@@ -40,6 +41,15 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
     fetchGroupDetails();
     fetchGroupPrayers();
   }, [groupId]);
+
+  // Refresh prayers when screen comes into focus (e.g., after creating a prayer)
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchGroupPrayers();
+    });
+
+    return unsubscribe;
+  }, [navigation, groupId]);
 
   const fetchGroupDetails = async () => {
     try {
@@ -63,13 +73,22 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
     }
   };
 
-  const fetchGroupPrayers = async () => {
+  const fetchGroupPrayers = async (isRefresh = false) => {
     try {
+      if (isRefresh) {
+        setIsRefreshing(true);
+      }
+      console.log('Fetching group prayers for groupId:', groupId);
       const prayers = await groupService.getGroupPrayers(groupId);
+      console.log('Fetched prayers:', prayers);
       setGroupPrayers(prayers);
     } catch (error) {
       console.error('Failed to fetch group prayers:', error);
       Alert.alert('Error', 'Failed to load group prayers');
+    } finally {
+      if (isRefresh) {
+        setIsRefreshing(false);
+      }
     }
   };
 
@@ -115,7 +134,18 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
   };
 
   const handlePrayerPress = (prayerId: string) => {
-    navigation.navigate('GroupChat', { prayerId, groupId });
+    navigation.navigate('PrayerDetails', { prayerId });
+  };
+
+  const handleGroupChatPress = () => {
+    // Navigate to group chat - we'll use the first prayer as context or create a general chat
+    const firstPrayerId = groupPrayers.length > 0 ? groupPrayers[0].id : null;
+    if (firstPrayerId) {
+      navigation.navigate('GroupChat', { prayerId: firstPrayerId, groupId });
+    } else {
+      // If no prayers exist, we could create a placeholder or handle differently
+      Alert.alert('No Prayers Yet', 'Share a prayer first to start the group discussion.');
+    }
   };
 
   const handleMembersPress = () => {
@@ -139,12 +169,12 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
       <View style={styles.prayerHeader}>
         <TouchableOpacity style={styles.userInfo}>
           <Image
-            source={{ uri: prayer.user_avatar_url || 'https://via.placeholder.com/40' }}
+            source={{ uri: prayer.user?.avatar_url || 'https://via.placeholder.com/40' }}
             style={styles.avatar}
           />
           <View style={styles.userDetails}>
             <Text style={styles.userName}>
-              {prayer.is_anonymous ? 'Anonymous' : prayer.user_display_name}
+              {prayer.is_anonymous ? 'Anonymous' : prayer.user?.display_name || 'Unknown User'}
             </Text>
             <Text style={styles.timeAgo}>
               {formatDistanceToNow(new Date(prayer.created_at), { addSuffix: true })}
@@ -222,6 +252,11 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
                 <Text style={styles.secondaryButtonText}>Members</Text>
               </TouchableOpacity>
               
+              <TouchableOpacity style={styles.secondaryButton} onPress={handleGroupChatPress}>
+                <Ionicons name="chatbubbles" size={20} color="#5B21B6" />
+                <Text style={styles.secondaryButtonText}>Chat</Text>
+              </TouchableOpacity>
+              
               {(userRole === 'admin' || userRole === 'moderator') && (
                 <TouchableOpacity style={styles.secondaryButton} onPress={handleSettingsPress}>
                   <Ionicons name="settings" size={20} color="#5B21B6" />
@@ -273,7 +308,7 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
-            onRefresh={fetchGroupPrayers}
+            onRefresh={() => fetchGroupPrayers(true)}
             colors={['#5B21B6']}
             tintColor="#5B21B6"
           />

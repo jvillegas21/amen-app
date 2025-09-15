@@ -5,6 +5,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 
+// Import TurboModule polyfill to fix PlatformConstants and other TurboModule issues
+import '@/utils/turboModulePolyfill';
+
 import RootNavigator from '@/navigation/RootNavigator';
 import { useAuthStore } from '@/store/auth/authStore';
 import { notificationManager } from '@/services/notifications/notificationManager';
@@ -46,6 +49,12 @@ export default function App() {
         await SplashScreen.hideAsync();
       } catch (error) {
         console.error('Failed to initialize app:', error);
+        
+        // Handle TurboModule errors specifically
+        if (error instanceof Error && error.message.includes('PlatformConstants')) {
+          console.warn('TurboModule PlatformConstants error detected, continuing with polyfill');
+        }
+        
         await SplashScreen.hideAsync();
       }
     };

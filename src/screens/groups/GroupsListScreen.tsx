@@ -40,7 +40,7 @@ const GroupsListScreen: React.FC<GroupsStackScreenProps<'GroupsList'>> = ({ navi
       // TODO: Implement real API calls
       const mockRecentGroups: Group[] = [
         {
-          id: '1',
+          id: '550e8400-e29b-41d4-a716-446655440001',
           name: 'Prayer Warriors',
           description: 'A community dedicated to supporting each other through prayer',
           memberCount: 45,
@@ -48,7 +48,7 @@ const GroupsListScreen: React.FC<GroupsStackScreenProps<'GroupsList'>> = ({ navi
           isJoined: true,
         },
         {
-          id: '2',
+          id: '550e8400-e29b-41d4-a716-446655440002',
           name: 'Family Prayer Circle',
           description: 'Praying for families and their needs',
           memberCount: 23,
@@ -56,7 +56,7 @@ const GroupsListScreen: React.FC<GroupsStackScreenProps<'GroupsList'>> = ({ navi
           isJoined: true,
         },
         {
-          id: '3',
+          id: '550e8400-e29b-41d4-a716-446655440003',
           name: 'Healing & Recovery',
           description: 'Supporting those on their healing journey',
           memberCount: 67,
@@ -81,8 +81,7 @@ const GroupsListScreen: React.FC<GroupsStackScreenProps<'GroupsList'>> = ({ navi
   };
 
   const handleCreateGroup = () => {
-    // TODO: Navigate to create group
-    console.log('Create new group');
+    navigation.navigate('CreateGroup');
   };
 
   const handleGroupPress = (groupId: string) => {

@@ -101,6 +101,8 @@ export interface Prayer {
   user?: Profile;
   interaction_count?: number;
   comment_count?: number;
+  pray_count?: number;
+  like_count?: number;
   user_interaction?: Interaction;
 }
 
@@ -285,6 +287,14 @@ export interface PrayerInteractionRequest {
   type: 'PRAY' | 'LIKE' | 'SHARE' | 'SAVE';
   committed_at?: string;
   reminder_frequency?: 'none' | 'daily' | 'weekly';
+}
+
+export interface CreateGroupRequest {
+  name: string;
+  description?: string;
+  privacy_level: 'public' | 'private' | 'invite_only';
+  avatar_url?: string;
+  tags?: string[];
 }
 
 export interface StudySuggestionRequest {

@@ -222,12 +222,26 @@ export const usePrayerStore = create<PrayerState>((set: any, get: any) => ({
     
     try {
       // Optimistic update
+      console.log('Applying optimistic update for prayer:', prayerId, 'type:', type);
       set({
         prayers: get().prayers.map((prayer: Prayer) => {
           if (prayer.id === prayerId) {
             const isAlreadyInteracted = prayer.user_interaction?.type === type;
-            return {
-              ...prayer,
+            const increment = isAlreadyInteracted ? -1 : 1;
+            
+            console.log('Prayer found, isAlreadyInteracted:', isAlreadyInteracted, 'increment:', increment);
+            
+            // Update the appropriate count field
+            const updatedPrayer = { ...prayer };
+            if (type === 'PRAY') {
+              updatedPrayer.pray_count = Math.max(0, (prayer.pray_count || 0) + increment);
+              console.log('Updated pray_count from', prayer.pray_count, 'to', updatedPrayer.pray_count);
+            } else if (type === 'LIKE') {
+              updatedPrayer.like_count = Math.max(0, (prayer.like_count || 0) + increment);
+            }
+            
+            const result = {
+              ...updatedPrayer,
               user_interaction: isAlreadyInteracted ? undefined : { 
                 type, 
                 created_at: new Date().toISOString(),
@@ -235,10 +249,10 @@ export const usePrayerStore = create<PrayerState>((set: any, get: any) => ({
                 prayer_id: prayerId,
                 user_id: 'current-user'
               },
-              interaction_count: isAlreadyInteracted 
-                ? Math.max(0, (prayer.interaction_count || 0) - 1)
-                : (prayer.interaction_count || 0) + 1,
             };
+            
+            console.log('Optimistic update result:', result);
+            return result;
           }
           return prayer;
         }),
@@ -248,9 +262,12 @@ export const usePrayerStore = create<PrayerState>((set: any, get: any) => ({
       
       if (isOnline) {
         // Online: Make API call
+        console.log('Making API call for prayer interaction:', prayerId, type);
         await prayerService.interactWithPrayer(prayerId, { type });
+        console.log('API call completed successfully');
       } else {
         // Offline: Queue action for later sync
+        console.log('Offline mode - queuing action');
         await offlineService.queueAction({
           type: 'INTERACT_PRAYER',
           data: {

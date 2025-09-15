@@ -27,6 +27,15 @@ const MyGroupsScreen: React.FC<GroupsStackScreenProps<'MyGroups'>> = ({ navigati
     fetchMyGroups();
   }, []);
 
+  // Refresh groups when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchMyGroups();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
   const fetchMyGroups = async () => {
     try {
       setIsLoading(true);
@@ -61,9 +70,14 @@ const MyGroupsScreen: React.FC<GroupsStackScreenProps<'MyGroups'>> = ({ navigati
         {
           text: 'Leave',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Implement leave group API call
-            setGroups(prev => prev.filter(group => group.id !== groupId));
+          onPress: async () => {
+            try {
+              await groupService.leaveGroup(groupId);
+              setGroups(prev => prev.filter(group => group.id !== groupId));
+            } catch (error) {
+              console.error('Failed to leave group:', error);
+              Alert.alert('Error', 'Failed to leave group. Please try again.');
+            }
           },
         },
       ]
@@ -106,15 +120,11 @@ const MyGroupsScreen: React.FC<GroupsStackScreenProps<'MyGroups'>> = ({ navigati
         <View style={styles.groupHeader}>
           <Text style={styles.groupName}>{item.name}</Text>
           <View style={styles.groupBadges}>
-            <View style={[styles.roleBadge, { backgroundColor: getRoleColor(item.role) }]}>
-              <Ionicons name={getRoleIcon(item.role)} size={12} color="#FFFFFF" />
-              <Text style={styles.roleText}>{item.role}</Text>
+            <View style={[styles.roleBadge, { backgroundColor: getRoleColor(item.user_membership?.role || 'member') }]}>
+              <Ionicons name={getRoleIcon(item.user_membership?.role || 'member')} size={12} color="#FFFFFF" />
+              <Text style={styles.roleText}>{item.user_membership?.role || 'member'}</Text>
             </View>
-            {item.unreadCount > 0 && (
-              <View style={styles.unreadBadge}>
-                <Text style={styles.unreadText}>{item.unreadCount}</Text>
-              </View>
-            )}
+            {/* TODO: Add unread count when notifications are implemented */}
           </View>
         </View>
         
@@ -125,14 +135,14 @@ const MyGroupsScreen: React.FC<GroupsStackScreenProps<'MyGroups'>> = ({ navigati
         <View style={styles.groupMeta}>
           <View style={styles.groupStats}>
             <Ionicons name="people" size={14} color="#6B7280" />
-            <Text style={styles.groupStatsText}>{item.memberCount} members</Text>
+            <Text style={styles.groupStatsText}>{item.member_count} members</Text>
           </View>
-          <Text style={styles.lastActivity}>{item.lastActivity}</Text>
+          <Text style={styles.lastActivity}>Joined {new Date(item.user_membership?.joined_at || item.created_at).toLocaleDateString()}</Text>
         </View>
       </View>
       
       <View style={styles.groupActions}>
-        {item.role === 'admin' && (
+        {item.user_membership?.role === 'admin' && (
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => handleGroupSettings(item.id)}

@@ -24,10 +24,10 @@ interface GroupMember {
   user_avatar_url?: string;
   role: 'admin' | 'moderator' | 'member';
   joined_at: string;
-  is_online: boolean;
-  last_seen?: string;
-  prayer_count: number;
-  interaction_count: number;
+  // Note: is_online would need to be calculated from profiles.last_active
+  // last_seen should come from profiles.last_active
+  // Note: prayer_count and interaction_count would need to be calculated separately
+  // as they don't exist in the group_members table
 }
 
 /**
@@ -60,9 +60,6 @@ const GroupMemberManagementScreen: React.FC<GroupsStackScreenProps<'GroupMembers
           user_avatar_url: 'https://via.placeholder.com/40',
           role: 'admin',
           joined_at: new Date(Date.now() - 2592000000).toISOString(),
-          is_online: true,
-          prayer_count: 15,
-          interaction_count: 89,
         },
         {
           id: '2',
@@ -71,10 +68,6 @@ const GroupMemberManagementScreen: React.FC<GroupsStackScreenProps<'GroupMembers
           user_avatar_url: 'https://via.placeholder.com/40',
           role: 'moderator',
           joined_at: new Date(Date.now() - 1728000000).toISOString(),
-          is_online: false,
-          last_seen: new Date(Date.now() - 3600000).toISOString(),
-          prayer_count: 12,
-          interaction_count: 67,
         },
         {
           id: '3',
@@ -83,9 +76,6 @@ const GroupMemberManagementScreen: React.FC<GroupsStackScreenProps<'GroupMembers
           user_avatar_url: 'https://via.placeholder.com/40',
           role: 'member',
           joined_at: new Date(Date.now() - 864000000).toISOString(),
-          is_online: true,
-          prayer_count: 8,
-          interaction_count: 45,
         },
         {
           id: '4',
@@ -94,10 +84,6 @@ const GroupMemberManagementScreen: React.FC<GroupsStackScreenProps<'GroupMembers
           user_avatar_url: 'https://via.placeholder.com/40',
           role: 'member',
           joined_at: new Date(Date.now() - 432000000).toISOString(),
-          is_online: false,
-          last_seen: new Date(Date.now() - 7200000).toISOString(),
-          prayer_count: 6,
-          interaction_count: 32,
         },
         {
           id: '5',
@@ -106,9 +92,6 @@ const GroupMemberManagementScreen: React.FC<GroupsStackScreenProps<'GroupMembers
           user_avatar_url: 'https://via.placeholder.com/40',
           role: 'member',
           joined_at: new Date(Date.now() - 216000000).toISOString(),
-          is_online: true,
-          prayer_count: 4,
-          interaction_count: 28,
         },
       ];
       setMembers(mockMembers);
@@ -216,9 +199,7 @@ const GroupMemberManagementScreen: React.FC<GroupsStackScreenProps<'GroupMembers
             source={{ uri: member.user_avatar_url || 'https://via.placeholder.com/40' }}
             style={styles.avatar}
           />
-          {member.is_online && (
-            <View style={styles.onlineIndicator} />
-          )}
+          {/* Online indicator would need to be calculated from profiles.last_active */}
         </View>
         
         <View style={styles.memberInfo}>
@@ -231,19 +212,11 @@ const GroupMemberManagementScreen: React.FC<GroupsStackScreenProps<'GroupMembers
             </View>
           </View>
           
-          <Text style={styles.memberStats}>
-            {member.prayer_count} prayers • {member.interaction_count} interactions
-          </Text>
-          
           <Text style={styles.memberJoined}>
             Joined {formatDistanceToNow(new Date(member.joined_at), { addSuffix: true })}
           </Text>
           
-          {!member.is_online && member.last_seen && (
-            <Text style={styles.lastSeen}>
-              Last seen {formatDistanceToNow(new Date(member.last_seen), { addSuffix: true })}
-            </Text>
-          )}
+          {/* Last seen would need to be calculated from profiles.last_active */}
         </View>
         
         {userRole === 'admin' && member.role !== 'admin' && (

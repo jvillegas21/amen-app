@@ -43,65 +43,26 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
   const fetchSavedPrayers = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implement real API calls
-      const mockSavedPrayers: SavedPrayer[] = [
-        {
-          id: '1',
-          text: 'Please pray for my family during this difficult time. We need strength and guidance.',
-          authorName: 'John Doe',
-          authorId: 'user1',
-          prayerCount: 45,
-          commentCount: 12,
-          savedAt: '2 days ago',
-          category: 'Family',
-          isPublic: true,
-        },
-        {
-          id: '2',
-          text: 'Praying for healing and recovery for all those who are struggling with illness.',
-          authorName: 'Jane Smith',
-          authorId: 'user2',
-          prayerCount: 78,
-          commentCount: 23,
-          savedAt: '1 week ago',
-          category: 'Health',
-          isPublic: true,
-        },
-        {
-          id: '3',
-          text: 'Thanking God for answered prayers and asking for continued blessings.',
-          authorName: 'Mike Johnson',
-          authorId: 'user3',
-          prayerCount: 34,
-          commentCount: 8,
-          savedAt: '2 weeks ago',
-          category: 'Gratitude',
-          isPublic: true,
-        },
-        {
-          id: '4',
-          text: 'Praying for peace in our community and for those who are struggling.',
-          authorName: 'Sarah Wilson',
-          authorId: 'user4',
-          prayerCount: 56,
-          commentCount: 15,
-          savedAt: '3 weeks ago',
-          category: 'Community',
-          isPublic: true,
-        },
-        {
-          id: '5',
-          text: 'Asking for guidance in making important life decisions.',
-          authorName: 'David Brown',
-          authorId: 'user5',
-          prayerCount: 29,
-          commentCount: 6,
-          savedAt: '1 month ago',
-          category: 'Guidance',
-          isPublic: true,
-        },
-      ];
-      setSavedPrayers(mockSavedPrayers);
+      if (!profile?.id) return;
+
+      // Use the real API to fetch saved prayers
+      const { prayerInteractionService } = await import('@/services/api/prayerInteractionService');
+      const savedPrayersData = await prayerInteractionService.getSavedPrayers(profile.id, 1, 50);
+      
+      // Transform the data to match the SavedPrayer interface
+      const transformedPrayers: SavedPrayer[] = savedPrayersData.map(prayer => ({
+        id: prayer.id,
+        text: prayer.text,
+        authorName: prayer.user?.display_name || 'Anonymous',
+        authorId: prayer.user_id,
+        prayerCount: prayer.pray_count || 0,
+        commentCount: prayer.comment_count || 0,
+        savedAt: new Date(prayer.created_at).toLocaleDateString(),
+        category: prayer.tags?.[0] || 'General',
+        isPublic: prayer.privacy_level === 'public',
+      }));
+
+      setSavedPrayers(transformedPrayers);
     } catch (error) {
       console.error('Failed to fetch saved prayers:', error);
       Alert.alert('Error', 'Failed to load saved prayers');
@@ -110,7 +71,7 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
     }
   };
 
-  const handleUnsavePrayer = (prayerId: string) => {
+  const handleUnsavePrayer = async (prayerId: string) => {
     Alert.alert(
       'Remove Prayer',
       'Are you sure you want to remove this prayer from your saved prayers?',
@@ -119,9 +80,15 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
         {
           text: 'Remove',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Implement unsave prayer API call
-            setSavedPrayers(prev => prev.filter(prayer => prayer.id !== prayerId));
+          onPress: async () => {
+            try {
+              const { prayerInteractionService } = await import('@/services/api/prayerInteractionService');
+              await prayerInteractionService.unsavePrayer(prayerId);
+              setSavedPrayers(prev => prev.filter(prayer => prayer.id !== prayerId));
+            } catch (error) {
+              console.error('Failed to unsave prayer:', error);
+              Alert.alert('Error', 'Failed to remove prayer from saved prayers');
+            }
           },
         },
       ]
