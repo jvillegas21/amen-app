@@ -13,25 +13,14 @@ import {
 import { ProfileStackScreenProps } from '@/types/navigation.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth/authStore';
-
-interface SavedPrayer {
-  id: string;
-  text: string;
-  authorName: string;
-  authorId: string;
-  prayerCount: number;
-  commentCount: number;
-  savedAt: string;
-  category?: string;
-  isPublic: boolean;
-}
+import { Prayer } from '@/types/database.types';
 
 /**
  * Saved Prayers Screen - Display user's saved prayers with search and filtering
  */
 const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({ navigation }) => {
   const { profile } = useAuthStore();
-  const [savedPrayers, setSavedPrayers] = useState<SavedPrayer[]>([]);
+  const [savedPrayers, setSavedPrayers] = useState<Prayer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -49,20 +38,7 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
       const { prayerInteractionService } = await import('@/services/api/prayerInteractionService');
       const savedPrayersData = await prayerInteractionService.getSavedPrayers(profile.id, 1, 50);
       
-      // Transform the data to match the SavedPrayer interface
-      const transformedPrayers: SavedPrayer[] = savedPrayersData.map(prayer => ({
-        id: prayer.id,
-        text: prayer.text,
-        authorName: prayer.user?.display_name || 'Anonymous',
-        authorId: prayer.user_id,
-        prayerCount: prayer.pray_count || 0,
-        commentCount: prayer.comment_count || 0,
-        savedAt: new Date(prayer.created_at).toLocaleDateString(),
-        category: prayer.tags?.[0] || 'General',
-        isPublic: prayer.privacy_level === 'public',
-      }));
-
-      setSavedPrayers(transformedPrayers);
+      setSavedPrayers(savedPrayersData);
     } catch (error) {
       console.error('Failed to fetch saved prayers:', error);
       Alert.alert('Error', 'Failed to load saved prayers');
@@ -84,7 +60,7 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
             try {
               const { prayerInteractionService } = await import('@/services/api/prayerInteractionService');
               await prayerInteractionService.unsavePrayer(prayerId);
-              setSavedPrayers(prev => prev.filter(prayer => prayer.id !== prayerId));
+              setSavedPrayers((prev: Prayer[]) => prev.filter((prayer: Prayer) => prayer.id !== prayerId));
             } catch (error) {
               console.error('Failed to unsave prayer:', error);
               Alert.alert('Error', 'Failed to remove prayer from saved prayers');
@@ -96,8 +72,8 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
   };
 
   const handlePrayerPress = (prayerId: string) => {
-    // TODO: Navigate to prayer details
-    console.log('View prayer:', prayerId);
+    // Navigate to prayer details screen
+    navigation.navigate('PrayerDetails', { prayerId });
   };
 
   const handleAuthorPress = (authorId: string) => {
@@ -106,14 +82,14 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
 
   const categories = ['All', 'Family', 'Health', 'Gratitude', 'Community', 'Guidance'];
 
-  const filteredPrayers = savedPrayers.filter(prayer => {
+  const filteredPrayers = savedPrayers.filter((prayer: Prayer) => {
     const matchesSearch = searchQuery === '' || 
       prayer.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      prayer.authorName.toLowerCase().includes(searchQuery.toLowerCase());
+      (prayer.user?.display_name && prayer.user.display_name.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesCategory = selectedCategory === null || 
       selectedCategory === 'All' || 
-      prayer.category === selectedCategory;
+      prayer.tags?.includes(selectedCategory);
     
     return matchesSearch && matchesCategory;
   });
@@ -143,7 +119,7 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
     <View style={styles.categoryContainer}>
       <FlatList
         data={categories}
-        renderItem={({ item }) => (
+        renderItem={({ item }: { item: string }) => (
           <TouchableOpacity
             style={[
               styles.categoryChip,
@@ -167,7 +143,7 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
     </View>
   );
 
-  const renderPrayerItem = ({ item }: { item: SavedPrayer }) => (
+  const renderPrayerItem = ({ item }: { item: Prayer }) => (
     <TouchableOpacity
       style={styles.prayerItem}
       onPress={() => handlePrayerPress(item.id)}
@@ -176,12 +152,14 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
       <View style={styles.prayerHeader}>
         <TouchableOpacity
           style={styles.authorInfo}
-          onPress={() => handleAuthorPress(item.authorId)}
+          onPress={() => handleAuthorPress(item.user_id)}
         >
           <View style={styles.authorAvatar}>
             <Ionicons name="person" size={16} color="#6B7280" />
           </View>
-          <Text style={styles.authorName}>{item.authorName}</Text>
+          <Text style={styles.authorName}>
+            {item.is_anonymous ? 'Anonymous' : (item.user?.display_name || 'User')}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.unsaveButton}
@@ -198,21 +176,21 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
       <View style={styles.prayerFooter}>
         <View style={styles.prayerStats}>
           <View style={styles.statItem}>
-            <Ionicons name="heart" size={14} color="theme.colors.error[700]" />
-            <Text style={styles.statText}>{item.prayerCount}</Text>
+            <Ionicons name="heart" size={14} color="#DC2626" />
+            <Text style={styles.statText}>{item.pray_count || 0}</Text>
           </View>
           <View style={styles.statItem}>
             <Ionicons name="chatbubble" size={14} color="#6B7280" />
-            <Text style={styles.statText}>{item.commentCount}</Text>
+            <Text style={styles.statText}>{item.comment_count || 0}</Text>
           </View>
         </View>
         <View style={styles.prayerMeta}>
-          {item.category && (
+          {item.tags && item.tags.length > 0 && (
             <View style={styles.categoryTag}>
-              <Text style={styles.categoryTagText}>{item.category}</Text>
+              <Text style={styles.categoryTagText}>{item.tags[0]}</Text>
             </View>
           )}
-          <Text style={styles.savedDate}>Saved {item.savedAt}</Text>
+          <Text style={styles.savedDate}>Saved {new Date(item.created_at).toLocaleDateString()}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -259,7 +237,7 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
       {renderCategoryFilter()}
       <FlatList
         data={filteredPrayers}
-        renderItem={renderPrayerItem}
+        renderItem={({ item }: { item: Prayer }) => renderPrayerItem({ item })}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}

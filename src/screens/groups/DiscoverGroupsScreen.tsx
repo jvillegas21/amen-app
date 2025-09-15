@@ -13,16 +13,8 @@ import {
 import { GroupsStackScreenProps } from '@/types/navigation.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth/authStore';
-
-interface Group {
-  id: string;
-  name: string;
-  description: string;
-  memberCount: number;
-  privacy: 'public' | 'private' | 'invite_only';
-  category: string;
-  isJoined: boolean;
-}
+import { Group } from '@/types/database.types';
+import { groupService } from '@/services/api/groupService';
 
 /**
  * Discover Groups Screen - Browse and search for groups to join
@@ -40,46 +32,11 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
   const fetchDiscoverData = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implement real API calls
-      const mockGroups: Group[] = [
-        {
-          id: '550e8400-e29b-41d4-a716-446655440001',
-          name: 'Prayer Warriors',
-          description: 'A community dedicated to supporting each other through prayer',
-          memberCount: 45,
-          privacy: 'public',
-          category: 'General',
-          isJoined: false,
-        },
-        {
-          id: '550e8400-e29b-41d4-a716-446655440002',
-          name: 'Healing & Recovery',
-          description: 'Supporting those on their healing journey',
-          memberCount: 67,
-          privacy: 'public',
-          category: 'Health',
-          isJoined: false,
-        },
-        {
-          id: '550e8400-e29b-41d4-a716-446655440003',
-          name: 'Youth Ministry',
-          description: 'Prayer group for young adults',
-          memberCount: 34,
-          privacy: 'invite_only',
-          category: 'Youth',
-          isJoined: false,
-        },
-        {
-          id: '550e8400-e29b-41d4-a716-446655440004',
-          name: 'Family Prayer Circle',
-          description: 'Praying for families and their needs',
-          memberCount: 23,
-          privacy: 'private',
-          category: 'Family',
-          isJoined: false,
-        },
-      ];
-      setGroups(mockGroups);
+      if (!profile?.id) return;
+
+      // Fetch trending groups for discovery
+      const trendingGroups = await groupService.getTrendingGroups(20, profile.id);
+      setGroups(trendingGroups);
     } catch (error) {
       console.error('Failed to fetch discover data:', error);
       Alert.alert('Error', 'Failed to load groups');
@@ -99,7 +56,7 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
           onPress: async () => {
             try {
               await groupService.joinGroup(groupId);
-              setGroups(prev => prev.map(group => 
+              setGroups((prev: Group[]) => prev.map((group: Group) => 
                 group.id === groupId ? { ...group, isJoined: true } : group
               ));
             } catch (error) {
@@ -116,10 +73,30 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
     navigation.navigate('GroupDetails', { groupId });
   };
 
-  const filteredGroups = groups.filter(group => 
+  const handleSearch = async (query: string) => {
+    if (query.trim() === '') {
+      fetchDiscoverData();
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      if (!profile?.id) return;
+
+      const searchResults = await groupService.searchGroups(query, profile.id);
+      setGroups(searchResults);
+    } catch (error) {
+      console.error('Failed to search groups:', error);
+      Alert.alert('Error', 'Failed to search groups');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredGroups = groups.filter((group: Group) => 
     searchQuery === '' || 
     group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    group.description.toLowerCase().includes(searchQuery.toLowerCase())
+    (group.description && group.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const renderSearchBar = () => (
@@ -129,10 +106,16 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
         <TextInput
           style={styles.searchInput}
           value={searchQuery}
-          onChangeText={setSearchQuery}
+          onChangeText={(text: string) => {
+            setSearchQuery(text);
+            // Debounce search
+            const timeoutId = setTimeout(() => handleSearch(text), 500);
+            return () => clearTimeout(timeoutId);
+          }}
           placeholder="Search groups..."
           placeholderTextColor="#9CA3AF"
           returnKeyType="search"
+          onSubmitEditing={() => handleSearch(searchQuery)}
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -172,9 +155,9 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
         <View style={styles.groupMeta}>
           <View style={styles.groupStats}>
             <Ionicons name="people" size={14} color="#6B7280" />
-            <Text style={styles.groupStatsText}>{item.memberCount} members</Text>
+            <Text style={styles.groupStatsText}>{item.member_count} members</Text>
           </View>
-          <Text style={styles.groupCategory}>{item.category}</Text>
+          <Text style={styles.groupCategory}>{item.tags?.[0] || 'General'}</Text>
         </View>
       </View>
       

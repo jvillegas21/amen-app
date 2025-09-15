@@ -122,14 +122,14 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
-      // TODO: Navigate to search with query
-      console.log('Search for:', searchQuery);
+      // Navigate to search screen with query
+      navigation.navigate('Search', { query: searchQuery });
     }
   };
 
   const handleTrendingTopicPress = (topic: TrendingTopic) => {
-    // TODO: Navigate to search with topic
-    console.log('Search topic:', topic.title);
+    // Navigate to search with topic
+    navigation.navigate('Search', { query: topic.title });
   };
 
   const handleFeaturedPrayerPress = (prayer: FeaturedPrayer) => {
@@ -140,8 +140,8 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
     if (category.id === '7') { // AI Bible Studies
       navigation.navigate('BibleStudySuggestions');
     } else {
-      // TODO: Navigate to search with category
-      console.log('Search category:', category.name);
+      // Navigate to search with category
+      navigation.navigate('Search', { query: category.name });
     }
   };
 

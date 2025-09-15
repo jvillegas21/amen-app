@@ -11,16 +11,8 @@ import {
 import { GroupsStackScreenProps } from '@/types/navigation.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth/authStore';
-
-interface Group {
-  id: string;
-  name: string;
-  description: string;
-  memberCount: number;
-  privacy: 'public' | 'private' | 'invite_only';
-  isJoined: boolean;
-  avatarUrl?: string;
-}
+import { Group } from '@/types/database.types';
+import { groupService } from '@/services/api/groupService';
 
 /**
  * Groups List Screen - Main groups hub with navigation to MyGroups and DiscoverGroups
@@ -37,34 +29,23 @@ const GroupsListScreen: React.FC<GroupsStackScreenProps<'GroupsList'>> = ({ navi
   const fetchGroupsData = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implement real API calls
-      const mockRecentGroups: Group[] = [
-        {
-          id: '550e8400-e29b-41d4-a716-446655440001',
-          name: 'Prayer Warriors',
-          description: 'A community dedicated to supporting each other through prayer',
-          memberCount: 45,
-          privacy: 'public',
-          isJoined: true,
-        },
-        {
-          id: '550e8400-e29b-41d4-a716-446655440002',
-          name: 'Family Prayer Circle',
-          description: 'Praying for families and their needs',
-          memberCount: 23,
-          privacy: 'private',
-          isJoined: true,
-        },
-        {
-          id: '550e8400-e29b-41d4-a716-446655440003',
-          name: 'Healing & Recovery',
-          description: 'Supporting those on their healing journey',
-          memberCount: 67,
-          privacy: 'public',
-          isJoined: false,
-        },
-      ];
-      setRecentGroups(mockRecentGroups);
+      if (!profile?.id) return;
+
+      // Fetch user's joined groups
+      const userGroups = await groupService.getUserGroups(profile.id);
+      
+      // Fetch trending groups to show as suggestions
+      const trendingGroups = await groupService.getTrendingGroups(5, profile.id);
+      
+      // Combine user groups with trending groups, removing duplicates
+      const allGroups = [...userGroups];
+      trendingGroups.forEach(trending => {
+        if (!userGroups.find(userGroup => userGroup.id === trending.id)) {
+          allGroups.push(trending);
+        }
+      });
+
+      setRecentGroups(allGroups.slice(0, 6)); // Show up to 6 groups
     } catch (error) {
       console.error('Failed to fetch groups data:', error);
     } finally {
@@ -146,7 +127,7 @@ const GroupsListScreen: React.FC<GroupsStackScreenProps<'GroupsList'>> = ({ navi
         </TouchableOpacity>
       </View>
       
-      {recentGroups.map((group) => (
+      {recentGroups.map((group: Group) => (
         <TouchableOpacity
           key={group.id}
           style={styles.groupItem}
@@ -170,13 +151,13 @@ const GroupsListScreen: React.FC<GroupsStackScreenProps<'GroupsList'>> = ({ navi
             </View>
             
             <Text style={styles.groupDescription} numberOfLines={2}>
-              {group.description}
+              {group.description || 'No description available'}
             </Text>
             
             <View style={styles.groupMeta}>
               <View style={styles.groupStats}>
                 <Ionicons name="people" size={14} color="#6B7280" />
-                <Text style={styles.groupStatsText}>{group.memberCount} members</Text>
+                <Text style={styles.groupStatsText}>{group.member_count} members</Text>
               </View>
               {group.isJoined && (
                 <View style={styles.joinedBadge}>
