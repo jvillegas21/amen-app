@@ -25,7 +25,7 @@ interface BatchConfig {
  */
 class RequestBatchingService {
   private requestQueue: BatchedRequest[] = [];
-  private batchTimer: NodeJS.Timeout | null = null;
+  private batchTimer: ReturnType<typeof setTimeout> | null = null;
   private isProcessing = false;
   private config: BatchConfig;
 
@@ -149,7 +149,7 @@ class RequestBatchingService {
   ): Promise<Array<{ success: boolean; data?: any; error?: any }>> {
     const results: Array<{ success: boolean; data?: any; error?: any }> = [];
 
-    for (const [groupKey, requests] of groupedRequests) {
+    for (const [_groupKey, requests] of groupedRequests) {
       try {
         const groupResults = await this.processRequestGroup(requests);
         results.push(...groupResults);
@@ -276,7 +276,7 @@ class RequestBatchingService {
 
         // Distribute results back to individual requests
         if (Array.isArray(data)) {
-          data.forEach((item, index) => {
+          data.forEach((item, _index) => {
             results.push({ success: true, data: item });
           });
         } else {

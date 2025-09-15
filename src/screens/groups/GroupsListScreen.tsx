@@ -127,7 +127,7 @@ const GroupsListScreen: React.FC<GroupsStackScreenProps<'GroupsList'>> = ({ navi
         </TouchableOpacity>
       </View>
       
-      {recentGroups.map((group) => (
+      {recentGroups.map((group: Group) => (
         <TouchableOpacity
           key={group.id}
           style={styles.groupItem}

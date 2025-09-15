@@ -60,7 +60,7 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
             try {
               const { prayerInteractionService } = await import('@/services/api/prayerInteractionService');
               await prayerInteractionService.unsavePrayer(prayerId);
-              setSavedPrayers(prev => prev.filter(prayer => prayer.id !== prayerId));
+              setSavedPrayers((prev: Prayer[]) => prev.filter((prayer: Prayer) => prayer.id !== prayerId));
             } catch (error) {
               console.error('Failed to unsave prayer:', error);
               Alert.alert('Error', 'Failed to remove prayer from saved prayers');
@@ -82,7 +82,7 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
 
   const categories = ['All', 'Family', 'Health', 'Gratitude', 'Community', 'Guidance'];
 
-  const filteredPrayers = savedPrayers.filter(prayer => {
+  const filteredPrayers = savedPrayers.filter((prayer: Prayer) => {
     const matchesSearch = searchQuery === '' || 
       prayer.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (prayer.user?.display_name && prayer.user.display_name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -119,7 +119,7 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
     <View style={styles.categoryContainer}>
       <FlatList
         data={categories}
-        renderItem={({ item }) => (
+        renderItem={({ item }: { item: string }) => (
           <TouchableOpacity
             style={[
               styles.categoryChip,
@@ -237,7 +237,7 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
       {renderCategoryFilter()}
       <FlatList
         data={filteredPrayers}
-        renderItem={renderPrayerItem}
+        renderItem={({ item }: { item: Prayer }) => renderPrayerItem({ item })}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}

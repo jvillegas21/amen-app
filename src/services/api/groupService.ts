@@ -24,7 +24,7 @@ class GroupService {
     if (error) throw error;
     
     // Fix count aggregations and add user membership info
-    return (data?.map(item => ({
+    return (data?.map((item: any) => ({
       ...item.group,
       member_count: typeof item.group.member_count === 'object' ? item.group.member_count?.count || 0 : item.group.member_count || 0,
       prayer_count: typeof item.group.prayer_count === 'object' ? item.group.prayer_count?.count || 0 : item.group.prayer_count || 0,
@@ -277,7 +277,7 @@ class GroupService {
     if (error) throw error;
     
     // Fix count aggregations and add membership status
-    return (data || []).map(group => ({
+    return (data || []).map((group: any) => ({
       ...group,
       member_count: typeof group.member_count === 'object' ? group.member_count?.count || 0 : group.member_count || 0,
       prayer_count: typeof group.prayer_count === 'object' ? group.prayer_count?.count || 0 : group.prayer_count || 0,
@@ -310,7 +310,7 @@ class GroupService {
     if (error) throw error;
     
     // Fix count aggregations and add membership status
-    return (data || []).map(group => ({
+    return (data || []).map((group: any) => ({
       ...group,
       member_count: typeof group.member_count === 'object' ? group.member_count?.count || 0 : group.member_count || 0,
       prayer_count: typeof group.prayer_count === 'object' ? group.prayer_count?.count || 0 : group.prayer_count || 0,
@@ -338,7 +338,7 @@ class GroupService {
     if (error) throw error;
     
     // Fix count aggregations - Supabase returns {count: number} objects
-    return (data || []).map(prayer => ({
+    return (data || []).map((prayer: any) => ({
       ...prayer,
       interaction_count: typeof prayer.interaction_count === 'object' ? prayer.interaction_count?.count || 0 : prayer.interaction_count || 0,
       comment_count: typeof prayer.comment_count === 'object' ? prayer.comment_count?.count || 0 : prayer.comment_count || 0,
