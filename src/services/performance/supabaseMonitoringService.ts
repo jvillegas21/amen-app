@@ -1,325 +1,487 @@
+import { supabase } from '@/config/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+interface SupabaseUsage {
+  database_size: number; // bytes
+  storage_size: number; // bytes
+  bandwidth_used: number; // bytes
+  bandwidth_limit: number; // bytes
+  requests_count: number;
+  requests_limit: number;
+  concurrent_connections: number;
+  connection_limit: number;
+  last_updated: string;
+}
+
+interface UsageAlert {
+  type: 'database' | 'storage' | 'bandwidth' | 'requests' | 'connections';
+  current: number;
+  limit: number;
+  percentage: number;
+  severity: 'warning' | 'critical';
+  message: string;
+}
+
+interface PerformanceMetrics {
+  avg_response_time: number;
+  error_rate: number;
+  cache_hit_rate: number;
+  request_count: number;
+  last_updated: string;
+}
+
 /**
  * Supabase Monitoring Service
- * Tracks usage metrics for free tier limits and provides alerts
+ * Tracks usage against free tier limits and provides alerts
+ * Critical for preventing service interruptions
  */
-
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { monitoringService } from '../monitoringService';
-
-interface SupabaseUsageStats {
-  requestCount: number;
-  bandwidthUsed: number; // in bytes
-  storageUsed: number; // in bytes
-  dbRowCount: number;
-  resetTime: number; // timestamp for monthly reset
-}
-
-interface SupabaseAlerts {
-  requestsThreshold: number;
-  bandwidthThreshold: number;
-  storageThreshold: number;
-  dbRowsThreshold: number;
-}
-
 class SupabaseMonitoringService {
-  private readonly STORAGE_KEY = 'supabase_usage_stats';
-  private readonly ALERTS_KEY = 'supabase_alerts';
+  private usage: SupabaseUsage | null = null;
+  private performanceMetrics: PerformanceMetrics | null = null;
+  private alerts: UsageAlert[] = [];
+  private readonly STORAGE_KEY = 'supabase_usage';
+  private readonly METRICS_STORAGE_KEY = 'supabase_metrics';
+  private readonly ALERTS_STORAGE_KEY = 'supabase_alerts';
 
-  // Supabase free tier limits
-  private readonly FREE_TIER_LIMITS = {
-    maxRequests: 50000, // per month
-    maxBandwidth: 2 * 1024 * 1024 * 1024, // 2GB per month
-    maxStorage: 500 * 1024 * 1024, // 500MB total
-    maxDbRows: 500000, // total rows
-    maxConnections: 60, // concurrent connections
+  // Free tier limits
+  private readonly LIMITS = {
+    database_size: 500 * 1024 * 1024, // 500MB
+    storage_size: 1024 * 1024 * 1024, // 1GB
+    bandwidth_daily: 2 * 1024 * 1024 * 1024, // 2GB per day
+    requests_daily: 50000, // 50k requests per day
+    concurrent_connections: 60, // 60 concurrent connections
   };
 
-  private currentStats: SupabaseUsageStats = {
-    requestCount: 0,
-    bandwidthUsed: 0,
-    storageUsed: 0,
-    dbRowCount: 0,
-    resetTime: this.getNextMonthlyReset(),
+  // Alert thresholds
+  private readonly ALERT_THRESHOLDS = {
+    warning: 0.8, // 80% of limit
+    critical: 0.95, // 95% of limit
   };
 
-  private alerts: SupabaseAlerts = {
-    requestsThreshold: 0.8, // Alert at 80% usage
-    bandwidthThreshold: 0.8,
-    storageThreshold: 0.8,
-    dbRowsThreshold: 0.8,
-  };
+  constructor() {
+    this.loadStoredData();
+    this.startMonitoring();
+  }
 
   /**
-   * Initialize monitoring service
+   * Start monitoring Supabase usage
    */
-  async initialize(): Promise<void> {
+  private startMonitoring(): void {
+    // Check usage every 5 minutes
+    setInterval(() => {
+      this.checkUsage();
+    }, 5 * 60 * 1000);
+
+    // Initial check
+    this.checkUsage();
+  }
+
+  /**
+   * Check current Supabase usage
+   */
+  async checkUsage(): Promise<void> {
     try {
-      await this.loadStats();
-      await this.loadAlerts();
-      this.checkForMonthlyReset();
-      console.log('Supabase monitoring service initialized');
+      await Promise.all([
+        this.checkDatabaseUsage(),
+        this.checkStorageUsage(),
+        this.checkBandwidthUsage(),
+        this.checkRequestUsage(),
+        this.checkConnectionUsage(),
+      ]);
+
+      this.generateAlerts();
+      await this.saveUsageData();
     } catch (error) {
-      console.error('Failed to initialize Supabase monitoring:', error);
+      console.error('Failed to check Supabase usage:', error);
     }
   }
 
   /**
-   * Track a Supabase request
+   * Check database size usage
    */
-  async trackRequest(requestSize: number = 1024): Promise<void> {
-    this.currentStats.requestCount++;
-    this.currentStats.bandwidthUsed += requestSize;
+  private async checkDatabaseUsage(): Promise<void> {
+    try {
+      // Query to get database size (approximate)
+      const { data, error } = await supabase.rpc('get_database_size');
+      
+      if (error) {
+        console.warn('Failed to get database size:', error);
+        return;
+      }
 
-    await this.saveStats();
-    this.checkThresholds();
+      if (!this.usage) {
+        this.usage = this.getDefaultUsage();
+      }
+
+      this.usage.database_size = data?.size || 0;
+    } catch (error) {
+      console.error('Error checking database usage:', error);
+    }
   }
 
   /**
-   * Track storage usage
+   * Check storage usage
    */
-  async trackStorageUsage(bytes: number): Promise<void> {
-    this.currentStats.storageUsed = bytes;
-    await this.saveStats();
-    this.checkThresholds();
+  private async checkStorageUsage(): Promise<void> {
+    try {
+      // Get storage usage from storage API
+      const { data, error } = await supabase.storage.listBuckets();
+      
+      if (error) {
+        console.warn('Failed to get storage usage:', error);
+        return;
+      }
+
+      if (!this.usage) {
+        this.usage = this.getDefaultUsage();
+      }
+
+      // Calculate total storage usage (approximate)
+      let totalSize = 0;
+      for (const bucket of data || []) {
+        // This is a simplified calculation
+        // In a real implementation, you'd need to sum up all file sizes
+        totalSize += bucket.public ? 0 : 0; // Placeholder
+      }
+
+      this.usage.storage_size = totalSize;
+    } catch (error) {
+      console.error('Error checking storage usage:', error);
+    }
   }
 
   /**
-   * Track database row count
+   * Check bandwidth usage
    */
-  async trackDbRows(count: number): Promise<void> {
-    this.currentStats.dbRowCount = count;
-    await this.saveStats();
-    this.checkThresholds();
+  private async checkBandwidthUsage(): Promise<void> {
+    try {
+      // Get bandwidth usage from analytics
+      const { data, error } = await supabase.rpc('get_bandwidth_usage');
+      
+      if (error) {
+        console.warn('Failed to get bandwidth usage:', error);
+        return;
+      }
+
+      if (!this.usage) {
+        this.usage = this.getDefaultUsage();
+      }
+
+      this.usage.bandwidth_used = data?.bandwidth || 0;
+      this.usage.bandwidth_limit = this.LIMITS.bandwidth_daily;
+    } catch (error) {
+      console.error('Error checking bandwidth usage:', error);
+    }
   }
 
   /**
-   * Get current usage statistics
+   * Check request count usage
    */
-  getUsageStats(): {
-    requests: { used: number; limit: number; percentage: number };
-    bandwidth: { used: number; limit: number; percentage: number };
+  private async checkRequestUsage(): Promise<void> {
+    try {
+      // Get request count from analytics
+      const { data, error } = await supabase.rpc('get_request_count');
+      
+      if (error) {
+        console.warn('Failed to get request count:', error);
+        return;
+      }
+
+      if (!this.usage) {
+        this.usage = this.getDefaultUsage();
+      }
+
+      this.usage.requests_count = data?.count || 0;
+      this.usage.requests_limit = this.LIMITS.requests_daily;
+    } catch (error) {
+      console.error('Error checking request usage:', error);
+    }
+  }
+
+  /**
+   * Check concurrent connections
+   */
+  private async checkConnectionUsage(): Promise<void> {
+    try {
+      // Get active connections (approximate)
+      const { data, error } = await supabase.rpc('get_active_connections');
+      
+      if (error) {
+        console.warn('Failed to get connection count:', error);
+        return;
+      }
+
+      if (!this.usage) {
+        this.usage = this.getDefaultUsage();
+      }
+
+      this.usage.concurrent_connections = data?.connections || 0;
+      this.usage.connection_limit = this.LIMITS.concurrent_connections;
+    } catch (error) {
+      console.error('Error checking connection usage:', error);
+    }
+  }
+
+  /**
+   * Generate usage alerts
+   */
+  private generateAlerts(): void {
+    if (!this.usage) return;
+
+    this.alerts = [];
+
+    // Check database size
+    const dbPercentage = this.usage.database_size / this.LIMITS.database_size;
+    if (dbPercentage >= this.ALERT_THRESHOLDS.warning) {
+      this.alerts.push({
+        type: 'database',
+        current: this.usage.database_size,
+        limit: this.LIMITS.database_size,
+        percentage: dbPercentage,
+        severity: dbPercentage >= this.ALERT_THRESHOLDS.critical ? 'critical' : 'warning',
+        message: `Database size is at ${Math.round(dbPercentage * 100)}% of limit`,
+      });
+    }
+
+    // Check storage size
+    const storagePercentage = this.usage.storage_size / this.LIMITS.storage_size;
+    if (storagePercentage >= this.ALERT_THRESHOLDS.warning) {
+      this.alerts.push({
+        type: 'storage',
+        current: this.usage.storage_size,
+        limit: this.LIMITS.storage_size,
+        percentage: storagePercentage,
+        severity: storagePercentage >= this.ALERT_THRESHOLDS.critical ? 'critical' : 'warning',
+        message: `Storage usage is at ${Math.round(storagePercentage * 100)}% of limit`,
+      });
+    }
+
+    // Check bandwidth
+    const bandwidthPercentage = this.usage.bandwidth_used / this.LIMITS.bandwidth_daily;
+    if (bandwidthPercentage >= this.ALERT_THRESHOLDS.warning) {
+      this.alerts.push({
+        type: 'bandwidth',
+        current: this.usage.bandwidth_used,
+        limit: this.LIMITS.bandwidth_daily,
+        percentage: bandwidthPercentage,
+        severity: bandwidthPercentage >= this.ALERT_THRESHOLDS.critical ? 'critical' : 'warning',
+        message: `Bandwidth usage is at ${Math.round(bandwidthPercentage * 100)}% of daily limit`,
+      });
+    }
+
+    // Check requests
+    const requestPercentage = this.usage.requests_count / this.LIMITS.requests_daily;
+    if (requestPercentage >= this.ALERT_THRESHOLDS.warning) {
+      this.alerts.push({
+        type: 'requests',
+        current: this.usage.requests_count,
+        limit: this.LIMITS.requests_daily,
+        percentage: requestPercentage,
+        severity: requestPercentage >= this.ALERT_THRESHOLDS.critical ? 'critical' : 'warning',
+        message: `Request count is at ${Math.round(requestPercentage * 100)}% of daily limit`,
+      });
+    }
+
+    // Check connections
+    const connectionPercentage = this.usage.concurrent_connections / this.LIMITS.concurrent_connections;
+    if (connectionPercentage >= this.ALERT_THRESHOLDS.warning) {
+      this.alerts.push({
+        type: 'connections',
+        current: this.usage.concurrent_connections,
+        limit: this.LIMITS.concurrent_connections,
+        percentage: connectionPercentage,
+        severity: connectionPercentage >= this.ALERT_THRESHOLDS.critical ? 'critical' : 'warning',
+        message: `Concurrent connections are at ${Math.round(connectionPercentage * 100)}% of limit`,
+      });
+    }
+  }
+
+  /**
+   * Get current usage data
+   */
+  getUsage(): SupabaseUsage | null {
+    return this.usage;
+  }
+
+  /**
+   * Get current alerts
+   */
+  getAlerts(): UsageAlert[] {
+    return this.alerts;
+  }
+
+  /**
+   * Get critical alerts only
+   */
+  getCriticalAlerts(): UsageAlert[] {
+    return this.alerts.filter(alert => alert.severity === 'critical');
+  }
+
+  /**
+   * Get usage summary
+   */
+  getUsageSummary(): {
+    database: { used: number; limit: number; percentage: number };
     storage: { used: number; limit: number; percentage: number };
-    dbRows: { used: number; limit: number; percentage: number };
-    daysUntilReset: number;
+    bandwidth: { used: number; limit: number; percentage: number };
+    requests: { used: number; limit: number; percentage: number };
+    connections: { used: number; limit: number; percentage: number };
   } {
-    const now = Date.now();
-    const daysUntilReset = Math.ceil((this.currentStats.resetTime - now) / (24 * 60 * 60 * 1000));
+    if (!this.usage) {
+      return {
+        database: { used: 0, limit: this.LIMITS.database_size, percentage: 0 },
+        storage: { used: 0, limit: this.LIMITS.storage_size, percentage: 0 },
+        bandwidth: { used: 0, limit: this.LIMITS.bandwidth_daily, percentage: 0 },
+        requests: { used: 0, limit: this.LIMITS.requests_daily, percentage: 0 },
+        connections: { used: 0, limit: this.LIMITS.concurrent_connections, percentage: 0 },
+      };
+    }
 
     return {
-      requests: {
-        used: this.currentStats.requestCount,
-        limit: this.FREE_TIER_LIMITS.maxRequests,
-        percentage: (this.currentStats.requestCount / this.FREE_TIER_LIMITS.maxRequests) * 100,
-      },
-      bandwidth: {
-        used: this.currentStats.bandwidthUsed,
-        limit: this.FREE_TIER_LIMITS.maxBandwidth,
-        percentage: (this.currentStats.bandwidthUsed / this.FREE_TIER_LIMITS.maxBandwidth) * 100,
+      database: {
+        used: this.usage.database_size,
+        limit: this.LIMITS.database_size,
+        percentage: this.usage.database_size / this.LIMITS.database_size,
       },
       storage: {
-        used: this.currentStats.storageUsed,
-        limit: this.FREE_TIER_LIMITS.maxStorage,
-        percentage: (this.currentStats.storageUsed / this.FREE_TIER_LIMITS.maxStorage) * 100,
+        used: this.usage.storage_size,
+        limit: this.LIMITS.storage_size,
+        percentage: this.usage.storage_size / this.LIMITS.storage_size,
       },
-      dbRows: {
-        used: this.currentStats.dbRowCount,
-        limit: this.FREE_TIER_LIMITS.maxDbRows,
-        percentage: (this.currentStats.dbRowCount / this.FREE_TIER_LIMITS.maxDbRows) * 100,
+      bandwidth: {
+        used: this.usage.bandwidth_used,
+        limit: this.LIMITS.bandwidth_daily,
+        percentage: this.usage.bandwidth_used / this.LIMITS.bandwidth_daily,
       },
-      daysUntilReset,
+      requests: {
+        used: this.usage.requests_count,
+        limit: this.LIMITS.requests_daily,
+        percentage: this.usage.requests_count / this.LIMITS.requests_daily,
+      },
+      connections: {
+        used: this.usage.concurrent_connections,
+        limit: this.LIMITS.concurrent_connections,
+        percentage: this.usage.concurrent_connections / this.LIMITS.concurrent_connections,
+      },
     };
   }
 
   /**
-   * Get recommendations for reducing usage
+   * Check if any limits are approaching
    */
-  getUsageRecommendations(): string[] {
-    const stats = this.getUsageStats();
-    const recommendations: string[] = [];
-
-    if (stats.requests.percentage > 60) {
-      recommendations.push(
-        'Consider implementing request batching to reduce API calls',
-        'Enable query caching to avoid repeated requests',
-        'Use pagination to limit data fetched per request'
-      );
-    }
-
-    if (stats.bandwidth.percentage > 60) {
-      recommendations.push(
-        'Optimize image sizes and use compression',
-        'Implement incremental data loading',
-        'Use select queries to fetch only needed columns'
-      );
-    }
-
-    if (stats.storage.percentage > 60) {
-      recommendations.push(
-        'Clean up old or unused data',
-        'Compress images before storage',
-        'Archive old records to external storage'
-      );
-    }
-
-    if (stats.dbRows.percentage > 60) {
-      recommendations.push(
-        'Implement data archiving strategy',
-        'Remove duplicate or test data',
-        'Consider data retention policies'
-      );
-    }
-
-    return recommendations;
+  isApproachingLimits(): boolean {
+    return this.alerts.some(alert => alert.severity === 'warning');
   }
 
   /**
-   * Check if usage is near limits and send alerts
+   * Check if any limits are critical
    */
-  private checkThresholds(): void {
-    const stats = this.getUsageStats();
-
-    if (stats.requests.percentage >= this.alerts.requestsThreshold * 100) {
-      this.sendAlert('requests', stats.requests.percentage);
-    }
-
-    if (stats.bandwidth.percentage >= this.alerts.bandwidthThreshold * 100) {
-      this.sendAlert('bandwidth', stats.bandwidth.percentage);
-    }
-
-    if (stats.storage.percentage >= this.alerts.storageThreshold * 100) {
-      this.sendAlert('storage', stats.storage.percentage);
-    }
-
-    if (stats.dbRows.percentage >= this.alerts.dbRowsThreshold * 100) {
-      this.sendAlert('database rows', stats.dbRows.percentage);
-    }
+  isAtCriticalLimits(): boolean {
+    return this.alerts.some(alert => alert.severity === 'critical');
   }
 
   /**
-   * Send usage alert
+   * Get default usage object
    */
-  private sendAlert(type: string, percentage: number): void {
-    const message = `Supabase ${type} usage is at ${percentage.toFixed(1)}% of free tier limit`;
-
-    // Log to monitoring service
-    monitoringService.logEvent('supabase_usage_alert', {
-      type,
-      percentage,
-      timestamp: Date.now(),
-    });
-
-    // In production, you might want to send push notifications
-    console.warn(message);
+  private getDefaultUsage(): SupabaseUsage {
+    return {
+      database_size: 0,
+      storage_size: 0,
+      bandwidth_used: 0,
+      bandwidth_limit: this.LIMITS.bandwidth_daily,
+      requests_count: 0,
+      requests_limit: this.LIMITS.requests_daily,
+      concurrent_connections: 0,
+      connection_limit: this.LIMITS.concurrent_connections,
+      last_updated: new Date().toISOString(),
+    };
   }
 
   /**
-   * Check if monthly reset is due
+   * Load stored data from AsyncStorage
    */
-  private checkForMonthlyReset(): void {
-    const now = Date.now();
-    if (now >= this.currentStats.resetTime) {
-      this.resetMonthlyStats();
-    }
-  }
-
-  /**
-   * Reset monthly usage statistics
-   */
-  private resetMonthlyStats(): void {
-    this.currentStats.requestCount = 0;
-    this.currentStats.bandwidthUsed = 0;
-    this.currentStats.resetTime = this.getNextMonthlyReset();
-    this.saveStats();
-
-    console.log('Monthly Supabase usage stats reset');
-  }
-
-  /**
-   * Get next monthly reset timestamp
-   */
-  private getNextMonthlyReset(): number {
-    const now = new Date();
-    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    return nextMonth.getTime();
-  }
-
-  /**
-   * Load stats from storage
-   */
-  private async loadStats(): Promise<void> {
+  private async loadStoredData(): Promise<void> {
     try {
-      const stored = await AsyncStorage.getItem(this.STORAGE_KEY);
-      if (stored) {
-        this.currentStats = JSON.parse(stored);
+      const [usageData, metricsData, alertsData] = await Promise.all([
+        AsyncStorage.getItem(this.STORAGE_KEY),
+        AsyncStorage.getItem(this.METRICS_STORAGE_KEY),
+        AsyncStorage.getItem(this.ALERTS_STORAGE_KEY),
+      ]);
+
+      if (usageData) {
+        this.usage = JSON.parse(usageData);
+      }
+
+      if (metricsData) {
+        this.performanceMetrics = JSON.parse(metricsData);
+      }
+
+      if (alertsData) {
+        this.alerts = JSON.parse(alertsData);
       }
     } catch (error) {
-      console.error('Failed to load Supabase stats:', error);
+      console.error('Failed to load stored monitoring data:', error);
     }
   }
 
   /**
-   * Save stats to storage
+   * Save usage data to AsyncStorage
    */
-  private async saveStats(): Promise<void> {
+  private async saveUsageData(): Promise<void> {
     try {
-      await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.currentStats));
+      await Promise.all([
+        AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.usage)),
+        AsyncStorage.setItem(this.METRICS_STORAGE_KEY, JSON.stringify(this.performanceMetrics)),
+        AsyncStorage.setItem(this.ALERTS_STORAGE_KEY, JSON.stringify(this.alerts)),
+      ]);
     } catch (error) {
-      console.error('Failed to save Supabase stats:', error);
+      console.error('Failed to save monitoring data:', error);
     }
   }
 
   /**
-   * Load alert thresholds from storage
-   */
-  private async loadAlerts(): Promise<void> {
-    try {
-      const stored = await AsyncStorage.getItem(this.ALERTS_KEY);
-      if (stored) {
-        this.alerts = { ...this.alerts, ...JSON.parse(stored) };
-      }
-    } catch (error) {
-      console.error('Failed to load Supabase alerts:', error);
-    }
-  }
-
-  /**
-   * Update alert thresholds
-   */
-  async updateAlertThresholds(newAlerts: Partial<SupabaseAlerts>): Promise<void> {
-    this.alerts = { ...this.alerts, ...newAlerts };
-    try {
-      await AsyncStorage.setItem(this.ALERTS_KEY, JSON.stringify(this.alerts));
-    } catch (error) {
-      console.error('Failed to save Supabase alerts:', error);
-    }
-  }
-
-  /**
-   * Format bytes for display
+   * Format bytes to human readable format
    */
   formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) return '0 Bytes';
+    
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
   /**
-   * Get formatted usage report
+   * Get optimization recommendations
    */
-  getUsageReport(): string {
-    const stats = this.getUsageStats();
-    return `
-Supabase Usage Report:
-- Requests: ${stats.requests.used.toLocaleString()} / ${stats.requests.limit.toLocaleString()} (${stats.requests.percentage.toFixed(1)}%)
-- Bandwidth: ${this.formatBytes(stats.bandwidth.used)} / ${this.formatBytes(stats.bandwidth.limit)} (${stats.bandwidth.percentage.toFixed(1)}%)
-- Storage: ${this.formatBytes(stats.storage.used)} / ${this.formatBytes(stats.storage.limit)} (${stats.storage.percentage.toFixed(1)}%)
-- Database Rows: ${stats.dbRows.used.toLocaleString()} / ${stats.dbRows.limit.toLocaleString()} (${stats.dbRows.percentage.toFixed(1)}%)
-- Days until reset: ${stats.daysUntilReset}
-    `.trim();
+  getOptimizationRecommendations(): string[] {
+    const recommendations: string[] = [];
+
+    if (this.alerts.some(alert => alert.type === 'database' && alert.severity === 'warning')) {
+      recommendations.push('Consider archiving old data or upgrading to a paid plan');
+    }
+
+    if (this.alerts.some(alert => alert.type === 'storage' && alert.severity === 'warning')) {
+      recommendations.push('Optimize image uploads and consider compression');
+    }
+
+    if (this.alerts.some(alert => alert.type === 'bandwidth' && alert.severity === 'warning')) {
+      recommendations.push('Implement request batching and caching strategies');
+    }
+
+    if (this.alerts.some(alert => alert.type === 'requests' && alert.severity === 'warning')) {
+      recommendations.push('Optimize API calls and implement request deduplication');
+    }
+
+    if (this.alerts.some(alert => alert.type === 'connections' && alert.severity === 'warning')) {
+      recommendations.push('Implement connection pooling and cleanup idle connections');
+    }
+
+    return recommendations;
   }
 }
 
+// Export singleton instance
 export const supabaseMonitoringService = new SupabaseMonitoringService();
 export default supabaseMonitoringService;

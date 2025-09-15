@@ -24,10 +24,11 @@ class GroupService {
     if (error) throw error;
     
     // Fix count aggregations and add user membership info
-    return (data?.map(item => ({
+    return (data?.map((item: any) => ({
       ...item.group,
       member_count: typeof item.group.member_count === 'object' ? item.group.member_count?.count || 0 : item.group.member_count || 0,
       prayer_count: typeof item.group.prayer_count === 'object' ? item.group.prayer_count?.count || 0 : item.group.prayer_count || 0,
+      isJoined: true, // User is a member since we fetched from group_members
       user_membership: {
         id: item.id,
         group_id: item.group_id,
@@ -241,9 +242,9 @@ class GroupService {
   }
 
   /**
-   * Search groups
+   * Search groups with user membership status
    */
-  async searchGroups(query: string, filters?: {
+  async searchGroups(query: string, userId?: string, filters?: {
     privacy?: 'public' | 'private';
     location?: string;
     tags?: string[];
@@ -253,18 +254,19 @@ class GroupService {
       .select(`
         *,
         member_count:group_members(count),
-        prayer_count:prayers(count)
+        prayer_count:prayers(count),
+        user_membership:group_members!left(
+          id,
+          user_id,
+          role,
+          joined_at
+        )
       `)
       .or(`name.ilike.%${query}%,description.ilike.%${query}%`);
 
     if (filters?.privacy) {
-      supabaseQuery = supabaseQuery.eq('privacy', filters.privacy);
+      supabaseQuery = supabaseQuery.eq('privacy_level', filters.privacy);
     }
-
-    // Note: Groups table doesn't have location fields
-    // if (filters?.location) {
-    //   supabaseQuery = supabaseQuery.ilike('location_city', `%${filters.location}%`);
-    // }
 
     if (filters?.tags?.length) {
       supabaseQuery = supabaseQuery.contains('tags', filters.tags);
@@ -274,36 +276,46 @@ class GroupService {
 
     if (error) throw error;
     
-    // Fix count aggregations - Supabase returns {count: number} objects
-    return (data || []).map(group => ({
+    // Fix count aggregations and add membership status
+    return (data || []).map((group: any) => ({
       ...group,
       member_count: typeof group.member_count === 'object' ? group.member_count?.count || 0 : group.member_count || 0,
       prayer_count: typeof group.prayer_count === 'object' ? group.prayer_count?.count || 0 : group.prayer_count || 0,
+      isJoined: userId ? group.user_membership?.some((member: any) => member.user_id === userId) : false,
+      user_membership: userId ? group.user_membership?.find((member: any) => member.user_id === userId) : undefined,
     }));
   }
 
   /**
-   * Get trending groups
+   * Get trending groups with user membership status
    */
-  async getTrendingGroups(limit = 10): Promise<Group[]> {
+  async getTrendingGroups(limit = 10, userId?: string): Promise<Group[]> {
     const { data, error } = await supabase
       .from('groups')
       .select(`
         *,
         member_count:group_members(count),
-        prayer_count:prayers(count)
+        prayer_count:prayers(count),
+        user_membership:group_members!left(
+          id,
+          user_id,
+          role,
+          joined_at
+        )
       `)
-      .eq('privacy', 'public')
+      .eq('privacy_level', 'public')
       .order('member_count', { ascending: false })
       .limit(limit);
 
     if (error) throw error;
     
-    // Fix count aggregations - Supabase returns {count: number} objects
-    return (data || []).map(group => ({
+    // Fix count aggregations and add membership status
+    return (data || []).map((group: any) => ({
       ...group,
       member_count: typeof group.member_count === 'object' ? group.member_count?.count || 0 : group.member_count || 0,
       prayer_count: typeof group.prayer_count === 'object' ? group.prayer_count?.count || 0 : group.prayer_count || 0,
+      isJoined: userId ? group.user_membership?.some((member: any) => member.user_id === userId) : false,
+      user_membership: userId ? group.user_membership?.find((member: any) => member.user_id === userId) : undefined,
     }));
   }
 
@@ -326,7 +338,7 @@ class GroupService {
     if (error) throw error;
     
     // Fix count aggregations - Supabase returns {count: number} objects
-    return (data || []).map(prayer => ({
+    return (data || []).map((prayer: any) => ({
       ...prayer,
       interaction_count: typeof prayer.interaction_count === 'object' ? prayer.interaction_count?.count || 0 : prayer.interaction_count || 0,
       comment_count: typeof prayer.comment_count === 'object' ? prayer.comment_count?.count || 0 : prayer.comment_count || 0,
