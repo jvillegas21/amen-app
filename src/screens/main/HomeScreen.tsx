@@ -10,7 +10,7 @@ import { theme } from '@/theme';
 import { MainTabScreenProps } from '@/types/navigation.types';
 import { Prayer } from '@/types/database.types';
 import { usePrayerStore } from '@/store/prayer/prayerStore';
-import { prayerInteractionService } from '@/services/api/prayerInteractionService';
+import { prayerService } from '@/services/api/prayerService';
 import { contentModerationService } from '@/services/api/contentModerationService';
 import { useSharing } from '@/hooks/useSharing';
 import PrayerCard from '@/components/prayer/PrayerCard';
@@ -36,7 +36,6 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
   } = usePrayerStore();
 
   const [feedType, setFeedType] = useState<'following' | 'discover'>('following');
-  const [savedPrayers, setSavedPrayers] = useState<Set<string>>(new Set());
   const [prayingPrayers, setPrayingPrayers] = useState<Set<string>>(new Set());
   const [savingPrayers, setSavingPrayers] = useState<Set<string>>(new Set());
   
@@ -104,16 +103,7 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
   const handleSavePress = async (prayerId: string) => {
     setSavingPrayers(prev => new Set(prev).add(prayerId));
     try {
-      await prayerInteractionService.savePrayer(prayerId);
-      setSavedPrayers((prev: Set<string>) => {
-        const newSet = new Set(prev);
-        if (newSet.has(prayerId)) {
-          newSet.delete(prayerId);
-        } else {
-          newSet.add(prayerId);
-        }
-        return newSet;
-      });
+      await interactWithPrayer(prayerId, 'SAVE');
     } catch (error) {
       console.error('Failed to save prayer:', error);
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
@@ -153,7 +143,7 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
       onCommentPress={() => handleCommentPress(prayer.id)}
       onSharePress={() => handleSharePress(prayer.id)}
       onSavePress={() => handleSavePress(prayer.id)}
-      isSaved={savedPrayers.has(prayer.id)}
+      isSaved={prayer.user_interaction?.type === 'SAVE'}
       isPraying={prayingPrayers.has(prayer.id)}
       isSharing={isSharing}
       isSaving={savingPrayers.has(prayer.id)}

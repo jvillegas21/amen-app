@@ -1,44 +1,35 @@
 import { supabase } from '@/config/supabase';
 import { Group, CreateGroupRequest, GroupMember } from '@/types/database.types';
+import { GroupRepository } from '@/repositories/group.repository';
+import { InteractionRepository } from '@/repositories/interaction.repository';
+import { ErrorTransformationService } from '@/services/errorTransformationService';
+import { RepositoryFactory } from '@/repositories/base.repository';
 
 /**
  * Group Service - Manages group-related API operations
+ * Uses repository pattern for database operations and proper error handling
  */
 class GroupService {
+  private groupRepository: GroupRepository;
+  private interactionRepository: InteractionRepository;
+
+  constructor() {
+    this.groupRepository = RepositoryFactory.getRepository(GroupRepository);
+    this.interactionRepository = RepositoryFactory.getRepository(InteractionRepository);
+  }
   /**
    * Fetch user's groups
    */
   async getUserGroups(userId: string): Promise<Group[]> {
-    const { data, error } = await supabase
-      .from('group_members')
-      .select(`
-        *,
-        group:groups!group_id(
-          *,
-          member_count:group_members(count),
-          prayer_count:prayers(count)
-        )
-      `)
-      .eq('user_id', userId)
-
-    if (error) throw error;
-    
-    // Fix count aggregations and add user membership info
-    return (data?.map((item: any) => ({
-      ...item.group,
-      member_count: typeof item.group.member_count === 'object' ? item.group.member_count?.count || 0 : item.group.member_count || 0,
-      prayer_count: typeof item.group.prayer_count === 'object' ? item.group.prayer_count?.count || 0 : item.group.prayer_count || 0,
-      isJoined: true, // User is a member since we fetched from group_members
-      user_membership: {
-        id: item.id,
-        group_id: item.group_id,
-        user_id: item.user_id,
-        role: item.role,
-        joined_at: item.joined_at,
-        last_active: item.last_active,
-        notifications_enabled: item.notifications_enabled,
-      }
-    })).filter(Boolean) || []) as Group[];
+    try {
+      const groups = await this.groupRepository.getUserGroups(userId);
+      return groups.map(group => ({
+        ...group,
+        isJoined: true, // User is a member since we fetched from group_members
+      }));
+    } catch (error) {
+      throw new Error(ErrorTransformationService.transformError(error, 'getUserGroups'));
+    }
   }
 
   /**
@@ -249,74 +240,22 @@ class GroupService {
     location?: string;
     tags?: string[];
   }): Promise<Group[]> {
-    let supabaseQuery = supabase
-      .from('groups')
-      .select(`
-        *,
-        member_count:group_members(count),
-        prayer_count:prayers(count),
-        user_membership:group_members!left(
-          id,
-          user_id,
-          role,
-          joined_at
-        )
-      `)
-      .or(`name.ilike.%${query}%,description.ilike.%${query}%`);
-
-    if (filters?.privacy) {
-      supabaseQuery = supabaseQuery.eq('privacy_level', filters.privacy);
+    try {
+      return await this.groupRepository.searchGroupsWithMembership(query, userId, filters);
+    } catch (error) {
+      throw new Error(ErrorTransformationService.transformError(error, 'searchGroups'));
     }
-
-    if (filters?.tags?.length) {
-      supabaseQuery = supabaseQuery.contains('tags', filters.tags);
-    }
-
-    const { data, error } = await supabaseQuery;
-
-    if (error) throw error;
-    
-    // Fix count aggregations and add membership status
-    return (data || []).map((group: any) => ({
-      ...group,
-      member_count: typeof group.member_count === 'object' ? group.member_count?.count || 0 : group.member_count || 0,
-      prayer_count: typeof group.prayer_count === 'object' ? group.prayer_count?.count || 0 : group.prayer_count || 0,
-      isJoined: userId ? group.user_membership?.some((member: any) => member.user_id === userId) : false,
-      user_membership: userId ? group.user_membership?.find((member: any) => member.user_id === userId) : undefined,
-    }));
   }
 
   /**
    * Get trending groups with user membership status
    */
   async getTrendingGroups(limit = 10, userId?: string): Promise<Group[]> {
-    const { data, error } = await supabase
-      .from('groups')
-      .select(`
-        *,
-        member_count:group_members(count),
-        prayer_count:prayers(count),
-        user_membership:group_members!left(
-          id,
-          user_id,
-          role,
-          joined_at
-        )
-      `)
-      .eq('privacy_level', 'public')
-      .order('member_count', { ascending: false })
-      .limit(limit);
-
-    if (error) throw error;
-    
-    // Fix count aggregations and add membership status
-    return (data || []).map((group: any) => ({
-      ...group,
-      member_count: typeof group.member_count === 'object' ? group.member_count?.count || 0 : group.member_count || 0,
-      prayer_count: typeof group.prayer_count === 'object' ? group.prayer_count?.count || 0 : group.prayer_count || 0,
-      isJoined: userId ? group.user_membership?.some((member: any) => member.user_id === userId) : false,
-      user_membership: userId ? group.user_membership?.find((member: any) => member.user_id === userId) : undefined,
-    }));
+    try {
+      return await this.groupRepository.getTrendingGroups(limit, userId);
+    } catch (error) {
+      throw new Error(ErrorTransformationService.transformError(error, 'getTrendingGroups'));
+    }
   }
 
   /**
@@ -328,7 +267,6 @@ class GroupService {
       .select(`
         *,
         user:profiles!user_id(*),
-        interaction_count:interactions(count),
         comment_count:comments(count)
       `)
       .eq('group_id', groupId)
@@ -336,12 +274,19 @@ class GroupService {
       .range((page - 1) * limit, page * limit - 1);
 
     if (error) throw error;
-    
-    // Fix count aggregations - Supabase returns {count: number} objects
+
+    // Get interaction counts for all prayers using the interaction repository
+    const prayerIds = (data || []).map(prayer => prayer.id);
+    const { InteractionRepository } = await import('@/repositories/interaction.repository');
+    const { RepositoryFactory } = await import('@/repositories/base.repository');
+    const interactionRepo = RepositoryFactory.getRepository(InteractionRepository);
+    const interactionCounts = await interactionRepo.getInteractionCountsForPrayers(prayerIds);
+
+    // Fix count aggregations and merge interaction counts
     return (data || []).map((prayer: any) => ({
       ...prayer,
-      interaction_count: typeof prayer.interaction_count === 'object' ? prayer.interaction_count?.count || 0 : prayer.interaction_count || 0,
       comment_count: typeof prayer.comment_count === 'object' ? prayer.comment_count?.count || 0 : prayer.comment_count || 0,
+      ...interactionCounts[prayer.id], // This adds pray_count, like_count, etc.
     }));
   }
 }

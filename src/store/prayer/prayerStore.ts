@@ -149,7 +149,8 @@ export const usePrayerStore = create<PrayerState>((set: any, get: any) => ({
           updated_at: new Date().toISOString(),
           expires_at: prayerData.expires_at,
           user: prayerData.user,
-          interaction_count: 0,
+          pray_count: 0,
+          like_count: 0,
           comment_count: 0,
         };
 
@@ -219,40 +220,43 @@ export const usePrayerStore = create<PrayerState>((set: any, get: any) => ({
   // Interact with Prayer
   interactWithPrayer: async (prayerId: string, type: 'PRAY' | 'LIKE' | 'SHARE' | 'SAVE') => {
     const originalPrayers = [...get().prayers];
-    
+
     try {
       // Optimistic update
-      console.log('Applying optimistic update for prayer:', prayerId, 'type:', type);
       set({
         prayers: get().prayers.map((prayer: Prayer) => {
           if (prayer.id === prayerId) {
-            const isAlreadyInteracted = prayer.user_interaction?.type === type;
-            const increment = isAlreadyInteracted ? -1 : 1;
-            
-            console.log('Prayer found, isAlreadyInteracted:', isAlreadyInteracted, 'increment:', increment);
-            
+            // Note: We need to check if user has this specific interaction type
+            // Since the backend supports multiple interaction types per user per prayer
+            const hasCurrentInteraction = prayer.user_interaction?.type === type;
+            const increment = hasCurrentInteraction ? -1 : 1;
+
             // Update the appropriate count field
             const updatedPrayer = { ...prayer };
             if (type === 'PRAY') {
               updatedPrayer.pray_count = Math.max(0, (prayer.pray_count || 0) + increment);
-              console.log('Updated pray_count from', prayer.pray_count, 'to', updatedPrayer.pray_count);
             } else if (type === 'LIKE') {
               updatedPrayer.like_count = Math.max(0, (prayer.like_count || 0) + increment);
+            } else if (type === 'SHARE') {
+              updatedPrayer.share_count = Math.max(0, (prayer.share_count || 0) + increment);
+            } else if (type === 'SAVE') {
+              updatedPrayer.save_count = Math.max(0, (prayer.save_count || 0) + increment);
             }
-            
-            const result = {
+
+            // For user_interaction, we only track the most recent/primary interaction
+            // The backend will handle multiple interaction types per user
+            return {
               ...updatedPrayer,
-              user_interaction: isAlreadyInteracted ? undefined : { 
-                type, 
-                created_at: new Date().toISOString(),
+              user_interaction: hasCurrentInteraction ? null : {
                 id: 'temp-' + Date.now(),
                 prayer_id: prayerId,
-                user_id: 'current-user'
+                user_id: 'current-user',
+                type,
+                created_at: new Date().toISOString(),
+                committed_at: new Date().toISOString(),
+                reminder_frequency: 'none',
               },
             };
-            
-            console.log('Optimistic update result:', result);
-            return result;
           }
           return prayer;
         }),
@@ -348,13 +352,17 @@ export const usePrayerStore = create<PrayerState>((set: any, get: any) => ({
     });
   },
 
-  updatePrayerInteraction: (prayerId: string, interactionCount: number, userInteraction: any) => {
+  updatePrayerInteraction: (prayerId: string, counts: {
+    pray_count?: number;
+    like_count?: number;
+    comment_count?: number;
+  }, userInteraction?: any) => {
     set({
       prayers: get().prayers.map((prayer: Prayer) => {
         if (prayer.id === prayerId) {
           return {
             ...prayer,
-            interaction_count: interactionCount,
+            ...counts,
             user_interaction: userInteraction,
           };
         }

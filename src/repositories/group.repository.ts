@@ -314,13 +314,109 @@ export class GroupRepository extends BaseRepositoryImpl<Group> {
 
     return (data || []).map(group => ({
       ...group,
-      member_count: typeof group.member_count === 'object' 
-        ? group.member_count?.count || 0 
+      member_count: typeof group.member_count === 'object'
+        ? group.member_count?.count || 0
         : group.member_count || 0,
-      prayer_count: typeof group.prayer_count === 'object' 
-        ? group.prayer_count?.count || 0 
+      prayer_count: typeof group.prayer_count === 'object'
+        ? group.prayer_count?.count || 0
         : group.prayer_count || 0,
       creator: group.creator,
     }));
+  }
+
+  /**
+   * Get trending groups with user membership status
+   */
+  async getTrendingGroups(limit = 10, userId?: string): Promise<Group[]> {
+    const { data, error } = await supabase
+      .from('groups')
+      .select(`
+        *,
+        member_count:group_members(count),
+        prayer_count:prayers(count)
+      `)
+      .eq('privacy', 'public')
+      .order('member_count', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      this.handleError(error, 'getTrendingGroups');
+    }
+
+    return await this.addMembershipStatusToGroups(data || [], userId);
+  }
+
+  /**
+   * Search groups with user membership status
+   */
+  async searchGroupsWithMembership(query: string, userId?: string, filters?: {
+    privacy?: 'public' | 'private';
+    tags?: string[];
+  }): Promise<Group[]> {
+    let supabaseQuery = supabase
+      .from('groups')
+      .select(`
+        *,
+        member_count:group_members(count),
+        prayer_count:prayers(count)
+      `)
+      .or(`name.ilike.%${query}%,description.ilike.%${query}%`);
+
+    if (filters?.privacy) {
+      supabaseQuery = supabaseQuery.eq('privacy', filters.privacy);
+    }
+
+    if (filters?.tags?.length) {
+      supabaseQuery = supabaseQuery.contains('tags', filters.tags);
+    }
+
+    const { data, error } = await supabaseQuery;
+
+    if (error) {
+      this.handleError(error, 'searchGroupsWithMembership');
+    }
+
+    return await this.addMembershipStatusToGroups(data || [], userId);
+  }
+
+  /**
+   * Helper method to add membership status to groups
+   */
+  private async addMembershipStatusToGroups(groups: any[], userId?: string): Promise<Group[]> {
+    const groupsWithMembership = groups.map(group => ({
+      ...group,
+      member_count: typeof group.member_count === 'object'
+        ? group.member_count?.count || 0
+        : group.member_count || 0,
+      prayer_count: typeof group.prayer_count === 'object'
+        ? group.prayer_count?.count || 0
+        : group.prayer_count || 0,
+    }));
+
+    if (userId) {
+      const groupIds = groupsWithMembership.map(g => g.id);
+      const { data: memberships } = await supabase
+        .from('group_members')
+        .select('group_id, id, role, joined_at')
+        .in('group_id', groupIds)
+        .eq('user_id', userId);
+
+      const membershipMap = (memberships || []).reduce((acc, m) => {
+        acc[m.group_id] = m;
+        return acc;
+      }, {} as Record<string, any>);
+
+      return groupsWithMembership.map(group => ({
+        ...group,
+        isJoined: Boolean(membershipMap[group.id]),
+        user_membership: membershipMap[group.id] || undefined,
+      }));
+    } else {
+      return groupsWithMembership.map(group => ({
+        ...group,
+        isJoined: false,
+        user_membership: undefined,
+      }));
+    }
   }
 }

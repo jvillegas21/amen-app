@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/auth/authStore';
-import { prayerInteractionService } from '@/services/api/prayerInteractionService';
+import { prayerService } from '@/services/api/prayerService';
 import { Prayer } from '@/types/database.types';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -45,7 +45,7 @@ export default function SavedPrayersScreen() {
         setLoading(true);
       }
 
-      const prayers = await prayerInteractionService.getSavedPrayers(profile.id, pageNum, 20);
+      const prayers = await prayerService.getSavedPrayers(pageNum, 20);
       
       if (isRefresh || pageNum === 1) {
         setSavedPrayers(prayers);
@@ -80,7 +80,7 @@ export default function SavedPrayersScreen() {
 
   const handleUnsave = async (prayerId: string) => {
     try {
-      await prayerInteractionService.savePrayer(prayerId); // This toggles save/unsave
+      await prayerService.savePrayer(prayerId); // This toggles save/unsave
       setSavedPrayers(prev => prev.filter(prayer => prayer.id !== prayerId));
     } catch (error) {
       console.error('Error unsaving prayer:', error);

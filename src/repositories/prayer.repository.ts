@@ -54,7 +54,6 @@ export class PrayerRepository extends BaseRepositoryImpl<Prayer> {
         pray_count: 0, // Will be populated by interaction counts
         like_count: 0,
         comment_count: prayer.comment_count || 0,
-        interaction_count: prayer.interaction_count || 0,
       })) as Prayer[];
     }
 
@@ -101,7 +100,6 @@ export class PrayerRepository extends BaseRepositoryImpl<Prayer> {
         pray_count: prayCount,
         like_count: likeCount,
         comment_count: prayer.comment_count || 0,
-        interaction_count: interactions.length,
       };
     });
   }
@@ -152,7 +150,6 @@ export class PrayerRepository extends BaseRepositoryImpl<Prayer> {
       pray_count: prayCount,
       like_count: likeCount,
       comment_count: data.comment_count || 0,
-      interaction_count: interactions.length,
       user_interaction: userInteraction,
     };
   }
@@ -231,7 +228,6 @@ export class PrayerRepository extends BaseRepositoryImpl<Prayer> {
         pray_count: prayCount,
         like_count: likeCount,
         comment_count: prayer.comment_count || 0,
-        interaction_count: interactions.length,
       };
     });
   }
@@ -291,7 +287,6 @@ export class PrayerRepository extends BaseRepositoryImpl<Prayer> {
         pray_count: prayCount,
         like_count: likeCount,
         comment_count: prayer.comment_count || 0,
-        interaction_count: interactions.length,
       };
     });
   }
