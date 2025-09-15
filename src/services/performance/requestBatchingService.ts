@@ -1,399 +1,397 @@
-/**
- * Request Batching Service - Optimizes Supabase API calls for free tier limits
- * Batches multiple requests to reduce connection overhead and respect rate limits
- */
-
 import { supabase } from '@/config/supabase';
 
-interface BatchRequest {
+interface BatchedRequest {
   id: string;
-  type: 'query' | 'mutation';
-  table: string;
-  operation: 'select' | 'insert' | 'update' | 'delete';
-  params: any;
+  type: 'select' | 'insert' | 'update' | 'delete' | 'rpc';
+  table?: string;
+  query?: any;
+  data?: any;
   resolve: (value: any) => void;
   reject: (error: any) => void;
   timestamp: number;
-  priority: 'high' | 'medium' | 'low';
 }
 
 interface BatchConfig {
   maxBatchSize: number;
-  batchWindowMs: number;
-  maxConcurrentBatches: number;
+  maxWaitTime: number; // milliseconds
   retryAttempts: number;
-  retryDelayMs: number;
+  retryDelay: number; // milliseconds
 }
 
+/**
+ * Request Batching Service for Supabase
+ * Optimizes API calls by batching multiple requests together
+ * Critical for staying under Supabase free tier rate limits
+ */
 class RequestBatchingService {
-  private queue: Map<string, BatchRequest[]> = new Map();
+  private requestQueue: BatchedRequest[] = [];
   private batchTimer: NodeJS.Timeout | null = null;
-  private activeBatches = 0;
-  private requestCount = 0;
-  private lastResetTime = Date.now();
+  private isProcessing = false;
+  private config: BatchConfig;
 
-  private config: BatchConfig = {
-    maxBatchSize: 10, // Max requests per batch
-    batchWindowMs: 100, // Wait time before processing batch
-    maxConcurrentBatches: 3, // Supabase free tier safe limit
-    retryAttempts: 3,
-    retryDelayMs: 1000,
-  };
-
-  // Rate limiting for Supabase free tier
-  private readonly RATE_LIMITS = {
-    requestsPerSecond: 30, // Conservative limit for free tier
-    requestsPerMinute: 500,
-    concurrentConnections: 60,
-  };
+  constructor() {
+    this.config = {
+      maxBatchSize: 10, // Max requests per batch
+      maxWaitTime: 100, // Max wait time before processing batch
+      retryAttempts: 3,
+      retryDelay: 1000,
+    };
+  }
 
   /**
-   * Add request to batch queue
+   * Add a request to the batch queue
    */
-  async batchRequest<T>(
-    table: string,
-    operation: BatchRequest['operation'],
-    params: any,
-    priority: BatchRequest['priority'] = 'medium'
+  async addRequest<T>(
+    type: BatchedRequest['type'],
+    table?: string,
+    query?: any,
+    data?: any
   ): Promise<T> {
     return new Promise((resolve, reject) => {
-      const request: BatchRequest = {
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        type: operation === 'select' ? 'query' : 'mutation',
+      const request: BatchedRequest = {
+        id: `${type}_${Date.now()}_${Math.random()}`,
+        type,
         table,
-        operation,
-        params,
+        query,
+        data,
         resolve,
         reject,
         timestamp: Date.now(),
-        priority,
       };
 
-      // Add to queue by table
-      const queueKey = `${table}-${operation}`;
-      if (!this.queue.has(queueKey)) {
-        this.queue.set(queueKey, []);
+      this.requestQueue.push(request);
+
+      // Process batch if it's full
+      if (this.requestQueue.length >= this.config.maxBatchSize) {
+        this.processBatch();
+      } else if (!this.batchTimer) {
+        // Set timer to process batch after max wait time
+        this.batchTimer = setTimeout(() => {
+          this.processBatch();
+        }, this.config.maxWaitTime);
       }
-
-      const requests = this.queue.get(queueKey)!;
-      requests.push(request);
-
-      // Sort by priority
-      requests.sort((a, b) => {
-        const priorityOrder = { high: 0, medium: 1, low: 2 };
-        return priorityOrder[a.priority] - priorityOrder[b.priority];
-      });
-
-      // Schedule batch processing
-      this.scheduleBatchProcessing();
     });
   }
 
   /**
-   * Schedule batch processing with debouncing
+   * Process the current batch of requests
    */
-  private scheduleBatchProcessing(): void {
+  private async processBatch(): Promise<void> {
+    if (this.isProcessing || this.requestQueue.length === 0) {
+      return;
+    }
+
+    this.isProcessing = true;
+
+    // Clear the timer
     if (this.batchTimer) {
       clearTimeout(this.batchTimer);
+      this.batchTimer = null;
     }
 
-    // Check if we should process immediately due to queue size
-    const totalRequests = Array.from(this.queue.values()).reduce(
-      (sum, requests) => sum + requests.length,
-      0
-    );
+    // Get current batch
+    const batch = this.requestQueue.splice(0, this.config.maxBatchSize);
+    
+    try {
+      // Group requests by type and table for optimization
+      const groupedRequests = this.groupRequestsByType(batch);
+      
+      // Process each group
+      const results = await this.processGroupedRequests(groupedRequests);
+      
+      // Resolve all requests with their results
+      batch.forEach((request, index) => {
+        const result = results[index];
+        if (result.success) {
+          request.resolve(result.data);
+        } else {
+          request.reject(result.error);
+        }
+      });
 
-    if (totalRequests >= this.config.maxBatchSize) {
-      this.processBatches();
-    } else {
-      // Schedule for later
-      this.batchTimer = setTimeout(() => {
-        this.processBatches();
-      }, this.config.batchWindowMs);
-    }
-  }
+    } catch (error) {
+      // Reject all requests in the batch
+      batch.forEach(request => {
+        request.reject(error);
+      });
+    } finally {
+      this.isProcessing = false;
 
-  /**
-   * Process all pending batches
-   */
-  private async processBatches(): Promise<void> {
-    if (this.activeBatches >= this.config.maxConcurrentBatches) {
-      // Reschedule if too many active batches
-      this.scheduleBatchProcessing();
-      return;
-    }
-
-    // Check rate limits
-    if (!this.checkRateLimits()) {
-      // Wait and retry
-      setTimeout(() => this.processBatches(), this.config.retryDelayMs);
-      return;
-    }
-
-    const batches: Map<string, BatchRequest[]> = new Map(this.queue);
-    this.queue.clear();
-
-    for (const [key, requests] of batches) {
-      if (requests.length === 0) continue;
-
-      // Process in chunks respecting max batch size
-      const chunks = this.chunkRequests(requests, this.config.maxBatchSize);
-
-      for (const chunk of chunks) {
-        this.activeBatches++;
-        this.processBatch(key, chunk)
-          .finally(() => {
-            this.activeBatches--;
-          });
+      // Process remaining requests if any
+      if (this.requestQueue.length > 0) {
+        setTimeout(() => this.processBatch(), 10);
       }
     }
   }
 
   /**
-   * Process a single batch of requests
+   * Group requests by type and table for efficient processing
    */
-  private async processBatch(key: string, requests: BatchRequest[]): Promise<void> {
-    const [table, operation] = key.split('-');
+  private groupRequestsByType(requests: BatchedRequest[]): Map<string, BatchedRequest[]> {
+    const groups = new Map<string, BatchedRequest[]>();
+
+    requests.forEach(request => {
+      const key = `${request.type}_${request.table || 'default'}`;
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)!.push(request);
+    });
+
+    return groups;
+  }
+
+  /**
+   * Process grouped requests efficiently
+   */
+  private async processGroupedRequests(
+    groupedRequests: Map<string, BatchedRequest[]>
+  ): Promise<Array<{ success: boolean; data?: any; error?: any }>> {
+    const results: Array<{ success: boolean; data?: any; error?: any }> = [];
+
+    for (const [groupKey, requests] of groupedRequests) {
+      try {
+        const groupResults = await this.processRequestGroup(requests);
+        results.push(...groupResults);
+      } catch (error) {
+        // If group processing fails, mark all requests in group as failed
+        requests.forEach(() => {
+          results.push({ success: false, error });
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Process a group of similar requests
+   */
+  private async processRequestGroup(requests: BatchedRequest[]): Promise<Array<{ success: boolean; data?: any; error?: any }>> {
+    if (requests.length === 0) return [];
+
+    const firstRequest = requests[0];
+    const results: Array<{ success: boolean; data?: any; error?: any }> = [];
 
     try {
-      if (operation === 'select') {
-        await this.processBatchSelect(table, requests);
-      } else if (operation === 'insert') {
-        await this.processBatchInsert(table, requests);
-      } else if (operation === 'update') {
-        await this.processBatchUpdate(table, requests);
-      } else if (operation === 'delete') {
-        await this.processBatchDelete(table, requests);
-      }
+      switch (firstRequest.type) {
+        case 'select':
+          // For select requests, we can potentially combine them
+          const selectResults = await this.processSelectRequests(requests);
+          results.push(...selectResults);
+          break;
 
-      this.requestCount += requests.length;
+        case 'insert':
+          // For insert requests, we can batch them
+          const insertResults = await this.processInsertRequests(requests);
+          results.push(...insertResults);
+          break;
+
+        case 'update':
+          // For update requests, process individually but in parallel
+          const updateResults = await this.processUpdateRequests(requests);
+          results.push(...updateResults);
+          break;
+
+        case 'delete':
+          // For delete requests, process individually but in parallel
+          const deleteResults = await this.processDeleteRequests(requests);
+          results.push(...deleteResults);
+          break;
+
+        case 'rpc':
+          // For RPC requests, process individually but in parallel
+          const rpcResults = await this.processRpcRequests(requests);
+          results.push(...rpcResults);
+          break;
+
+        default:
+          throw new Error(`Unsupported request type: ${firstRequest.type}`);
+      }
     } catch (error) {
-      console.error(`Batch processing error for ${key}:`, error);
-
-      // Retry individual requests on batch failure
-      for (const request of requests) {
-        this.retryRequest(request);
-      }
+      // If group processing fails, mark all as failed
+      requests.forEach(() => {
+        results.push({ success: false, error });
+      });
     }
+
+    return results;
   }
 
   /**
-   * Process batch SELECT operations
+   * Process select requests
    */
-  private async processBatchSelect(table: string, requests: BatchRequest[]): Promise<void> {
-    // Combine multiple selects into one with OR conditions where possible
-    const ids = requests
-      .filter(r => r.params.id)
-      .map(r => r.params.id);
+  private async processSelectRequests(requests: BatchedRequest[]): Promise<Array<{ success: boolean; data?: any; error?: any }>> {
+    const results: Array<{ success: boolean; data?: any; error?: any }> = [];
 
-    if (ids.length > 0) {
-      const { data, error } = await supabase
-        .from(table)
-        .select('*')
-        .in('id', ids);
-
-      if (error) throw error;
-
-      // Distribute results to individual requests
-      const dataMap = new Map(data?.map(item => [item.id, item]) || []);
-
-      for (const request of requests) {
-        if (request.params.id) {
-          const item = dataMap.get(request.params.id);
-          if (item) {
-            request.resolve(item);
-          } else {
-            request.reject(new Error('Item not found'));
-          }
-        }
-      }
-    } else {
-      // Process individually if can't batch
-      for (const request of requests) {
-        try {
-          const { data, error } = await supabase
-            .from(table)
-            .select(request.params.select || '*')
-            .match(request.params.match || {})
-            .limit(request.params.limit || 50);
-
-          if (error) throw error;
-          request.resolve(data);
-        } catch (error) {
-          request.reject(error);
-        }
-      }
-    }
-  }
-
-  /**
-   * Process batch INSERT operations
-   */
-  private async processBatchInsert(table: string, requests: BatchRequest[]): Promise<void> {
-    const records = requests.map(r => r.params.data);
-
-    const { data, error } = await supabase
-      .from(table)
-      .insert(records)
-      .select();
-
-    if (error) throw error;
-
-    // Distribute results to individual requests
-    requests.forEach((request, index) => {
-      request.resolve(data?.[index]);
-    });
-  }
-
-  /**
-   * Process batch UPDATE operations
-   */
-  private async processBatchUpdate(table: string, requests: BatchRequest[]): Promise<void> {
-    // Updates must be processed individually due to different conditions
-    const updatePromises = requests.map(async (request) => {
+    // Process select requests in parallel
+    const promises = requests.map(async (request) => {
       try {
         const { data, error } = await supabase
+          .from(request.table!)
+          .select(request.query?.select || '*')
+          .match(request.query?.match || {})
+          .order(request.query?.order || 'created_at', { ascending: false })
+          .limit(request.query?.limit || 50);
+
+        if (error) throw error;
+        return { success: true, data };
+      } catch (error) {
+        return { success: false, error };
+      }
+    });
+
+    const selectResults = await Promise.all(promises);
+    results.push(...selectResults);
+
+    return results;
+  }
+
+  /**
+   * Process insert requests
+   */
+  private async processInsertRequests(requests: BatchedRequest[]): Promise<Array<{ success: boolean; data?: any; error?: any }>> {
+    const results: Array<{ success: boolean; data?: any; error?: any }> = [];
+
+    // Group by table for batch inserts
+    const tableGroups = new Map<string, BatchedRequest[]>();
+    requests.forEach(request => {
+      if (!tableGroups.has(request.table!)) {
+        tableGroups.set(request.table!, []);
+      }
+      tableGroups.get(request.table!)!.push(request);
+    });
+
+    for (const [table, tableRequests] of tableGroups) {
+      try {
+        // Extract data from requests
+        const insertData = tableRequests.map(req => req.data);
+        
+        const { data, error } = await supabase
           .from(table)
-          .update(request.params.data)
-          .match(request.params.match || { id: request.params.id })
+          .insert(insertData)
           .select();
 
         if (error) throw error;
-        request.resolve(data);
+
+        // Distribute results back to individual requests
+        if (Array.isArray(data)) {
+          data.forEach((item, index) => {
+            results.push({ success: true, data: item });
+          });
+        } else {
+          results.push({ success: true, data });
+        }
       } catch (error) {
-        request.reject(error);
+        // Mark all requests for this table as failed
+        tableRequests.forEach(() => {
+          results.push({ success: false, error });
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Process update requests
+   */
+  private async processUpdateRequests(requests: BatchedRequest[]): Promise<Array<{ success: boolean; data?: any; error?: any }>> {
+    const results: Array<{ success: boolean; data?: any; error?: any }> = [];
+
+    // Process update requests in parallel
+    const promises = requests.map(async (request) => {
+      try {
+        const { data, error } = await supabase
+          .from(request.table!)
+          .update(request.data)
+          .match(request.query?.match || {})
+          .select();
+
+        if (error) throw error;
+        return { success: true, data };
+      } catch (error) {
+        return { success: false, error };
       }
     });
 
-    await Promise.all(updatePromises);
+    const updateResults = await Promise.all(promises);
+    results.push(...updateResults);
+
+    return results;
   }
 
   /**
-   * Process batch DELETE operations
+   * Process delete requests
    */
-  private async processBatchDelete(table: string, requests: BatchRequest[]): Promise<void> {
-    const ids = requests
-      .filter(r => r.params.id)
-      .map(r => r.params.id);
+  private async processDeleteRequests(requests: BatchedRequest[]): Promise<Array<{ success: boolean; data?: any; error?: any }>> {
+    const results: Array<{ success: boolean; data?: any; error?: any }> = [];
 
-    if (ids.length > 0) {
-      const { error } = await supabase
-        .from(table)
-        .delete()
-        .in('id', ids);
+    // Process delete requests in parallel
+    const promises = requests.map(async (request) => {
+      try {
+        const { error } = await supabase
+          .from(request.table!)
+          .delete()
+          .match(request.query?.match || {});
 
-      if (error) throw error;
-
-      requests.forEach(request => request.resolve(true));
-    } else {
-      // Process individually if can't batch
-      for (const request of requests) {
-        try {
-          const { error } = await supabase
-            .from(table)
-            .delete()
-            .match(request.params.match || {});
-
-          if (error) throw error;
-          request.resolve(true);
-        } catch (error) {
-          request.reject(error);
-        }
+        if (error) throw error;
+        return { success: true, data: null };
+      } catch (error) {
+        return { success: false, error };
       }
-    }
+    });
+
+    const deleteResults = await Promise.all(promises);
+    results.push(...deleteResults);
+
+    return results;
   }
 
   /**
-   * Retry failed request with exponential backoff
+   * Process RPC requests
    */
-  private async retryRequest(request: BatchRequest, attempt = 1): Promise<void> {
-    if (attempt > this.config.retryAttempts) {
-      request.reject(new Error('Max retry attempts exceeded'));
-      return;
-    }
+  private async processRpcRequests(requests: BatchedRequest[]): Promise<Array<{ success: boolean; data?: any; error?: any }>> {
+    const results: Array<{ success: boolean; data?: any; error?: any }> = [];
 
-    const delay = this.config.retryDelayMs * Math.pow(2, attempt - 1);
+    // Process RPC requests in parallel
+    const promises = requests.map(async (request) => {
+      try {
+        const { data, error } = await supabase.rpc(
+          request.query?.function || 'unknown_function',
+          request.data || {}
+        );
 
-    setTimeout(() => {
-      // Re-add to queue with high priority
-      const queueKey = `${request.table}-${request.operation}`;
-      if (!this.queue.has(queueKey)) {
-        this.queue.set(queueKey, []);
+        if (error) throw error;
+        return { success: true, data };
+      } catch (error) {
+        return { success: false, error };
       }
+    });
 
-      this.queue.get(queueKey)!.push({
-        ...request,
-        priority: 'high',
-      });
+    const rpcResults = await Promise.all(promises);
+    results.push(...rpcResults);
 
-      this.scheduleBatchProcessing();
-    }, delay);
-  }
-
-  /**
-   * Check if we're within rate limits
-   */
-  private checkRateLimits(): boolean {
-    const now = Date.now();
-    const timeSinceReset = now - this.lastResetTime;
-
-    // Reset counter every minute
-    if (timeSinceReset >= 60000) {
-      this.requestCount = 0;
-      this.lastResetTime = now;
-      return true;
-    }
-
-    // Check per-second limit
-    const requestsPerSecond = this.requestCount / (timeSinceReset / 1000);
-    if (requestsPerSecond >= this.RATE_LIMITS.requestsPerSecond) {
-      return false;
-    }
-
-    // Check per-minute limit
-    if (this.requestCount >= this.RATE_LIMITS.requestsPerMinute) {
-      return false;
-    }
-
-    // Check concurrent connections
-    if (this.activeBatches >= this.config.maxConcurrentBatches) {
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Chunk requests into smaller batches
-   */
-  private chunkRequests(requests: BatchRequest[], chunkSize: number): BatchRequest[][] {
-    const chunks: BatchRequest[][] = [];
-    for (let i = 0; i < requests.length; i += chunkSize) {
-      chunks.push(requests.slice(i, i + chunkSize));
-    }
-    return chunks;
+    return results;
   }
 
   /**
    * Get current queue status
    */
   getQueueStatus(): {
-    pendingRequests: number;
-    activeBatches: number;
-    requestsPerMinute: number;
+    queueLength: number;
+    isProcessing: boolean;
+    oldestRequestAge: number;
   } {
-    const pendingRequests = Array.from(this.queue.values()).reduce(
-      (sum, requests) => sum + requests.length,
-      0
+    const oldestRequest = this.requestQueue.reduce((oldest, current) => 
+      current.timestamp < oldest.timestamp ? current : oldest, 
+      this.requestQueue[0]
     );
 
-    const timeSinceReset = Date.now() - this.lastResetTime;
-    const requestsPerMinute = (this.requestCount / timeSinceReset) * 60000;
-
     return {
-      pendingRequests,
-      activeBatches: this.activeBatches,
-      requestsPerMinute: Math.round(requestsPerMinute),
+      queueLength: this.requestQueue.length,
+      isProcessing: this.isProcessing,
+      oldestRequestAge: oldestRequest ? Date.now() - oldestRequest.timestamp : 0,
     };
   }
 
@@ -401,12 +399,10 @@ class RequestBatchingService {
    * Clear all pending requests
    */
   clearQueue(): void {
-    for (const requests of this.queue.values()) {
-      for (const request of requests) {
-        request.reject(new Error('Queue cleared'));
-      }
-    }
-    this.queue.clear();
+    this.requestQueue.forEach(request => {
+      request.reject(new Error('Request cancelled - queue cleared'));
+    });
+    this.requestQueue = [];
 
     if (this.batchTimer) {
       clearTimeout(this.batchTimer);
@@ -415,10 +411,10 @@ class RequestBatchingService {
   }
 
   /**
-   * Update configuration
+   * Update batch configuration
    */
-  updateConfig(config: Partial<BatchConfig>): void {
-    this.config = { ...this.config, ...config };
+  updateConfig(newConfig: Partial<BatchConfig>): void {
+    this.config = { ...this.config, ...newConfig };
   }
 }
 

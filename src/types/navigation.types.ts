@@ -9,7 +9,7 @@ import { CompositeScreenProps } from '@react-navigation/native';
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabParamList>;
-  Search: undefined;
+  Search: { query?: string };
   PrayerDetails: { prayerId: string };
   CreatePrayer: { groupId?: string };
   EditPrayer: { prayerId: string };
@@ -19,6 +19,7 @@ export type RootStackParamList = {
   EditGroup: { groupId: string };
   BibleStudy: { studyId: string };
   BibleStudyDetails: { studyId: string; prayerId: string };
+  BibleStudySuggestions: undefined;
   Settings: undefined;
   Privacy: undefined;
   Notifications: undefined;
