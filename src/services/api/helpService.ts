@@ -173,7 +173,7 @@ class HelpService {
       return new Set();
     }
 
-    return new Set(data?.map(vote => vote.faq_id) || []);
+    return new Set(data?.map((vote: any) => vote.faq_id) || []);
   }
 
   // Fallback data methods

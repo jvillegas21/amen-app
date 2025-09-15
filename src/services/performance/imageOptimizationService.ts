@@ -1,3 +1,4 @@
+import React from 'react';
 import { Image } from 'expo-image';
 import * as ImageManipulator from 'expo-image-manipulator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -125,7 +126,15 @@ class ImageOptimizationService {
    */
   private generateCacheKey(uri: string, options: any): string {
     const optionsString = JSON.stringify(options);
-    return `${this.CACHE_KEY_PREFIX}${Buffer.from(uri + optionsString).toString('base64')}`;
+    const combined = uri + optionsString;
+    // Simple hash function for cache key generation
+    let hash = 0;
+    for (let i = 0; i < combined.length; i++) {
+      const char = combined.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return `${this.CACHE_KEY_PREFIX}${Math.abs(hash).toString(36)}`;
   }
 
   /**
@@ -134,7 +143,7 @@ class ImageOptimizationService {
   private async cacheImage(
     cacheKey: string,
     image: { uri: string; width: number; height: number },
-    options: any
+    _options: any
   ): Promise<void> {
     try {
       // Get file size (approximate)
@@ -302,7 +311,7 @@ class ImageOptimizationService {
 
     React.useEffect(() => {
       if (typeof source === 'object' && source.uri) {
-        const key = cacheKey || this.generateCacheKey(source.uri, { width, height, quality });
+        const _key = cacheKey || this.generateCacheKey(source.uri, { width, height, quality });
         
         this.optimizeImage(source.uri, { width, height, quality })
           .then(uri => {
@@ -320,34 +329,28 @@ class ImageOptimizationService {
     }, [source, width, height, quality, cacheKey]);
 
     if (isLoading) {
-      return (
-        <Image
-          source={{ uri: placeholder }}
-          style={style}
-          contentFit={resizeMode}
-        />
-      );
+      return React.createElement(Image, {
+        source: { uri: placeholder },
+        style: style,
+        contentFit: resizeMode,
+      });
     }
 
     if (hasError) {
-      return (
-        <Image
-          source={{ uri: fallback }}
-          style={style}
-          contentFit={resizeMode}
-        />
-      );
+      return React.createElement(Image, {
+        source: { uri: fallback },
+        style: style,
+        contentFit: resizeMode,
+      });
     }
 
-    return (
-      <Image
-        source={optimizedUri ? { uri: optimizedUri } : source}
-        style={style}
-        contentFit={resizeMode}
-        transition={200}
-        cachePolicy="memory-disk"
-      />
-    );
+    return React.createElement(Image, {
+      source: optimizedUri ? { uri: optimizedUri } : source,
+      style: style,
+      contentFit: resizeMode,
+      transition: 200,
+      cachePolicy: "memory-disk",
+    });
   }
 }
 

@@ -129,7 +129,7 @@ const HelpScreen: React.FC<RootStackScreenProps<'Help'>> = ({ navigation }) => {
     }
 
     const query = searchQuery.toLowerCase();
-    const filtered = faqItems.filter(item =>
+    const filtered = faqItems.filter((item: FAQItem) =>
       item.question.toLowerCase().includes(query) ||
       item.answer.toLowerCase().includes(query) ||
       item.category.toLowerCase().includes(query)
@@ -154,7 +154,7 @@ const HelpScreen: React.FC<RootStackScreenProps<'Help'>> = ({ navigation }) => {
       await helpService.markFAQHelpful(itemId, profile.id);
       
       // Update local state
-      setFaqItems(prev => prev.map(item =>
+      setFaqItems((prev: FAQItem[]) => prev.map((item: FAQItem) =>
         item.id === itemId
           ? {
               ...item,

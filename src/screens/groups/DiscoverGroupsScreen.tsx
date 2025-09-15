@@ -56,7 +56,7 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
           onPress: async () => {
             try {
               await groupService.joinGroup(groupId);
-              setGroups(prev => prev.map(group => 
+              setGroups((prev: Group[]) => prev.map((group: Group) => 
                 group.id === groupId ? { ...group, isJoined: true } : group
               ));
             } catch (error) {
@@ -93,7 +93,7 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
     }
   };
 
-  const filteredGroups = groups.filter(group => 
+  const filteredGroups = groups.filter((group: Group) => 
     searchQuery === '' || 
     group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (group.description && group.description.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -106,7 +106,7 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
         <TextInput
           style={styles.searchInput}
           value={searchQuery}
-          onChangeText={(text) => {
+          onChangeText={(text: string) => {
             setSearchQuery(text);
             // Debounce search
             const timeoutId = setTimeout(() => handleSearch(text), 500);
