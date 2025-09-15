@@ -99,10 +99,13 @@ export interface Prayer {
   expires_at?: string;
   // Joined data
   user?: Profile;
+  // Interaction counts (computed from interactions table)
   interaction_count?: number;
   comment_count?: number;
   pray_count?: number;
   like_count?: number;
+  share_count?: number;
+  save_count?: number;
   user_interaction?: Interaction;
 }
 
@@ -163,6 +166,9 @@ export interface Group {
   // Joined data
   creator?: Profile;
   user_membership?: GroupMember;
+  // Computed fields for UI
+  isJoined?: boolean;
+  prayer_count?: number;
 }
 
 // Group Member

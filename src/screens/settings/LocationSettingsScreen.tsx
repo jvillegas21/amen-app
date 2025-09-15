@@ -8,6 +8,7 @@ import {
   Alert,
   ScrollView,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -96,7 +97,8 @@ export default function LocationSettingsScreen() {
           [
             { text: 'Cancel', style: 'cancel' },
             { text: 'Settings', onPress: () => {
-              // TODO: Open app settings
+              // Open device settings for location permissions
+              Linking.openSettings();
             }},
           ]
         );

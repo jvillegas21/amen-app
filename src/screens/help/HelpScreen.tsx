@@ -13,6 +13,7 @@ import {
 import { RootStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
+import { helpService } from '@/services/api/helpService';
 
 interface FAQItem {
   id: string;
@@ -99,67 +100,21 @@ const HelpScreen: React.FC<RootStackScreenProps<'Help'>> = ({ navigation }) => {
   const fetchFAQItems = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implement FAQ items fetch from API
-      // For now, using mock data
-      const mockFAQItems: FAQItem[] = [
-        {
-          id: '1',
-          question: 'How do I create my first prayer request?',
-          answer: 'To create a prayer request, tap the "+" button on the home screen or go to the Create tab. Write your prayer request, add any relevant details, and choose your privacy settings. You can also add location tags and images to provide more context.',
-          category: 'getting_started',
-          helpful_count: 45,
-        },
-        {
-          id: '2',
-          question: 'Can I make my prayers private?',
-          answer: 'Yes! When creating a prayer request, you can choose from three privacy levels: Public (visible to everyone), Friends Only (visible to your followers), or Private (only visible to you). You can also post anonymously if you prefer not to share your identity.',
-          category: 'privacy',
-          helpful_count: 32,
-        },
-        {
-          id: '3',
-          question: 'How do I join a prayer group?',
-          answer: 'You can discover prayer groups by going to the Groups tab and browsing available groups. Tap on a group to view its details, then tap "Join Group" if you\'d like to become a member. Some groups may require approval from the group admin.',
-          category: 'groups',
-          helpful_count: 28,
-        },
-        {
-          id: '4',
-          question: 'Why am I not receiving notifications?',
-          answer: 'Check your notification settings in the app by going to Settings > Notifications. Make sure push notifications are enabled and that you\'ve granted permission for the app to send notifications. Also check your device\'s notification settings for the Amenity app.',
-          category: 'notifications',
-          helpful_count: 41,
-        },
-        {
-          id: '5',
-          question: 'How do I change my profile picture?',
-          answer: 'Go to your profile by tapping the Profile tab, then tap "Edit Profile". Tap on your current profile picture and select a new image from your photo library. Make sure the image is under 5MB for best results.',
-          category: 'getting_started',
-          helpful_count: 23,
-        },
-        {
-          id: '6',
-          question: 'What should I do if the app keeps crashing?',
-          answer: 'Try these troubleshooting steps: 1) Close and restart the app, 2) Restart your device, 3) Check for app updates in your app store, 4) Clear the app cache in your device settings, 5) Reinstall the app if the problem persists.',
-          category: 'troubleshooting',
-          helpful_count: 19,
-        },
-        {
-          id: '7',
-          question: 'How do I follow other users?',
-          answer: 'You can follow other users by visiting their profile and tapping the "Follow" button. You can discover new users through prayer requests, groups, or by using the search feature. Following someone allows you to see their public prayers in your feed.',
-          category: 'getting_started',
-          helpful_count: 36,
-        },
-        {
-          id: '8',
-          question: 'Can I delete a prayer request I posted?',
-          answer: 'Yes, you can delete your own prayer requests. Go to the prayer request, tap the three dots menu, and select "Delete". Note that this action cannot be undone, and any comments or interactions on that prayer will also be removed.',
-          category: 'prayers',
-          helpful_count: 15,
-        },
-      ];
-      setFaqItems(mockFAQItems);
+      if (!profile?.id) return;
+
+      // Fetch FAQ items from API
+      const faqItems = await helpService.getFAQItems();
+      
+      // Get user's helpful votes
+      const userVotes = await helpService.getUserFAQVotes(profile.id);
+      
+      // Mark items as helpful if user voted for them
+      const faqItemsWithVotes = faqItems.map(item => ({
+        ...item,
+        is_helpful: userVotes.has(item.id),
+      }));
+
+      setFaqItems(faqItemsWithVotes);
     } catch (error) {
       Alert.alert('Error', 'Failed to load help content');
     } finally {
@@ -194,7 +149,11 @@ const HelpScreen: React.FC<RootStackScreenProps<'Help'>> = ({ navigation }) => {
 
   const handleHelpfulVote = async (itemId: string) => {
     try {
-      // TODO: Implement helpful vote API call
+      if (!profile?.id) return;
+
+      await helpService.markFAQHelpful(itemId, profile.id);
+      
+      // Update local state
       setFaqItems(prev => prev.map(item =>
         item.id === itemId
           ? {

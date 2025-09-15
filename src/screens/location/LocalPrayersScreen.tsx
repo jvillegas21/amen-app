@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -52,7 +53,8 @@ export default function LocalPrayersScreen() {
           [
             { text: 'Cancel', onPress: () => router.back() },
             { text: 'Settings', onPress: () => {
-              // TODO: Open app settings
+              // Open device settings for location permissions
+              Linking.openSettings();
             }},
           ]
         );
