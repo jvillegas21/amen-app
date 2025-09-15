@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/auth/authStore';
-import { prayerInteractionService } from '@/services/api/prayerInteractionService';
+import { prayerService } from '@/services/api/prayerService';
 import { formatDistanceToNow, format } from 'date-fns';
 
 interface PrayerReminder {
@@ -49,7 +49,7 @@ export default function PrayerRemindersScreen() {
 
     try {
       setLoading(true);
-      const data = await prayerInteractionService.getPrayerReminders(profile.id);
+      const data = await prayerService.getPrayerReminders(profile.id);
       setReminders(data);
     } catch (error) {
       console.error('Error fetching reminders:', error);
@@ -80,7 +80,7 @@ export default function PrayerRemindersScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await prayerInteractionService.deletePrayerReminder(reminderId);
+              await prayerService.deletePrayerReminder(reminderId);
               setReminders(prev => prev.filter(reminder => reminder.id !== reminderId));
             } catch (error) {
               console.error('Error deleting reminder:', error);

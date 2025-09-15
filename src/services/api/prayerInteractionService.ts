@@ -2,7 +2,13 @@ import { supabase } from '@/config/supabase';
 import { Prayer } from '@/types/database.types';
 
 /**
- * Prayer Interaction Service - Manages prayer interactions (likes, shares, saves)
+ * Prayer Interaction Service - DEPRECATED
+ *
+ * @deprecated This service has been consolidated into prayerService.ts
+ * All functionality has been moved to prayerService to eliminate duplication
+ * and ensure consistent data handling. Use prayerService instead.
+ *
+ * This file will be removed in a future version.
  */
 class PrayerInteractionService {
   /**

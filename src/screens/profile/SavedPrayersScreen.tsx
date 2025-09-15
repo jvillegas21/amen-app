@@ -35,8 +35,8 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
       if (!profile?.id) return;
 
       // Use the real API to fetch saved prayers
-      const { prayerInteractionService } = await import('@/services/api/prayerInteractionService');
-      const savedPrayersData = await prayerInteractionService.getSavedPrayers(profile.id, 1, 50);
+      const { prayerService } = await import('@/services/api/prayerService');
+      const savedPrayersData = await prayerService.getSavedPrayers(1, 50);
       
       setSavedPrayers(savedPrayersData);
     } catch (error) {
@@ -58,8 +58,8 @@ const SavedPrayersScreen: React.FC<ProfileStackScreenProps<'SavedPrayers'>> = ({
           style: 'destructive',
           onPress: async () => {
             try {
-              const { prayerInteractionService } = await import('@/services/api/prayerInteractionService');
-              await prayerInteractionService.unsavePrayer(prayerId);
+              const { prayerService } = await import('@/services/api/prayerService');
+              await prayerService.unsavePrayer(prayerId);
               setSavedPrayers((prev: Prayer[]) => prev.filter((prayer: Prayer) => prayer.id !== prayerId));
             } catch (error) {
               console.error('Failed to unsave prayer:', error);

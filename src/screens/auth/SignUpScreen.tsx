@@ -11,9 +11,11 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { AuthStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
+import { theme } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 
 /**
@@ -94,9 +96,32 @@ const SignUpScreen: React.FC<AuthStackScreenProps<'SignUp'>> = ({ navigation }) 
     navigation.navigate('SignIn');
   };
 
-  const handleTermsPress = () => {
-    // Navigate to terms of service
-    Alert.alert('Terms of Service', 'Terms of Service screen will be implemented');
+  const handleTermsPress = async () => {
+    try {
+      const termsUrl = 'https://amen-prayer-app.com/terms';
+      const supported = await Linking.canOpenURL(termsUrl);
+      if (supported) {
+        await Linking.openURL(termsUrl);
+      } else {
+        Alert.alert('Error', 'Unable to open Terms of Service');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Unable to open Terms of Service');
+    }
+  };
+
+  const handlePrivacyPress = async () => {
+    try {
+      const privacyUrl = 'https://amen-prayer-app.com/privacy';
+      const supported = await Linking.canOpenURL(privacyUrl);
+      if (supported) {
+        await Linking.openURL(privacyUrl);
+      } else {
+        Alert.alert('Error', 'Unable to open Privacy Policy');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Unable to open Privacy Policy');
+    }
   };
 
   const handleGoogleSignIn = async () => {
@@ -245,7 +270,7 @@ const SignUpScreen: React.FC<AuthStackScreenProps<'SignUp'>> = ({ navigation }) 
                       Terms of Service
                     </Text>
                     {' '}and{' '}
-                    <Text style={styles.termsLink}>
+                    <Text style={styles.termsLink} onPress={handlePrivacyPress}>
                       Privacy Policy
                     </Text>
                   </Text>
@@ -317,7 +342,7 @@ const SignUpScreen: React.FC<AuthStackScreenProps<'SignUp'>> = ({ navigation }) 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.background.primary,
   },
   keyboardAvoid: {
     flex: 1,
@@ -326,67 +351,65 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: theme.spacing[6],
+    paddingVertical: theme.spacing[5],
   },
   header: {
-    marginTop: 20,
-    marginBottom: 40,
+    marginTop: theme.spacing[5],
+    marginBottom: theme.spacing[10],
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    width: theme.layout.minTouchTarget,
+    height: theme.layout.minTouchTarget,
+    borderRadius: theme.borderRadius.full,
+    backgroundColor: theme.colors.background.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: theme.spacing[6],
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
+    ...theme.typography.heading.h1,
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing[2],
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
+    ...theme.typography.body.large,
+    color: theme.colors.text.secondary,
   },
   form: {
-    marginBottom: 20,
+    marginBottom: theme.spacing[5],
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: theme.spacing[5],
   },
   inputLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 8,
+    ...theme.typography.label.medium,
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing[2],
   },
   input: {
-    height: 56,
+    height: theme.layout.inputHeight,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: '#111827',
-    backgroundColor: '#FFFFFF',
+    borderColor: theme.colors.border.primary,
+    borderRadius: theme.borderRadius.lg,
+    paddingHorizontal: theme.spacing[4],
+    ...theme.typography.body.medium,
+    color: theme.colors.text.primary,
+    backgroundColor: theme.colors.surface.primary,
   },
   passwordContainer: {
     position: 'relative',
   },
   passwordInput: {
-    height: 56,
+    height: theme.layout.inputHeight,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingRight: 50,
-    fontSize: 16,
-    color: '#111827',
-    backgroundColor: '#FFFFFF',
+    borderColor: theme.colors.border.primary,
+    borderRadius: theme.borderRadius.lg,
+    paddingHorizontal: theme.spacing[4],
+    paddingRight: theme.spacing[12],
+    ...theme.typography.body.medium,
+    color: theme.colors.text.primary,
+    backgroundColor: theme.colors.surface.primary,
   },
   eyeButton: {
     position: 'absolute',
@@ -395,9 +418,9 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   passwordHint: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
+    ...theme.typography.caption.medium,
+    color: theme.colors.text.secondary,
+    marginTop: theme.spacing[1],
   },
   termsContainer: {
     flexDirection: 'row',
@@ -408,27 +431,27 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: '#D1D5DB',
-    borderRadius: 4,
-    marginRight: 12,
-    marginTop: 2,
+    borderColor: theme.colors.border.primary,
+    borderRadius: theme.borderRadius.sm,
+    marginRight: theme.spacing[3],
+    marginTop: theme.spacing[0.5],
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#5B21B6',
-    borderColor: '#5B21B6',
+    backgroundColor: theme.colors.primary[600],
+    borderColor: theme.colors.primary[600],
   },
   termsTextContainer: {
     flex: 1,
   },
   termsText: {
-    fontSize: 14,
-    color: '#374151',
+    ...theme.typography.body.medium,
+    color: theme.colors.text.primary,
     lineHeight: 20,
   },
   termsLink: {
-    color: '#5B21B6',
+    color: theme.colors.primary[600],
     fontWeight: '500',
   },
   errorContainer: {
@@ -440,21 +463,21 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   errorText: {
-    fontSize: 14,
-    color: 'theme.colors.error[700]',
-    marginLeft: 8,
+    ...theme.typography.body.medium,
+    color: theme.colors.error[600],
+    marginLeft: theme.spacing[2],
     flex: 1,
   },
   signUpButton: {
-    height: 56,
-    backgroundColor: '#5B21B6',
-    borderRadius: 12,
+    height: theme.layout.buttonHeight,
+    backgroundColor: theme.colors.primary[600],
+    borderRadius: theme.borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: theme.spacing[6],
   },
   signUpButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: theme.colors.neutral[400],
   },
   signUpButtonText: {
     color: '#FFFFFF',

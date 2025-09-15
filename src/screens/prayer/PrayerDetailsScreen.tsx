@@ -19,7 +19,6 @@ import { usePrayerStore } from '@/store/prayer/prayerStore';
 import { RootStackScreenProps } from '@/types/navigation.types';
 import { prayerService } from '@/services/api/prayerService';
 import { commentService } from '@/services/api/commentService';
-import { prayerInteractionService } from '@/services/api/prayerInteractionService';
 import { Prayer, Comment } from '@/types/database.types';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -64,7 +63,7 @@ export default function PrayerDetailsScreen() {
         commentService.unsubscribeFromComments(commentSubscriptionRef.current);
       }
       if (interactionSubscriptionRef.current) {
-        prayerInteractionService.unsubscribeFromPrayerInteractions(interactionSubscriptionRef.current);
+        prayerService.unsubscribeFromPrayerInteractions(interactionSubscriptionRef.current);
       }
     };
   }, [prayerId]);
@@ -74,7 +73,7 @@ export default function PrayerDetailsScreen() {
       setLoading(true);
       const [commentsData, interactionsData] = await Promise.all([
         commentService.getPrayerComments(prayerId!),
-        prayerInteractionService.getPrayerInteractionCounts(prayerId!),
+        prayerService.getPrayerInteractionCounts(prayerId!),
       ]);
 
       setComments(commentsData);
@@ -95,7 +94,7 @@ export default function PrayerDetailsScreen() {
     });
 
     // Subscribe to interaction changes
-    interactionSubscriptionRef.current = prayerInteractionService.subscribeToPrayerInteractions(prayerId!, (newInteractions) => {
+    interactionSubscriptionRef.current = prayerService.subscribeToPrayerInteractions(prayerId!, (newInteractions) => {
       setInteractions(newInteractions);
     });
   };
@@ -127,7 +126,7 @@ export default function PrayerDetailsScreen() {
 
     try {
       setInteracting(true);
-      await prayerInteractionService.savePrayer(prayerId);
+      await prayerService.savePrayer(prayerId);
       // Real-time subscription will update the UI
     } catch (error) {
       console.error('Error saving prayer:', error);
@@ -150,7 +149,7 @@ export default function PrayerDetailsScreen() {
       
       if (result.action === Share.sharedAction) {
         // Record the share
-        await prayerInteractionService.sharePrayer(prayerId!, 'copy');
+        await prayerService.sharePrayer(prayerId!, 'copy');
       }
     } catch (error) {
       console.error('Error sharing prayer:', error);
@@ -197,7 +196,7 @@ export default function PrayerDetailsScreen() {
           const reminderTime = new Date();
           reminderTime.setHours(reminderTime.getHours() + 1);
           
-          prayerInteractionService.createPrayerReminder(prayerId!, reminderTime)
+          prayerService.createPrayerReminder(prayerId!, reminderTime)
             .then(() => {
               Alert.alert('Success', 'Reminder set for 1 hour from now');
             })

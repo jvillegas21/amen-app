@@ -73,6 +73,11 @@ export interface Database {
         Insert: Omit<DirectMessage, 'id' | 'created_at'>;
         Update: Partial<Omit<DirectMessage, 'id'>>;
       };
+      prayer_reminders: {
+        Row: PrayerReminder;
+        Insert: Omit<PrayerReminder, 'id' | 'created_at'>;
+        Update: Partial<Omit<PrayerReminder, 'id'>>;
+      };
     };
   };
 }
@@ -115,7 +120,6 @@ export interface Prayer {
   // Joined data
   user?: Profile;
   // Interaction counts (computed from interactions table)
-  interaction_count?: number;
   comment_count?: number;
   pray_count?: number;
   like_count?: number;
@@ -311,6 +315,19 @@ export interface DirectMessage {
   content: string;
   is_read: boolean;
   created_at: string;
+}
+
+// Prayer Reminder
+export interface PrayerReminder {
+  id: string;
+  prayer_id: string;
+  user_id: string;
+  reminder_time: string;
+  is_sent: boolean;
+  created_at: string;
+  // Joined data
+  prayer?: Prayer;
+  user?: Profile;
 }
 
 // API Request/Response types
