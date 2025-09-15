@@ -40,20 +40,11 @@ interface OptimizedPrayerListProps {
 }
 
 /**
- * Memoized prayer item component
+ * Prayer item component
  */
-const PrayerItem = memo(
-  ({ item, renderPrayerCard }: { item: Prayer; renderPrayerCard: (prayer: Prayer) => React.ReactElement }) => {
-    return <View style={styles.itemContainer}>{renderPrayerCard(item)}</View>;
-  },
-  (prevProps, nextProps) => {
-    // Custom comparison to prevent unnecessary re-renders
-    return (
-      prevProps.item.id === nextProps.item.id &&
-      prevProps.item.updated_at === nextProps.item.updated_at
-    );
-  }
-);
+const PrayerItem = ({ item, renderPrayerCard }: { item: Prayer; renderPrayerCard: (prayer: Prayer) => React.ReactElement }) => {
+  return <View style={styles.itemContainer}>{renderPrayerCard(item)}</View>;
+};
 
 /**
  * Optimized Prayer List with virtualization and performance enhancements

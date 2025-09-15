@@ -60,8 +60,7 @@ const ChatConversationScreen: React.FC<RootStackScreenProps<'ChatConversation'>>
         id: userId,
         display_name: userName,
         avatar_url: 'https://via.placeholder.com/40',
-        is_online: true,
-        last_seen: new Date().toISOString(),
+        // Note: is_online and last_seen would need to be calculated from profiles.last_active
       };
       setOtherUser(mockOtherUser);
 
@@ -222,7 +221,7 @@ const ChatConversationScreen: React.FC<RootStackScreenProps<'ChatConversation'>>
         <View style={styles.headerUserInfo}>
           <Text style={styles.headerUserName}>{otherUser?.display_name || userName}</Text>
           <Text style={styles.headerUserStatus}>
-            {otherUser?.is_online ? 'Online' : `Last seen ${formatDistanceToNow(new Date(otherUser?.last_seen || new Date()), { addSuffix: true })}`}
+            {/* Online status would need to be calculated from profiles.last_active */}
           </Text>
         </View>
       </View>

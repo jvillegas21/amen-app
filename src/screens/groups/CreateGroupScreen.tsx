@@ -96,7 +96,7 @@ const CreateGroupScreen: React.FC<RootStackScreenProps<'CreateGroup'>> = ({ navi
         [
           { 
             text: 'OK', 
-            onPress: () => navigation.navigate('GroupDetails', { groupId: createdGroup.id })
+            onPress: () => navigation.replace('GroupDetails', { groupId: createdGroup.id })
           }
         ]
       );

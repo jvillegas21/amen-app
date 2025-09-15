@@ -12,6 +12,7 @@ class GroupService {
     const { data, error } = await supabase
       .from('group_members')
       .select(`
+        *,
         group:groups!group_id(
           *,
           member_count:group_members(count),
@@ -19,10 +20,24 @@ class GroupService {
         )
       `)
       .eq('user_id', userId)
-      .eq('status', 'active');
 
     if (error) throw error;
-    return data?.map(item => item.group).filter(Boolean) as Group[] || [];
+    
+    // Fix count aggregations and add user membership info
+    return (data?.map(item => ({
+      ...item.group,
+      member_count: typeof item.group.member_count === 'object' ? item.group.member_count?.count || 0 : item.group.member_count || 0,
+      prayer_count: typeof item.group.prayer_count === 'object' ? item.group.prayer_count?.count || 0 : item.group.prayer_count || 0,
+      user_membership: {
+        id: item.id,
+        group_id: item.group_id,
+        user_id: item.user_id,
+        role: item.role,
+        joined_at: item.joined_at,
+        last_active: item.last_active,
+        notifications_enabled: item.notifications_enabled,
+      }
+    })).filter(Boolean) || []) as Group[];
   }
 
   /**
@@ -45,7 +60,13 @@ class GroupService {
 
     if (error) throw error;
     if (!data) throw new Error('Group not found');
-    return data;
+    
+    // Fix count aggregations - Supabase returns {count: number} objects
+    return {
+      ...data,
+      member_count: typeof data.member_count === 'object' ? data.member_count?.count || 0 : data.member_count || 0,
+      prayer_count: typeof data.prayer_count === 'object' ? data.prayer_count?.count || 0 : data.prayer_count || 0,
+    };
   }
 
   /**
@@ -60,14 +81,10 @@ class GroupService {
       .insert({
         name: group.name,
         description: group.description,
-        privacy_level: group.privacy_level,
-        location_city: group.location?.city,
-        location_lat: group.location?.lat,
-        location_lon: group.location?.lon,
-        location_granularity: group.location?.granularity || 'hidden',
+        privacy: group.privacy_level,
         tags: group.tags || [],
         avatar_url: group.avatar_url,
-        created_by: user.id,
+        creator_id: user.id,
       })
       .select(`
         *,
@@ -82,7 +99,12 @@ class GroupService {
     // Add creator as admin member
     await this.addMember(data.id, user.id, 'admin');
 
-    return data;
+    // Fix count aggregations - Supabase returns {count: number} objects
+    return {
+      ...data,
+      member_count: typeof data.member_count === 'object' ? data.member_count?.count || 0 : data.member_count || 0,
+      prayer_count: typeof data.prayer_count === 'object' ? data.prayer_count?.count || 0 : data.prayer_count || 0,
+    };
   }
 
   /**
@@ -105,7 +127,13 @@ class GroupService {
 
     if (error) throw error;
     if (!data) throw new Error('Failed to update group');
-    return data;
+    
+    // Fix count aggregations - Supabase returns {count: number} objects
+    return {
+      ...data,
+      member_count: typeof data.member_count === 'object' ? data.member_count?.count || 0 : data.member_count || 0,
+      prayer_count: typeof data.prayer_count === 'object' ? data.prayer_count?.count || 0 : data.prayer_count || 0,
+    };
   }
 
   /**
@@ -133,7 +161,6 @@ class GroupService {
         group_id: groupId,
         user_id: user.id,
         role: 'member',
-        status: 'active',
       });
 
     if (error) throw error;
@@ -148,7 +175,7 @@ class GroupService {
 
     const { error } = await supabase
       .from('group_members')
-      .update({ status: 'inactive' })
+      .delete()
       .eq('group_id', groupId)
       .eq('user_id', user.id);
 
@@ -165,7 +192,6 @@ class GroupService {
         group_id: groupId,
         user_id: userId,
         role,
-        status: 'active',
       });
 
     if (error) throw error;
@@ -177,7 +203,7 @@ class GroupService {
   async removeMember(groupId: string, userId: string): Promise<void> {
     const { error } = await supabase
       .from('group_members')
-      .update({ status: 'inactive' })
+      .delete()
       .eq('group_id', groupId)
       .eq('user_id', userId);
 
@@ -208,8 +234,7 @@ class GroupService {
         user:profiles!user_id(*)
       `)
       .eq('group_id', groupId)
-      .eq('status', 'active')
-      .order('created_at', { ascending: true });
+      .order('joined_at', { ascending: true });
 
     if (error) throw error;
     return data || [];
@@ -233,12 +258,13 @@ class GroupService {
       .or(`name.ilike.%${query}%,description.ilike.%${query}%`);
 
     if (filters?.privacy_level) {
-      supabaseQuery = supabaseQuery.eq('privacy_level', filters.privacy_level);
+      supabaseQuery = supabaseQuery.eq('privacy', filters.privacy_level);
     }
 
-    if (filters?.location) {
-      supabaseQuery = supabaseQuery.ilike('location_city', `%${filters.location}%`);
-    }
+    // Note: Groups table doesn't have location fields
+    // if (filters?.location) {
+    //   supabaseQuery = supabaseQuery.ilike('location_city', `%${filters.location}%`);
+    // }
 
     if (filters?.tags?.length) {
       supabaseQuery = supabaseQuery.contains('tags', filters.tags);
@@ -247,7 +273,13 @@ class GroupService {
     const { data, error } = await supabaseQuery;
 
     if (error) throw error;
-    return data || [];
+    
+    // Fix count aggregations - Supabase returns {count: number} objects
+    return (data || []).map(group => ({
+      ...group,
+      member_count: typeof group.member_count === 'object' ? group.member_count?.count || 0 : group.member_count || 0,
+      prayer_count: typeof group.prayer_count === 'object' ? group.prayer_count?.count || 0 : group.prayer_count || 0,
+    }));
   }
 
   /**
@@ -261,12 +293,18 @@ class GroupService {
         member_count:group_members(count),
         prayer_count:prayers(count)
       `)
-      .eq('privacy_level', 'public')
+      .eq('privacy', 'public')
       .order('member_count', { ascending: false })
       .limit(limit);
 
     if (error) throw error;
-    return data || [];
+    
+    // Fix count aggregations - Supabase returns {count: number} objects
+    return (data || []).map(group => ({
+      ...group,
+      member_count: typeof group.member_count === 'object' ? group.member_count?.count || 0 : group.member_count || 0,
+      prayer_count: typeof group.prayer_count === 'object' ? group.prayer_count?.count || 0 : group.prayer_count || 0,
+    }));
   }
 
   /**
@@ -286,7 +324,13 @@ class GroupService {
       .range((page - 1) * limit, page * limit - 1);
 
     if (error) throw error;
-    return data || [];
+    
+    // Fix count aggregations - Supabase returns {count: number} objects
+    return (data || []).map(prayer => ({
+      ...prayer,
+      interaction_count: typeof prayer.interaction_count === 'object' ? prayer.interaction_count?.count || 0 : prayer.interaction_count || 0,
+      comment_count: typeof prayer.comment_count === 'object' ? prayer.comment_count?.count || 0 : prayer.comment_count || 0,
+    }));
   }
 }
 

@@ -8,7 +8,6 @@ import { theme } from '@/theme';
 // Tab Screen imports
 import HomeScreen from '@/screens/main/HomeScreen';
 import DiscoverScreen from '@/screens/main/DiscoverScreen';
-import SearchScreen from '@/screens/main/SearchScreen';
 import GroupsNavigator from './GroupsNavigator';
 import CreateScreen from '@/screens/main/CreateScreen';
 import ProfileNavigator from './ProfileNavigator';
@@ -82,17 +81,17 @@ const MainNavigator: React.FC = () => {
         name="Home"
         component={HomeScreen}
         options={({ navigation }) => ({
-          title: 'Prayer Feed',
+          title: 'Amen',
           headerShown: true,
           tabBarLabel: 'Home',
           tabBarAccessibilityLabel: 'Home, tab 1 of 4',
           headerRight: () => (
             <TouchableOpacity
-              onPress={() => navigation.navigate('Discover')}
+              onPress={() => navigation.navigate('Search')}
               style={{ marginRight: theme.spacing[4] }}
               accessibilityLabel="Search"
               accessibilityRole="button"
-              accessibilityHint="Navigate to search and discover"
+              accessibilityHint="Search prayers, people, and groups"
             >
               <Ionicons
                 name="search"
@@ -110,17 +109,7 @@ const MainNavigator: React.FC = () => {
           title: 'Discover',
           headerShown: true,
           tabBarLabel: 'Discover',
-          tabBarAccessibilityLabel: 'Discover, tab 2 of 5',
-        }}
-      />
-      <Tab.Screen
-        name="Search"
-        component={SearchScreen}
-        options={{
-          title: 'Search',
-          headerShown: false,
-          tabBarLabel: 'Search',
-          tabBarAccessibilityLabel: 'Search, tab 3 of 5',
+          tabBarAccessibilityLabel: 'Discover, tab 2 of 4',
         }}
       />
       <Tab.Screen

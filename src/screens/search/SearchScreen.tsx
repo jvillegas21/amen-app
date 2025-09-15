@@ -130,7 +130,7 @@ const SearchScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }) 
           group_description: group.description,
           member_count: group.member_count || 0,
           created_at: group.created_at,
-          location: group.location_city,
+          location: null, // Groups don't have location fields
         })),
       ];
 

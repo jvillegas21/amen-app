@@ -64,19 +64,19 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
       setIsLoading(true);
       // TODO: Implement real API calls
       const mockTrendingTopics: TrendingTopic[] = [
-        { id: '1', title: 'Healing', prayerCount: 1247, category: 'Health' },
-        { id: '2', title: 'Family', prayerCount: 892, category: 'Relationships' },
-        { id: '3', title: 'Peace', prayerCount: 756, category: 'Spiritual' },
-        { id: '4', title: 'Guidance', prayerCount: 634, category: 'Spiritual' },
-        { id: '5', title: 'Strength', prayerCount: 521, category: 'Spiritual' },
+        { id: '550e8400-e29b-41d4-a716-446655440001', title: 'Healing', prayerCount: 1247, category: 'Health' },
+        { id: '550e8400-e29b-41d4-a716-446655440002', title: 'Family', prayerCount: 892, category: 'Relationships' },
+        { id: '550e8400-e29b-41d4-a716-446655440003', title: 'Peace', prayerCount: 756, category: 'Spiritual' },
+        { id: '550e8400-e29b-41d4-a716-446655440004', title: 'Guidance', prayerCount: 634, category: 'Spiritual' },
+        { id: '550e8400-e29b-41d4-a716-446655440005', title: 'Strength', prayerCount: 521, category: 'Spiritual' },
       ];
 
       const mockFeaturedPrayers: FeaturedPrayer[] = [
         {
-          id: '1',
+          id: '550e8400-e29b-41d4-a716-446655440001',
           text: 'Please pray for my grandmother who is recovering from surgery. She needs strength and healing.',
           user: {
-            id: 'user1',
+            id: '550e8400-e29b-41d4-a716-446655440011',
             displayName: 'Sarah Johnson',
             avatarUrl: 'https://via.placeholder.com/40',
           },
@@ -86,10 +86,10 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
           createdAt: '2 hours ago',
         },
         {
-          id: '2',
+          id: '550e8400-e29b-41d4-a716-446655440002',
           text: 'Praying for peace in our community and for those who are struggling with difficult circumstances.',
           user: {
-            id: 'user2',
+            id: '550e8400-e29b-41d4-a716-446655440012',
             displayName: 'Michael Chen',
             avatarUrl: 'https://via.placeholder.com/40',
           },
@@ -101,13 +101,13 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
       ];
 
       const mockCategories: Category[] = [
-        { id: '1', name: 'Health & Healing', icon: 'medical', color: 'theme.colors.error[700]', prayerCount: 2341 },
-        { id: '2', name: 'Family & Relationships', icon: 'people', color: 'theme.colors.success[700]', prayerCount: 1892 },
-        { id: '3', name: 'Spiritual Growth', icon: 'book', color: '#5B21B6', prayerCount: 1654 },
-        { id: '4', name: 'Work & Career', icon: 'briefcase', color: 'theme.colors.warning[700]', prayerCount: 1234 },
-        { id: '5', name: 'Peace & Comfort', icon: 'heart', color: '#06B6D4', prayerCount: 987 },
-        { id: '6', name: 'Community', icon: 'globe', color: '#8B5CF6', prayerCount: 756 },
-        { id: '7', name: 'AI Bible Studies', icon: 'library', color: '#7C3AED', prayerCount: 0 },
+        { id: '550e8400-e29b-41d4-a716-446655440001', name: 'Health & Healing', icon: 'medical', color: 'theme.colors.error[700]', prayerCount: 2341 },
+        { id: '550e8400-e29b-41d4-a716-446655440002', name: 'Family & Relationships', icon: 'people', color: 'theme.colors.success[700]', prayerCount: 1892 },
+        { id: '550e8400-e29b-41d4-a716-446655440003', name: 'Spiritual Growth', icon: 'book', color: '#5B21B6', prayerCount: 1654 },
+        { id: '550e8400-e29b-41d4-a716-446655440004', name: 'Work & Career', icon: 'briefcase', color: 'theme.colors.warning[700]', prayerCount: 1234 },
+        { id: '550e8400-e29b-41d4-a716-446655440005', name: 'Peace & Comfort', icon: 'heart', color: '#06B6D4', prayerCount: 987 },
+        { id: '550e8400-e29b-41d4-a716-446655440006', name: 'Community', icon: 'globe', color: '#8B5CF6', prayerCount: 756 },
+        { id: '550e8400-e29b-41d4-a716-446655440007', name: 'AI Bible Studies', icon: 'library', color: '#7C3AED', prayerCount: 0 },
       ];
 
       setTrendingTopics(mockTrendingTopics);

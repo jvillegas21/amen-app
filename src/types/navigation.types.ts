@@ -9,6 +9,7 @@ import { CompositeScreenProps } from '@react-navigation/native';
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabParamList>;
+  Search: undefined;
   PrayerDetails: { prayerId: string };
   CreatePrayer: { groupId?: string };
   EditPrayer: { prayerId: string };
@@ -51,7 +52,6 @@ export type AuthStackParamList = {
 export type MainTabParamList = {
   Home: undefined;
   Discover: undefined;
-  Search: undefined;
   Groups: undefined;
   Create: undefined;
   Messages: undefined;
@@ -64,6 +64,7 @@ export type GroupsStackParamList = {
   GroupsList: undefined;
   MyGroups: undefined;
   DiscoverGroups: undefined;
+  CreateGroup: undefined;
   GroupDetails: { groupId: string };
   GroupChat: { prayerId: string; groupId: string };
   GroupMembers: { groupId: string };

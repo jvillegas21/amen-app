@@ -12,6 +12,7 @@ import MainNavigator from './MainNavigator';
 import { navigationRef } from './navigationRef';
 
 // Screen imports
+import SearchScreen from '@/screens/main/SearchScreen';
 import PrayerDetailsScreen from '@/screens/prayer/PrayerDetailsScreen';
 import CreatePrayerScreen from '@/screens/prayer/CreatePrayerScreen';
 import EditPrayerScreen from '@/screens/prayer/EditPrayerScreen';
@@ -135,6 +136,11 @@ const RootNavigator: React.FC = () => {
                   headerTintColor: theme.colors.text.inverse,
                 }}
               >
+                <Stack.Screen
+                  name="Search"
+                  component={SearchScreen}
+                  options={{ title: 'Search' }}
+                />
                 <Stack.Screen
                   name="PrayerDetails"
                   component={PrayerDetailsScreen}

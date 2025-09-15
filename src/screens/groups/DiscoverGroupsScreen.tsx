@@ -43,7 +43,7 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
       // TODO: Implement real API calls
       const mockGroups: Group[] = [
         {
-          id: '1',
+          id: '550e8400-e29b-41d4-a716-446655440001',
           name: 'Prayer Warriors',
           description: 'A community dedicated to supporting each other through prayer',
           memberCount: 45,
@@ -52,7 +52,7 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
           isJoined: false,
         },
         {
-          id: '2',
+          id: '550e8400-e29b-41d4-a716-446655440002',
           name: 'Healing & Recovery',
           description: 'Supporting those on their healing journey',
           memberCount: 67,
@@ -61,7 +61,7 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
           isJoined: false,
         },
         {
-          id: '3',
+          id: '550e8400-e29b-41d4-a716-446655440003',
           name: 'Youth Ministry',
           description: 'Prayer group for young adults',
           memberCount: 34,
@@ -70,7 +70,7 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
           isJoined: false,
         },
         {
-          id: '4',
+          id: '550e8400-e29b-41d4-a716-446655440004',
           name: 'Family Prayer Circle',
           description: 'Praying for families and their needs',
           memberCount: 23,
@@ -96,11 +96,16 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Join',
-          onPress: () => {
-            // TODO: Implement join group API call
-            setGroups(prev => prev.map(group => 
-              group.id === groupId ? { ...group, isJoined: true } : group
-            ));
+          onPress: async () => {
+            try {
+              await groupService.joinGroup(groupId);
+              setGroups(prev => prev.map(group => 
+                group.id === groupId ? { ...group, isJoined: true } : group
+              ));
+            } catch (error) {
+              console.error('Failed to join group:', error);
+              Alert.alert('Error', 'Failed to join group. Please try again.');
+            }
           },
         },
       ]

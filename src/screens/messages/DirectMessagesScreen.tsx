@@ -24,8 +24,7 @@ interface Conversation {
   last_message: string;
   last_message_time: string;
   unread_count: number;
-  is_online: boolean;
-  last_seen?: string;
+  // Note: is_online and last_seen would need to be calculated from profiles.last_active
 }
 
 /**
@@ -66,8 +65,6 @@ const DirectMessagesScreen: React.FC<MainTabScreenProps<'Messages'>> = ({ naviga
           last_message: 'I\'ll be praying for your job interview. You\'ve got this!',
           last_message_time: new Date(Date.now() - 1800000).toISOString(),
           unread_count: 0,
-          is_online: false,
-          last_seen: new Date(Date.now() - 3600000).toISOString(),
         },
         {
           id: '3',
@@ -77,7 +74,6 @@ const DirectMessagesScreen: React.FC<MainTabScreenProps<'Messages'>> = ({ naviga
           last_message: 'Would you like to join our prayer group? We meet every Tuesday evening.',
           last_message_time: new Date(Date.now() - 7200000).toISOString(),
           unread_count: 1,
-          is_online: true,
         },
         {
           id: '4',
@@ -87,8 +83,6 @@ const DirectMessagesScreen: React.FC<MainTabScreenProps<'Messages'>> = ({ naviga
           last_message: 'Thank you for the encouragement. It means a lot to me.',
           last_message_time: new Date(Date.now() - 86400000).toISOString(),
           unread_count: 0,
-          is_online: false,
-          last_seen: new Date(Date.now() - 172800000).toISOString(),
         },
         {
           id: '5',
@@ -98,8 +92,6 @@ const DirectMessagesScreen: React.FC<MainTabScreenProps<'Messages'>> = ({ naviga
           last_message: 'I\'m here if you need someone to talk to. You\'re not alone in this.',
           last_message_time: new Date(Date.now() - 172800000).toISOString(),
           unread_count: 0,
-          is_online: false,
-          last_seen: new Date(Date.now() - 259200000).toISOString(),
         },
       ];
       setConversations(mockConversations);
@@ -142,9 +134,7 @@ const DirectMessagesScreen: React.FC<MainTabScreenProps<'Messages'>> = ({ naviga
             source={{ uri: conversation.user_avatar_url || 'https://via.placeholder.com/40' }}
             style={styles.avatar}
           />
-          {conversation.is_online && (
-            <View style={styles.onlineIndicator} />
-          )}
+          {/* Online indicator would need to be calculated from profiles.last_active */}
         </View>
         
         <View style={styles.conversationText}>
@@ -162,11 +152,7 @@ const DirectMessagesScreen: React.FC<MainTabScreenProps<'Messages'>> = ({ naviga
             {conversation.last_message}
           </Text>
           
-          {!conversation.is_online && conversation.last_seen && (
-            <Text style={styles.lastSeen}>
-              Last seen {formatDistanceToNow(new Date(conversation.last_seen), { addSuffix: true })}
-            </Text>
-          )}
+          {/* Last seen would need to be calculated from profiles.last_active */}
         </View>
         
         {conversation.unread_count > 0 && (

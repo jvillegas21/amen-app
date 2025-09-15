@@ -51,30 +51,36 @@ const SettingsScreen: React.FC<RootStackScreenProps<'Settings'>> = ({ navigation
   const fetchSettings = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implement settings fetch from API
-      // For now, using mock data
-      const mockSettings: SettingsData = {
+      if (!profile?.id) return;
+
+      const { settingsService } = await import('@/services/api/settingsService');
+      const userSettings = await settingsService.getAllSettings(profile.id);
+      
+      // Transform to match the expected interface
+      const transformedSettings: SettingsData = {
         notifications: {
-          push_notifications: true,
-          prayer_reminders: true,
-          group_updates: false,
-          weekly_summary: true,
+          push_notifications: userSettings.notifications.push_notifications,
+          prayer_reminders: userSettings.notifications.prayer_reminders,
+          group_updates: userSettings.notifications.group_updates,
+          weekly_summary: userSettings.notifications.weekly_summary,
         },
         privacy: {
-          profile_visibility: 'public',
-          show_location: true,
-          allow_following: true,
-          show_online_status: false,
+          profile_visibility: userSettings.privacy.profile_visibility,
+          show_location: userSettings.privacy.show_location,
+          allow_following: userSettings.privacy.allow_following,
+          show_online_status: userSettings.privacy.show_online_status,
         },
         app: {
-          theme: 'system',
-          language: 'English',
-          data_usage: 'wifi_only',
-          auto_backup: true,
+          theme: userSettings.app.theme,
+          language: userSettings.app.language,
+          data_usage: userSettings.app.data_usage,
+          auto_backup: userSettings.app.auto_backup,
         },
       };
-      setSettings(mockSettings);
+      
+      setSettings(transformedSettings);
     } catch (error) {
+      console.error('Failed to fetch settings:', error);
       Alert.alert('Error', 'Failed to load settings');
     } finally {
       setIsLoading(false);
@@ -83,7 +89,24 @@ const SettingsScreen: React.FC<RootStackScreenProps<'Settings'>> = ({ navigation
 
   const handleToggleSetting = async (category: keyof SettingsData, setting: string, value: boolean) => {
     try {
-      // TODO: Implement settings update API call
+      if (!profile?.id) return;
+
+      const { settingsService } = await import('@/services/api/settingsService');
+      
+      // Update the appropriate settings category
+      switch (category) {
+        case 'notifications':
+          await settingsService.updateNotificationSettings(profile.id, { [setting]: value });
+          break;
+        case 'privacy':
+          await settingsService.updatePrivacySettings(profile.id, { [setting]: value });
+          break;
+        case 'app':
+          await settingsService.updateAppSettings(profile.id, { [setting]: value });
+          break;
+      }
+
+      // Update local state
       setSettings(prev => prev ? {
         ...prev,
         [category]: {
@@ -92,6 +115,7 @@ const SettingsScreen: React.FC<RootStackScreenProps<'Settings'>> = ({ navigation
         },
       } : null);
     } catch (error) {
+      console.error('Failed to update setting:', error);
       Alert.alert('Error', 'Failed to update setting');
     }
   };
