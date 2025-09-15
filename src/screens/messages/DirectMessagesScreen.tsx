@@ -15,17 +15,8 @@ import { MainTabScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
+import { messagingService, Conversation } from '@/services/api/messagingService';
 
-interface Conversation {
-  id: string;
-  user_id: string;
-  user_display_name: string;
-  user_avatar_url?: string;
-  last_message: string;
-  last_message_time: string;
-  unread_count: number;
-  // Note: is_online and last_seen would need to be calculated from profiles.last_active
-}
 
 /**
  * Direct Messages Screen - List of conversations
@@ -44,59 +35,16 @@ const DirectMessagesScreen: React.FC<MainTabScreenProps<'Messages'>> = ({ naviga
   const fetchConversations = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implement conversations fetch from API
-      // For now, using mock data
-      const mockConversations: Conversation[] = [
-        {
-          id: '1',
-          user_id: 'user2',
-          user_display_name: 'Sarah Johnson',
-          user_avatar_url: 'https://via.placeholder.com/40',
-          last_message: 'Thank you so much for praying for my grandmother. She\'s doing much better now! 🙏',
-          last_message_time: new Date(Date.now() - 300000).toISOString(),
-          unread_count: 2,
-          is_online: true,
-        },
-        {
-          id: '2',
-          user_id: 'user3',
-          user_display_name: 'Mike Wilson',
-          user_avatar_url: 'https://via.placeholder.com/40',
-          last_message: 'I\'ll be praying for your job interview. You\'ve got this!',
-          last_message_time: new Date(Date.now() - 1800000).toISOString(),
-          unread_count: 0,
-        },
-        {
-          id: '3',
-          user_id: 'user4',
-          user_display_name: 'Emily Chen',
-          user_avatar_url: 'https://via.placeholder.com/40',
-          last_message: 'Would you like to join our prayer group? We meet every Tuesday evening.',
-          last_message_time: new Date(Date.now() - 7200000).toISOString(),
-          unread_count: 1,
-        },
-        {
-          id: '4',
-          user_id: 'user5',
-          user_display_name: 'David Rodriguez',
-          user_avatar_url: 'https://via.placeholder.com/40',
-          last_message: 'Thank you for the encouragement. It means a lot to me.',
-          last_message_time: new Date(Date.now() - 86400000).toISOString(),
-          unread_count: 0,
-        },
-        {
-          id: '5',
-          user_id: 'user6',
-          user_display_name: 'Lisa Thompson',
-          user_avatar_url: 'https://via.placeholder.com/40',
-          last_message: 'I\'m here if you need someone to talk to. You\'re not alone in this.',
-          last_message_time: new Date(Date.now() - 172800000).toISOString(),
-          unread_count: 0,
-        },
-      ];
-      setConversations(mockConversations);
+      
+      if (!profile?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      const conversations = await messagingService.getConversations(profile.id);
+      setConversations(conversations);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load conversations');
+      console.error('Error fetching conversations:', error);
+      Alert.alert('Error', 'Failed to load conversations. Please try again.');
     } finally {
       setIsLoading(false);
     }
