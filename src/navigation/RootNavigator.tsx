@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme/ThemeContext';
 
 import { RootStackParamList } from '@/types/navigation.types';
@@ -144,7 +145,7 @@ const RootNavigator: React.FC = () => {
                 <Stack.Screen
                   name="PrayerDetails"
                   component={PrayerDetailsScreen}
-                  options={{ title: 'Prayer' }}
+                  options={{ title: 'Prayer Details' }}
                 />
                 <Stack.Screen
                   name="UserProfile"

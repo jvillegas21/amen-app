@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -27,7 +27,7 @@ type PrayerDetailsScreenProps = RootStackScreenProps<'PrayerDetails'>;
 export default function PrayerDetailsScreen() {
   const route = useRoute<PrayerDetailsScreenProps['route']>();
   const navigation = useNavigation<PrayerDetailsScreenProps['navigation']>();
-  const { prayerId } = route.params;
+  const { prayerId, createReminder } = route.params;
   const { profile } = useAuthStore();
   const { interactWithPrayer, prayers } = usePrayerStore();
   
@@ -67,6 +67,39 @@ export default function PrayerDetailsScreen() {
       }
     };
   }, [prayerId]);
+
+  // Set navigation options
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: 'Prayer Details',
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => {
+            navigation.setParams({ createReminder: true });
+          }}
+          style={{ marginRight: 16 }}
+          accessibilityLabel="Create reminder"
+          accessibilityRole="button"
+          accessibilityHint="Set a reminder for this prayer"
+        >
+          <Ionicons
+            name="notifications-outline"
+            size={24}
+            color="#FFFFFF"
+          />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
+  // Handle reminder creation from navigation params
+  useEffect(() => {
+    if (createReminder) {
+      handleCreateReminder();
+      // Clear the parameter to prevent repeated triggers
+      navigation.setParams({ createReminder: undefined });
+    }
+  }, [createReminder]);
 
   const fetchPrayerDetails = async () => {
     try {
@@ -235,16 +268,7 @@ export default function PrayerDetailsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#007AFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Prayer Details</Text>
-        <TouchableOpacity onPress={handleCreateReminder} style={styles.reminderButton}>
-          <Ionicons name="alarm-outline" size={24} color="#007AFF" />
-        </TouchableOpacity>
-      </View>
+      {/* Updated Prayer Details Screen */}
 
       <ScrollView
         ref={scrollViewRef}
@@ -348,7 +372,11 @@ export default function PrayerDetailsScreen() {
           {submittingComment ? (
             <ActivityIndicator size="small" color="#007AFF" />
           ) : (
-            <Ionicons name="send" size={20} color="#007AFF" />
+            <Ionicons 
+              name="send" 
+              size={20} 
+              color={(!newComment.trim() || submittingComment) ? "#C7C7CC" : "#007AFF"} 
+            />
           )}
         </TouchableOpacity>
       </View>
@@ -380,26 +408,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#666',
     marginBottom: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E7',
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-  },
-  reminderButton: {
-    padding: 8,
   },
   scrollView: {
     flex: 1,

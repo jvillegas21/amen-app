@@ -10,7 +10,7 @@ export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabParamList>;
   Search: { query?: string };
-  PrayerDetails: { prayerId: string };
+  PrayerDetails: { prayerId: string; createReminder?: boolean };
   CreatePrayer: { groupId?: string };
   EditPrayer: { prayerId: string };
   UserProfile: { userId: string };
