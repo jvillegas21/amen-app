@@ -81,7 +81,7 @@ class GroupService {
       .insert({
         name: group.name,
         description: group.description,
-        privacy: group.privacy_level,
+        privacy: group.privacy,
         tags: group.tags || [],
         avatar_url: group.avatar_url,
         creator_id: user.id,
@@ -244,7 +244,7 @@ class GroupService {
    * Search groups
    */
   async searchGroups(query: string, filters?: {
-    privacy_level?: 'public' | 'private';
+    privacy?: 'public' | 'private';
     location?: string;
     tags?: string[];
   }): Promise<Group[]> {
@@ -257,8 +257,8 @@ class GroupService {
       `)
       .or(`name.ilike.%${query}%,description.ilike.%${query}%`);
 
-    if (filters?.privacy_level) {
-      supabaseQuery = supabaseQuery.eq('privacy', filters.privacy_level);
+    if (filters?.privacy) {
+      supabaseQuery = supabaseQuery.eq('privacy', filters.privacy);
     }
 
     // Note: Groups table doesn't have location fields

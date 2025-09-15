@@ -58,6 +58,21 @@ export interface Database {
         Insert: Omit<UserAnalytic, 'id' | 'created_at'>;
         Update: never;
       };
+      follows: {
+        Row: Follow;
+        Insert: Omit<Follow, 'id' | 'created_at'>;
+        Update: never;
+      };
+      blocked_users: {
+        Row: BlockedUser;
+        Insert: Omit<BlockedUser, 'id' | 'created_at'>;
+        Update: never;
+      };
+      direct_messages: {
+        Row: DirectMessage;
+        Insert: Omit<DirectMessage, 'id' | 'created_at'>;
+        Update: Partial<Omit<DirectMessage, 'id'>>;
+      };
     };
   };
 }
@@ -266,6 +281,32 @@ export interface UserAnalytic {
   created_at: string;
 }
 
+// Follow
+export interface Follow {
+  id: string;
+  follower_id: string;
+  following_id: string;
+  created_at: string;
+}
+
+// Blocked User
+export interface BlockedUser {
+  id: string;
+  blocker_id: string;
+  blocked_id: string;
+  created_at: string;
+}
+
+// Direct Message
+export interface DirectMessage {
+  id: string;
+  sender_id: string;
+  recipient_id: string;
+  content: string;
+  is_read: boolean;
+  created_at: string;
+}
+
 // API Request/Response types
 export interface CreatePrayerRequest {
   text: string;
@@ -292,7 +333,7 @@ export interface PrayerInteractionRequest {
 export interface CreateGroupRequest {
   name: string;
   description?: string;
-  privacy_level: 'public' | 'private' | 'invite_only';
+  privacy: 'public' | 'private' | 'invite_only';
   avatar_url?: string;
   tags?: string[];
 }
@@ -327,4 +368,32 @@ export interface GenerateStudyResponse {
     estimated_read_time: number;
   };
   quality_score: number;
+}
+
+// RPC Function Types
+export interface GetUserFeedPrayersResponse {
+  id: string;
+  user_id: string;
+  text: string;
+  privacy_level: 'public' | 'friends' | 'groups' | 'private';
+  status: 'open' | 'answered' | 'closed';
+  created_at: string;
+  user_display_name: string;
+  user_avatar_url?: string;
+  interaction_count: number;
+  comment_count: number;
+}
+
+export interface GetPrayerInteractionCountsResponse {
+  pray_count: number;
+  like_count: number;
+  share_count: number;
+  save_count: number;
+}
+
+export interface GetUserPrayerStatsResponse {
+  prayers_posted: number;
+  prayers_answered: number;
+  total_interactions_received: number;
+  total_interactions_given: number;
 }
