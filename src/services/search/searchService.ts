@@ -105,10 +105,6 @@ class SearchService {
       queryBuilder = queryBuilder.eq('privacy_level', filters.prayerPrivacy);
     }
 
-    if (filters.prayerCategory) {
-      queryBuilder = queryBuilder.eq('category', filters.prayerCategory);
-    }
-
     if (filters.prayerTags && filters.prayerTags.length > 0) {
       queryBuilder = queryBuilder.overlaps('tags', filters.prayerTags);
     }
@@ -127,21 +123,14 @@ class SearchService {
         queryBuilder = queryBuilder.eq('location_city', filters.location.city);
       }
       
-      if (filters.location.lat && filters.location.lon && filters.location.radius) {
-        // Use PostGIS for location-based search
-        queryBuilder = queryBuilder.rpc('search_prayers_by_location', {
-          lat: filters.location.lat,
-          lon: filters.location.lon,
-          radius_km: filters.location.radius,
-        });
-      }
+      // Advanced radius-based search requires server-side support; fallback to city filter
     }
 
     // Exclude blocked users if not including them
     if (!includeBlocked) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        queryBuilder = queryBuilder.not('user_id', 'in', `(SELECT blocked_user_id FROM blocked_users WHERE blocker_id = '${user.id}')`);
+        queryBuilder = queryBuilder.not('user_id', 'in', `(SELECT blocked_id FROM blocked_users WHERE blocker_id = '${user.id}')`);
       }
     }
 
