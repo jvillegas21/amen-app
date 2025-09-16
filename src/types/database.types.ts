@@ -53,6 +53,11 @@ export interface Database {
         Insert: Omit<Report, 'id' | 'created_at'>;
         Update: Partial<Omit<Report, 'id'>>;
       };
+      content_filters: {
+        Row: ContentFilter;
+        Insert: Omit<ContentFilter, 'id' | 'created_at'>;
+        Update: Partial<Omit<ContentFilter, 'id'>>;
+      };
       user_analytics: {
         Row: UserAnalytic;
         Insert: Omit<UserAnalytic, 'id' | 'created_at'>;
@@ -95,6 +100,10 @@ export interface Profile {
   onboarding_completed: boolean;
   email_notifications: boolean;
   push_notifications: boolean;
+  push_token?: string;
+  push_token_updated_at?: string;
+  is_verified: boolean;
+  last_active?: string;
   created_at: string;
   updated_at: string;
 }
@@ -224,10 +233,15 @@ export interface Comment {
 export interface Notification {
   id: string;
   user_id: string;
+  sender_id?: string;
+  prayer_id?: string;
+  group_id?: string;
   type: NotificationType;
   title: string;
   body: string;
+  message?: string;
   payload: Record<string, any>;
+  metadata?: Record<string, any>;
   action_url?: string;
   read: boolean;
   sent_push: boolean;
@@ -254,10 +268,12 @@ export interface SupportTicket {
   user_id: string;
   subject: string;
   description: string;
-  category: 'bug' | 'feature' | 'account' | 'content' | 'other';
+  category: 'bug' | 'feature' | 'feature_request' | 'account' | 'billing' | 'content' | 'other';
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'open' | 'pending' | 'resolved' | 'closed';
+  status: 'open' | 'pending' | 'in_progress' | 'resolved' | 'closed';
   assigned_to?: string;
+  attachments?: string[];
+  admin_notes?: string;
   satisfaction_rating?: number;
   satisfaction_feedback?: string;
   created_at: string;
@@ -281,6 +297,15 @@ export interface Report {
   resolved_at?: string;
 }
 
+export interface ContentFilter {
+  id: string;
+  user_id: string;
+  filter_type: 'keyword' | 'user' | 'category';
+  filter_value: string;
+  is_active: boolean;
+  created_at: string;
+}
+
 // User Analytics
 export interface UserAnalytic {
   id: string;
@@ -288,6 +313,9 @@ export interface UserAnalytic {
   event_type: string;
   event_data: Record<string, any>;
   session_id?: string;
+  platform?: string;
+  app_version?: string;
+  timestamp: string;
   created_at: string;
 }
 
@@ -304,6 +332,7 @@ export interface BlockedUser {
   id: string;
   blocker_id: string;
   blocked_id: string;
+  reason?: string;
   created_at: string;
 }
 
@@ -323,8 +352,11 @@ export interface PrayerReminder {
   prayer_id: string;
   user_id: string;
   reminder_time: string;
+  frequency: 'none' | 'daily' | 'weekly';
+  is_active: boolean;
   is_sent: boolean;
   created_at: string;
+  updated_at: string;
   // Joined data
   prayer?: Prayer;
   user?: Profile;
