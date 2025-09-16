@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ActivityIndicator, View, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator, View } from 'react-native';
 import { useTheme } from '@/theme/ThemeContext';
 
 import { RootStackParamList } from '@/types/navigation.types';
@@ -17,12 +16,15 @@ import SearchScreen from '@/screens/main/SearchScreen';
 import PrayerDetailsScreen from '@/screens/prayer/PrayerDetailsScreen';
 import CreatePrayerScreen from '@/screens/prayer/CreatePrayerScreen';
 import EditPrayerScreen from '@/screens/prayer/EditPrayerScreen';
+import CreateBibleStudyScreen from '@/screens/main/CreateBibleStudyScreen';
+import CreateEventScreen from '@/screens/main/CreateEventScreen';
 import UserProfileScreen from '@/screens/profile/UserProfileScreen';
 import GroupDetailsScreen from '@/screens/groups/GroupDetailsScreen';
 import CreateGroupScreen from '@/screens/groups/CreateGroupScreen';
 import EditGroupScreen from '@/screens/groups/EditGroupScreen';
 import BibleStudyScreen from '@/screens/main/BibleStudyScreen';
 import BibleStudyDetailsScreen from '@/screens/main/BibleStudyDetailsScreen';
+import BibleStudyListScreen from '@/screens/main/BibleStudyListScreen';
 import SettingsScreen from '@/screens/settings/SettingsScreen';
 import PrivacyScreen from '@/screens/settings/PrivacyScreen';
 import NotificationsScreen from '@/screens/settings/NotificationsScreen';
@@ -36,7 +38,14 @@ import TermsOfServiceScreen from '@/screens/legal/TermsOfServiceScreen';
 import BlockedUsersScreen from '@/screens/settings/BlockedUsersScreen';
 import TicketDetailsScreen from '@/screens/support/TicketDetailsScreen';
 import GroupMemberManagementScreen from '@/screens/groups/GroupMemberManagementScreen';
-import GroupChatScreen from '@/screens/groups/GroupChatScreen';
+import ChangePasswordScreen from '@/screens/settings/ChangePasswordScreen';
+import AccountSecurityScreen from '@/screens/settings/AccountSecurityScreen';
+import NotificationSettingsScreen from '@/screens/settings/NotificationSettingsScreen';
+import ThemeScreen from '@/screens/settings/ThemeScreen';
+import LanguageScreen from '@/screens/settings/LanguageScreen';
+import DataUsageScreen from '@/screens/settings/DataUsageScreen';
+import StorageBackupScreen from '@/screens/settings/StorageBackupScreen';
+import LocationSettingsScreen from '@/screens/settings/LocationSettingsScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -106,9 +115,40 @@ const RootNavigator: React.FC = () => {
                   options={{ title: 'Edit Prayer' }}
                 />
                 <Stack.Screen
+                  name="CreateBibleStudy"
+                  component={CreateBibleStudyScreen}
+                  options={{
+                    title: 'Create Bible Study',
+                    headerStyle: {
+                      backgroundColor: '#D97706',
+                    },
+                    headerTintColor: '#FFFFFF',
+                    headerBackTitle: 'Back',
+                  }}
+                />
+                <Stack.Screen
+                  name="CreateEvent"
+                  component={CreateEventScreen}
+                  options={{
+                    title: 'Create Event',
+                    headerStyle: {
+                      backgroundColor: '#DC2626',
+                    },
+                    headerTintColor: '#FFFFFF',
+                    headerBackTitle: 'Back',
+                  }}
+                />
+                <Stack.Screen
                   name="CreateGroup"
                   component={CreateGroupScreen}
-                  options={{ title: 'Create Group' }}
+                  options={{
+                    title: 'Create Group',
+                    headerStyle: {
+                      backgroundColor: '#059669',
+                    },
+                    headerTintColor: '#FFFFFF',
+                    headerBackTitle: 'Back',
+                  }}
                 />
                 <Stack.Screen
                   name="EditGroup"
@@ -168,6 +208,11 @@ const RootNavigator: React.FC = () => {
                   options={{ title: 'Bible Study Details' }}
                 />
                 <Stack.Screen
+                  name="BibleStudyList"
+                  component={BibleStudyListScreen}
+                  options={{ title: 'Bible Studies' }}
+                />
+                <Stack.Screen
                   name="Settings"
                   component={SettingsScreen}
                   options={{ title: 'Settings' }}
@@ -223,9 +268,44 @@ const RootNavigator: React.FC = () => {
                   options={{ title: 'Manage Members' }}
                 />
                 <Stack.Screen
-                  name="GroupChat"
-                  component={GroupChatScreen}
-                  options={{ title: 'Group Chat' }}
+                  name="ChangePassword"
+                  component={ChangePasswordScreen}
+                  options={{ title: 'Change Password' }}
+                />
+                <Stack.Screen
+                  name="AccountSecurity"
+                  component={AccountSecurityScreen}
+                  options={{ title: 'Account Security' }}
+                />
+                <Stack.Screen
+                  name="NotificationSettings"
+                  component={NotificationSettingsScreen}
+                  options={{ title: 'Notification Settings' }}
+                />
+                <Stack.Screen
+                  name="Theme"
+                  component={ThemeScreen}
+                  options={{ title: 'Theme' }}
+                />
+                <Stack.Screen
+                  name="Language"
+                  component={LanguageScreen}
+                  options={{ title: 'Language' }}
+                />
+                <Stack.Screen
+                  name="DataUsage"
+                  component={DataUsageScreen}
+                  options={{ title: 'Data Usage' }}
+                />
+                <Stack.Screen
+                  name="StorageBackup"
+                  component={StorageBackupScreen}
+                  options={{ title: 'Storage & Backup' }}
+                />
+                <Stack.Screen
+                  name="LocationSettings"
+                  component={LocationSettingsScreen}
+                  options={{ title: 'Location Settings' }}
                 />
               </Stack.Group>
             </>

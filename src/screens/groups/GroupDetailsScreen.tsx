@@ -19,20 +19,21 @@ import { groupService } from '@/services/api/groupService';
 import { Ionicons } from '@expo/vector-icons';
 import { Prayer, Group } from '@/types/database.types';
 import { formatDistanceToNow } from 'date-fns';
+import GroupAvatar from '@/components/common/GroupAvatar';
+import UserAvatar from '@/components/common/UserAvatar';
 
 /**
  * Group Details Screen - Group information and prayer list
  * Based on group_prayer_list mockups
  */
 const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ navigation, route }) => {
-  const { groupId } = route.params;
+  const { groupId, refresh } = route.params;
   const { profile } = useAuthStore();
   const { prayers, isLoading } = usePrayerStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   const [group, setGroup] = useState<any>(null);
   const [groupPrayers, setGroupPrayers] = useState<Prayer[]>([]);
-  const [showMembersModal, setShowMembersModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [isMember, setIsMember] = useState(false);
   const [userRole, setUserRole] = useState<'admin' | 'moderator' | 'member' | null>(null);
@@ -42,9 +43,18 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
     fetchGroupPrayers();
   }, [groupId]);
 
-  // Refresh prayers when screen comes into focus (e.g., after creating a prayer)
+  // Refresh data when refresh parameter changes (e.g., after editing group)
+  useEffect(() => {
+    if (refresh) {
+      fetchGroupDetails();
+      fetchGroupPrayers();
+    }
+  }, [refresh]);
+
+  // Refresh data when screen comes into focus (e.g., after creating a prayer or editing group)
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
+      fetchGroupDetails();
       fetchGroupPrayers();
     });
 
@@ -53,7 +63,9 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
 
   const fetchGroupDetails = async () => {
     try {
+      console.log('Fetching group details for groupId:', groupId);
       const groupData = await groupService.getGroup(groupId);
+      console.log('Fetched group data:', groupData);
       setGroup(groupData);
       
       // Check if current user is a member
@@ -138,18 +150,18 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
   };
 
   const handleGroupChatPress = () => {
-    // Navigate to group chat - we'll use the first prayer as context or create a general chat
-    const firstPrayerId = groupPrayers.length > 0 ? groupPrayers[0].id : null;
-    if (firstPrayerId) {
-      navigation.navigate('GroupChat', { prayerId: firstPrayerId, groupId });
-    } else {
-      // If no prayers exist, we could create a placeholder or handle differently
-      Alert.alert('No Prayers Yet', 'Share a prayer first to start the group discussion.');
-    }
+    // Navigate to group chat - chat works independently of prayers
+    // Use a placeholder prayerId for general group discussion
+    const generalChatId = 'general-chat';
+    navigation.navigate('GroupChat', { prayerId: generalChatId, groupId });
   };
 
   const handleMembersPress = () => {
-    setShowMembersModal(true);
+    navigation.navigate('GroupMembers', { groupId });
+  };
+
+  const handleEditGroup = () => {
+    navigation.navigate('EditGroup', { groupId });
   };
 
   const handleSettingsPress = () => {
@@ -168,8 +180,9 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
     >
       <View style={styles.prayerHeader}>
         <TouchableOpacity style={styles.userInfo}>
-          <Image
-            source={{ uri: prayer.user?.avatar_url || 'https://via.placeholder.com/40' }}
+          <UserAvatar
+            avatarUrl={prayer.user?.avatar_url}
+            size={40}
             style={styles.avatar}
           />
           <View style={styles.userDetails}>
@@ -207,8 +220,9 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
       <View style={styles.header}>
         {/* Group Info */}
         <View style={styles.groupInfo}>
-          <Image
-            source={{ uri: group.avatar_url || 'https://via.placeholder.com/100' }}
+          <GroupAvatar
+            avatarUrl={group.avatar_url}
+            size={80}
             style={styles.groupAvatar}
           />
           <View style={styles.groupDetails}>
@@ -256,6 +270,13 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
                 <Ionicons name="chatbubbles" size={20} color="#5B21B6" />
                 <Text style={styles.secondaryButtonText}>Chat</Text>
               </TouchableOpacity>
+              
+              {userRole === 'admin' && (
+                <TouchableOpacity style={styles.secondaryButton} onPress={handleEditGroup}>
+                  <Ionicons name="create" size={20} color="#5B21B6" />
+                  <Text style={styles.secondaryButtonText}>Edit</Text>
+                </TouchableOpacity>
+              )}
               
               {(userRole === 'admin' || userRole === 'moderator') && (
                 <TouchableOpacity style={styles.secondaryButton} onPress={handleSettingsPress}>
@@ -317,25 +338,6 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
         contentContainerStyle={styles.listContainer}
       />
 
-      {/* Members Modal */}
-      <Modal
-        visible={showMembersModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowMembersModal(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Group Members</Text>
-            <TouchableOpacity onPress={() => setShowMembersModal(false)}>
-              <Ionicons name="close" size={24} color="#111827" />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalText}>Member list will be implemented here</Text>
-          </View>
-        </SafeAreaView>
-      </Modal>
 
       {/* Settings Modal */}
       <Modal

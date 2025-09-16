@@ -135,7 +135,7 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
    */
   async saveBibleStudy(study: BibleStudy): Promise<void> {
     const { error } = await supabase
-      .from('bible_studies')
+      .from('studies')
       .insert({
         id: study.id,
         title: study.title,
@@ -154,7 +154,7 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
    */
   async getBibleStudy(studyId: string): Promise<BibleStudy> {
     const { data, error } = await supabase
-      .from('bible_studies')
+      .from('studies')
       .select('*')
       .eq('id', studyId)
       .single();
@@ -170,7 +170,7 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
    */
   async incrementViewCount(studyId: string): Promise<void> {
     const { error } = await supabase
-      .from('bible_studies')
+      .from('studies')
       .update({ 
         view_count: supabase.raw('view_count + 1'),
         updated_at: new Date().toISOString(),
@@ -185,7 +185,7 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
    */
   async saveStudyForUser(studyId: string, userId: string): Promise<void> {
     const { error } = await supabase
-      .from('saved_bible_studies')
+      .from('studies')
       .insert({
         study_id: studyId,
         user_id: userId,
@@ -195,7 +195,7 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
 
     // Increment save count
     await supabase
-      .from('bible_studies')
+      .from('studies')
       .update({ 
         save_count: supabase.raw('save_count + 1'),
         updated_at: new Date().toISOString(),
@@ -208,7 +208,7 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
    */
   async unsaveStudyForUser(studyId: string, userId: string): Promise<void> {
     const { error } = await supabase
-      .from('saved_bible_studies')
+      .from('studies')
       .delete()
       .eq('study_id', studyId)
       .eq('user_id', userId);
@@ -217,7 +217,7 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
 
     // Decrement save count
     await supabase
-      .from('bible_studies')
+      .from('studies')
       .update({ 
         save_count: supabase.raw('save_count - 1'),
         updated_at: new Date().toISOString(),
@@ -230,9 +230,9 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
    */
   async getSavedStudies(userId: string): Promise<BibleStudy[]> {
     const { data, error } = await supabase
-      .from('saved_bible_studies')
+      .from('saved_studies')
       .select(`
-        study:bible_studies(*)
+        study:studies(*)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
@@ -250,7 +250,7 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
    */
   async getPopularStudies(limit = 10): Promise<BibleStudy[]> {
     const { data, error } = await supabase
-      .from('bible_studies')
+      .from('studies')
       .select('*')
       .order('view_count', { ascending: false })
       .limit(limit);
@@ -264,10 +264,69 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
    */
   async searchStudies(query: string): Promise<BibleStudy[]> {
     const { data, error } = await supabase
-      .from('bible_studies')
+      .from('studies')
       .select('*')
-      .or(`title.ilike.%${query}%,content.ilike.%${query}%`)
+      .or(`title.ilike.%${query}%,content_md.ilike.%${query}%`)
       .order('view_count', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  /**
+   * Get featured Bible studies
+   */
+  async getFeaturedStudies(limit = 10): Promise<BibleStudy[]> {
+    const { data, error } = await supabase
+      .from('studies')
+      .select('*')
+      .eq('is_featured', true)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  /**
+   * Get recent Bible studies
+   */
+  async getRecentStudies(limit = 20): Promise<BibleStudy[]> {
+    const { data, error } = await supabase
+      .from('studies')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  /**
+   * Get user's Bible studies
+   */
+  async getUserStudies(userId: string, limit = 20): Promise<BibleStudy[]> {
+    const { data, error } = await supabase
+      .from('studies')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  /**
+   * Get all Bible studies with pagination
+   */
+  async getAllStudies(page = 1, limit = 20): Promise<BibleStudy[]> {
+    const offset = (page - 1) * limit;
+    const { data, error } = await supabase
+      .from('studies')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) throw error;
     return data || [];

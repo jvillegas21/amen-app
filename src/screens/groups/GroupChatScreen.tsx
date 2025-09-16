@@ -44,7 +44,35 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route, navigation }) 
     try {
       setIsLoading(true);
       // TODO: Implement real API calls
-      const mockMessages: Message[] = [
+      // For now, show different messages based on whether this is a prayer-specific chat or general group chat
+      const isGeneralChat = prayerId === 'general-chat';
+      
+      const mockMessages: Message[] = isGeneralChat ? [
+        {
+          id: '1',
+          text: 'Welcome to our group! Feel free to share updates, prayer requests, or just chat.',
+          senderId: 'system',
+          senderName: 'System',
+          timestamp: '1 day ago',
+          isOwn: false,
+        },
+        {
+          id: '2',
+          text: 'Thanks for creating this group! Looking forward to connecting with everyone.',
+          senderId: 'user1',
+          senderName: 'John Doe',
+          timestamp: '12 hours ago',
+          isOwn: false,
+        },
+        {
+          id: '3',
+          text: 'Hello everyone! Excited to be part of this community.',
+          senderId: profile?.id || 'current',
+          senderName: profile?.display_name || 'You',
+          timestamp: '2 hours ago',
+          isOwn: true,
+        },
+      ] : [
         {
           id: '1',
           text: 'Thank you all for praying for my family during this difficult time.',
@@ -65,7 +93,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route, navigation }) 
           id: '3',
           text: 'Praying for strength and peace for your family.',
           senderId: profile?.id || 'current',
-          senderName: profile?.displayName || 'You',
+          senderName: profile?.display_name || 'You',
           timestamp: '30 minutes ago',
           isOwn: true,
         },
@@ -96,7 +124,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route, navigation }) 
         id: Date.now().toString(),
         text: newMessage.trim(),
         senderId: profile?.id || 'current',
-        senderName: profile?.displayName || 'You',
+        senderName: profile?.display_name || 'You',
         timestamp: 'Just now',
         isOwn: true,
       };
@@ -162,7 +190,9 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route, navigation }) 
           </TouchableOpacity>
           <View style={styles.headerContent}>
             <Text style={styles.headerTitle}>Group Chat</Text>
-            <Text style={styles.headerSubtitle}>Prayer Group Discussion</Text>
+            <Text style={styles.headerSubtitle}>
+              {prayerId === 'general-chat' ? 'Group Discussion' : 'Prayer Discussion'}
+            </Text>
           </View>
         </View>
 

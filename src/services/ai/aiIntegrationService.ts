@@ -180,13 +180,15 @@ class AIIntegrationService {
    */
   async getSavedStudies(userId: string, page = 1, limit = 20): Promise<BibleStudy[]> {
     const { data, error } = await supabase
-      .from('studies')
+      .from('saved_studies')
       .select(`
-        *,
-        prayer:prayers!prayer_id(
-          id,
-          text,
-          user:profiles!user_id(display_name, avatar_url)
+        study:studies(
+          *,
+          prayer:prayers!prayer_id(
+            id,
+            text,
+            user:profiles!user_id(display_name, avatar_url)
+          )
         )
       `)
       .eq('user_id', userId)
@@ -194,7 +196,7 @@ class AIIntegrationService {
       .range((page - 1) * limit, page * limit - 1);
 
     if (error) throw error;
-    return data || [];
+    return data?.map(item => item.study) || [];
   }
 
   /**

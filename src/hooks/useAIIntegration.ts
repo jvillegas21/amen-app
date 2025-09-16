@@ -77,14 +77,14 @@ export const useAIIntegration = (): UseAIIntegrationReturn => {
 
     try {
       const { data: { user } } = await import('@/config/supabase').then(m => m.supabase.auth.getUser());
-      if (!user.data?.user) {
+      if (!user) {
         throw new Error('User not authenticated');
       }
 
       const newSuggestions = await aiIntegrationService.generateStudySuggestions(
         prayerText,
         prayerId,
-        user.data.user.id
+        user.id
       );
       
       setSuggestions(newSuggestions);
@@ -125,11 +125,11 @@ export const useAIIntegration = (): UseAIIntegrationReturn => {
 
     try {
       const { data: { user } } = await import('@/config/supabase').then(m => m.supabase.auth.getUser());
-      if (!user.data?.user) {
+      if (!user) {
         throw new Error('User not authenticated');
       }
 
-      const studies = await aiIntegrationService.getSavedStudies(user.data.user.id, page);
+      const studies = await aiIntegrationService.getSavedStudies(user.id, page);
       
       if (page === 1) {
         setSavedStudies(studies);
@@ -172,11 +172,11 @@ export const useAIIntegration = (): UseAIIntegrationReturn => {
   const saveStudy = useCallback(async (studyId: string) => {
     try {
       const { data: { user } } = await import('@/config/supabase').then(m => m.supabase.auth.getUser());
-      if (!user.data?.user) {
+      if (!user) {
         throw new Error('User not authenticated');
       }
 
-      await aiIntegrationService.saveStudyToUser(studyId, user.data.user.id);
+      await aiIntegrationService.saveStudyToUser(studyId, user.id);
       
       // Update local state
       setSavedStudies(prev => {
@@ -197,11 +197,11 @@ export const useAIIntegration = (): UseAIIntegrationReturn => {
   const removeSavedStudy = useCallback(async (studyId: string) => {
     try {
       const { data: { user } } = await import('@/config/supabase').then(m => m.supabase.auth.getUser());
-      if (!user.data?.user) {
+      if (!user) {
         throw new Error('User not authenticated');
       }
 
-      await aiIntegrationService.removeSavedStudy(studyId, user.data.user.id);
+      await aiIntegrationService.removeSavedStudy(studyId, user.id);
       
       // Update local state
       setSavedStudies(prev => prev.filter(study => study.id !== studyId));

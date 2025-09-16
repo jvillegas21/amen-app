@@ -401,7 +401,7 @@ describe('Database Error Scenarios', () => {
     test('should handle prayer_likes table error (the specific error mentioned)', async () => {
       // This test specifically addresses the error mentioned in the user query
       const { error } = await supabase
-        .from('prayer_likes')
+        .from('interactions')
         .select('*');
 
       expect(error?.code).toBe('PGRST205');

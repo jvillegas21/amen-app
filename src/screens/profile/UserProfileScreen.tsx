@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { ProfileStackScreenProps } from '@/types/navigation.types';
+import { RootStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
@@ -31,6 +31,7 @@ interface UserProfile {
   bio?: string;
   avatar_url?: string;
   location?: string;
+  location_city?: string;
   is_verified: boolean;
   is_following: boolean;
   is_follower: boolean;
@@ -41,7 +42,7 @@ interface UserProfile {
  * User Profile Screen - View user profile with statistics and management
  * Based on user_profile mockups
  */
-const UserProfileScreen: React.FC<ProfileStackScreenProps<'MyProfile'>> = ({ navigation }) => {
+const UserProfileScreen: React.FC<RootStackScreenProps<'UserProfile'>> = ({ navigation, route }) => {
   const { profile, signOut } = useAuthStore();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,45 +92,34 @@ const UserProfileScreen: React.FC<ProfileStackScreenProps<'MyProfile'>> = ({ nav
   };
 
   const handleEditProfile = () => {
-    navigation.navigate('EditProfile');
+    // Navigate to Settings for profile editing
+    navigation.getParent()?.navigate('Settings');
   };
 
-  const handleFollowToggle = async () => {
-    try {
-      // TODO: Implement follow/unfollow API call
-      setIsFollowing(!isFollowing);
-      if (userProfile) {
-        setUserProfile(prev => prev ? {
-          ...prev,
-          stats: {
-            ...prev.stats,
-            followers_count: prev.stats.followers_count + (isFollowing ? -1 : 1)
-          }
-        } : null);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update follow status');
-    }
-  };
 
   const handleViewFollowers = () => {
-    navigation.navigate('Followers');
+    // TODO: Implement followers view
+    Alert.alert('Coming Soon', 'Followers view will be available soon');
   };
 
   const handleViewFollowing = () => {
-    navigation.navigate('Following');
+    // TODO: Implement following view
+    Alert.alert('Coming Soon', 'Following view will be available soon');
   };
 
   const handleViewPrayerHistory = () => {
-    navigation.navigate('PrayerHistory');
+    // TODO: Implement prayer history view
+    Alert.alert('Coming Soon', 'Prayer history will be available soon');
   };
 
   const handleViewSavedPrayers = () => {
-    navigation.navigate('SavedPrayers');
+    // TODO: Implement saved prayers view
+    Alert.alert('Coming Soon', 'Saved prayers will be available soon');
   };
 
   const handleViewStatistics = () => {
-    navigation.navigate('Statistics');
+    // TODO: Implement statistics view
+    Alert.alert('Coming Soon', 'Statistics will be available soon');
   };
 
   const handleSignOut = () => {
@@ -315,10 +305,12 @@ const UserProfileScreen: React.FC<ProfileStackScreenProps<'MyProfile'>> = ({ nav
               {userProfile.bio && (
                 <Text style={styles.bio}>{userProfile.bio}</Text>
               )}
-              {userProfile.location && (
+              {userProfile.location_city && (
                 <View style={styles.locationContainer}>
                   <Ionicons name="location-outline" size={16} color="#6B7280" />
-                  <Text style={styles.location}>{userProfile.location}</Text>
+                  <Text style={styles.location} numberOfLines={1} ellipsizeMode="tail">
+                    {userProfile.location_city}
+                  </Text>
                 </View>
               )}
               <Text style={styles.joinedDate}>
@@ -436,11 +428,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+    flex: 1,
+    minWidth: 0,
   },
   location: {
     fontSize: 14,
     color: '#6B7280',
     marginLeft: 4,
+    flex: 1,
+    minWidth: 0,
   },
   joinedDate: {
     fontSize: 14,

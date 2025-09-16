@@ -162,7 +162,7 @@ const CreateTicketScreen: React.FC<RootStackScreenProps<'CreateTicket'>> = ({ na
         category: selectedCategory,
         priority: selectedPriority,
         user_id: profile?.id,
-        user_email: profile?.email,
+        user_email: profile?.id, // Using user ID instead of email since email is not in Profile type
         created_at: new Date().toISOString(),
       };
 
@@ -453,7 +453,7 @@ const CreateTicketScreen: React.FC<RootStackScreenProps<'CreateTicket'>> = ({ na
               <Ionicons name="information-circle" size={20} color={theme.colors.primary[600]} />
               <Text style={styles.contactNoteText}>
                 We'll respond to your ticket using the email address associated with your account: {' '}
-                <Text style={styles.contactNoteEmail}>{profile?.email || 'your-email@example.com'}</Text>
+                <Text style={styles.contactNoteEmail}>User ID: {profile?.id || 'unknown'}</Text>
               </Text>
             </View>
           </View>

@@ -124,7 +124,7 @@ class SearchService {
       .or(`display_name.ilike.%${query}%,bio.ilike.%${query}%`);
 
     if (filters?.location) {
-      supabaseQuery = supabaseQuery.ilike('location', `%${filters.location}%`);
+      supabaseQuery = supabaseQuery.ilike('location_city', `%${filters.location}%`);
     }
 
     const { data, error } = await supabaseQuery;

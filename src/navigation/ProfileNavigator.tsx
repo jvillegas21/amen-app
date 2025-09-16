@@ -4,7 +4,6 @@ import { ProfileStackParamList } from '@/types/navigation.types';
 
 // Profile Screen imports
 import MyProfileScreen from '@/screens/profile/MyProfileScreen';
-import EditProfileScreen from '@/screens/profile/EditProfileScreen';
 import SavedPrayersScreen from '@/screens/profile/SavedPrayersScreen';
 import PrayerHistoryScreen from '@/screens/profile/PrayerHistoryScreen';
 import FollowingScreen from '@/screens/profile/FollowingScreen';
@@ -34,11 +33,6 @@ const ProfileNavigator: React.FC = () => {
         name="MyProfile"
         component={MyProfileScreen}
         options={{ title: 'My Profile' }}
-      />
-      <Stack.Screen
-        name="EditProfile"
-        component={EditProfileScreen}
-        options={{ title: 'Edit Profile' }}
       />
       <Stack.Screen
         name="SavedPrayers"

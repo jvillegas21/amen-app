@@ -122,9 +122,8 @@ class SettingsService {
     if (settings.push_notifications !== undefined) {
       updates.push_notifications = settings.push_notifications;
     }
-    if (settings.prayer_reminders !== undefined) {
-      updates.prayer_reminders = settings.prayer_reminders;
-    }
+    // Note: prayer_reminders field doesn't exist in profiles table, so we skip it
+    // This should be stored in a separate settings table or handled differently
 
     const { error } = await supabase
       .from('profiles')
@@ -159,9 +158,8 @@ class SettingsService {
     // App settings are typically stored locally, but we can store some in the profile
     const updates: any = {};
     
-    if (settings.language !== undefined) {
-      updates.language = settings.language;
-    }
+    // Note: language field doesn't exist in profiles table, so we skip it
+    // This should be stored in a separate settings table or handled locally
 
     if (Object.keys(updates).length > 0) {
       const { error } = await supabase

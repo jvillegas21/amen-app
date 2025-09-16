@@ -21,7 +21,9 @@ export class GroupRepository extends BaseRepositoryImpl<Group> {
         *,
         group:groups!group_id(
           *,
-          member_count:group_members(count),
+          members:group_members(
+            *
+          ),
           prayer_count:prayers(count)
         )
       `)
@@ -31,24 +33,27 @@ export class GroupRepository extends BaseRepositoryImpl<Group> {
       this.handleError(error, 'getUserGroups');
     }
 
-    return (data?.map(item => ({
-      ...item.group,
-      member_count: typeof item.group.member_count === 'object' 
-        ? item.group.member_count?.count || 0 
-        : item.group.member_count || 0,
-      prayer_count: typeof item.group.prayer_count === 'object' 
-        ? item.group.prayer_count?.count || 0 
-        : item.group.prayer_count || 0,
-      user_membership: {
-        id: item.id,
-        group_id: item.group_id,
-        user_id: item.user_id,
-        role: item.role,
-        joined_at: item.joined_at,
-        last_active: item.last_active,
-        notifications_enabled: item.notifications_enabled,
-      }
-    })).filter(Boolean) || []) as Group[];
+    return (data?.map(item => {
+      // Get actual member count by counting the members array
+      const memberCount = item.group.members ? item.group.members.length : 0;
+      
+      return {
+        ...item.group,
+        member_count: memberCount,
+        prayer_count: typeof item.group.prayer_count === 'object' 
+          ? item.group.prayer_count?.count || 0 
+          : item.group.prayer_count || 0,
+        user_membership: {
+          id: item.id,
+          group_id: item.group_id,
+          user_id: item.user_id,
+          role: item.role,
+          joined_at: item.joined_at,
+          last_active: item.last_active,
+          notifications_enabled: item.notifications_enabled,
+        }
+      };
+    }).filter(Boolean) || []) as Group[];
   }
 
   /**
@@ -64,7 +69,10 @@ export class GroupRepository extends BaseRepositoryImpl<Group> {
           display_name,
           avatar_url
         ),
-        member_count:group_members(count),
+        members:group_members(
+          *,
+          user:profiles!user_id(*)
+        ),
         prayer_count:prayers(count),
         user_membership:group_members!user_membership(
           *
@@ -79,11 +87,12 @@ export class GroupRepository extends BaseRepositoryImpl<Group> {
 
     if (!data) return null;
 
+    // Get actual member count by counting the members array
+    const memberCount = data.members ? data.members.length : 0;
+
     return {
       ...data,
-      member_count: typeof data.member_count === 'object' 
-        ? data.member_count?.count || 0 
-        : data.member_count || 0,
+      member_count: memberCount,
       prayer_count: typeof data.prayer_count === 'object' 
         ? data.prayer_count?.count || 0 
         : data.prayer_count || 0,
@@ -136,14 +145,29 @@ export class GroupRepository extends BaseRepositoryImpl<Group> {
       this.handleError(memberError, 'createGroup (add creator)');
     }
 
+    // Fetch the group again to get the updated member count
+    const { data: updatedGroup, error: fetchError } = await supabase
+      .from('groups')
+      .select(`
+        *,
+        member_count:group_members(count),
+        prayer_count:prayers(count)
+      `)
+      .eq('id', data.id)
+      .single();
+
+    if (fetchError) {
+      this.handleError(fetchError, 'createGroup (fetch updated)');
+    }
+
     return {
-      ...data,
-      member_count: typeof data.member_count === 'object' 
-        ? data.member_count?.count || 0 
-        : data.member_count || 0,
-      prayer_count: typeof data.prayer_count === 'object' 
-        ? data.prayer_count?.count || 0 
-        : data.prayer_count || 0,
+      ...updatedGroup,
+      member_count: typeof updatedGroup.member_count === 'object' 
+        ? updatedGroup.member_count?.count || 0 
+        : updatedGroup.member_count || 0,
+      prayer_count: typeof updatedGroup.prayer_count === 'object' 
+        ? updatedGroup.prayer_count?.count || 0 
+        : updatedGroup.prayer_count || 0,
     };
   }
 
@@ -255,7 +279,9 @@ export class GroupRepository extends BaseRepositoryImpl<Group> {
       .from('groups')
       .select(`
         *,
-        member_count:group_members(count),
+        members:group_members(
+          *
+        ),
         prayer_count:prayers(count)
       `)
       .or(`name.ilike.%${query}%,description.ilike.%${query}%`);
@@ -274,15 +300,18 @@ export class GroupRepository extends BaseRepositoryImpl<Group> {
       this.handleError(error, 'searchGroups');
     }
 
-    return (data || []).map(group => ({
-      ...group,
-      member_count: typeof group.member_count === 'object' 
-        ? group.member_count?.count || 0 
-        : group.member_count || 0,
-      prayer_count: typeof group.prayer_count === 'object' 
-        ? group.prayer_count?.count || 0 
-        : group.prayer_count || 0,
-    }));
+    return (data || []).map(group => {
+      // Get actual member count by counting the members array
+      const memberCount = group.members ? group.members.length : 0;
+      
+      return {
+        ...group,
+        member_count: memberCount,
+        prayer_count: typeof group.prayer_count === 'object' 
+          ? group.prayer_count?.count || 0 
+          : group.prayer_count || 0,
+      };
+    });
   }
 
   /**
@@ -300,7 +329,9 @@ export class GroupRepository extends BaseRepositoryImpl<Group> {
           display_name,
           avatar_url
         ),
-        member_count:group_members(count),
+        members:group_members(
+          *
+        ),
         prayer_count:prayers(count)
       `)
       .eq('privacy', 'public')
@@ -312,16 +343,19 @@ export class GroupRepository extends BaseRepositoryImpl<Group> {
       this.handleError(error, 'getPublicGroups');
     }
 
-    return (data || []).map(group => ({
-      ...group,
-      member_count: typeof group.member_count === 'object'
-        ? group.member_count?.count || 0
-        : group.member_count || 0,
-      prayer_count: typeof group.prayer_count === 'object'
-        ? group.prayer_count?.count || 0
-        : group.prayer_count || 0,
-      creator: group.creator,
-    }));
+    return (data || []).map(group => {
+      // Get actual member count by counting the members array
+      const memberCount = group.members ? group.members.length : 0;
+      
+      return {
+        ...group,
+        member_count: memberCount,
+        prayer_count: typeof group.prayer_count === 'object'
+          ? group.prayer_count?.count || 0
+          : group.prayer_count || 0,
+        creator: group.creator,
+      };
+    });
   }
 
   /**
@@ -332,18 +366,31 @@ export class GroupRepository extends BaseRepositoryImpl<Group> {
       .from('groups')
       .select(`
         *,
-        member_count:group_members(count),
+        members:group_members(
+          *
+        ),
         prayer_count:prayers(count)
       `)
       .eq('privacy', 'public')
-      .order('member_count', { ascending: false })
       .limit(limit);
 
     if (error) {
       this.handleError(error, 'getTrendingGroups');
     }
 
-    return await this.addMembershipStatusToGroups(data || [], userId);
+    // Calculate member counts and sort by member count
+    const groupsWithCounts = (data || []).map(group => {
+      const memberCount = group.members ? group.members.length : 0;
+      return {
+        ...group,
+        member_count: memberCount,
+        prayer_count: typeof group.prayer_count === 'object' 
+          ? group.prayer_count?.count || 0 
+          : group.prayer_count || 0,
+      };
+    }).sort((a, b) => b.member_count - a.member_count);
+
+    return await this.addMembershipStatusToGroups(groupsWithCounts, userId);
   }
 
   /**
@@ -357,7 +404,9 @@ export class GroupRepository extends BaseRepositoryImpl<Group> {
       .from('groups')
       .select(`
         *,
-        member_count:group_members(count),
+        members:group_members(
+          *
+        ),
         prayer_count:prayers(count)
       `)
       .or(`name.ilike.%${query}%,description.ilike.%${query}%`);
@@ -376,7 +425,19 @@ export class GroupRepository extends BaseRepositoryImpl<Group> {
       this.handleError(error, 'searchGroupsWithMembership');
     }
 
-    return await this.addMembershipStatusToGroups(data || [], userId);
+    // Calculate member counts
+    const groupsWithCounts = (data || []).map(group => {
+      const memberCount = group.members ? group.members.length : 0;
+      return {
+        ...group,
+        member_count: memberCount,
+        prayer_count: typeof group.prayer_count === 'object' 
+          ? group.prayer_count?.count || 0 
+          : group.prayer_count || 0,
+      };
+    });
+
+    return await this.addMembershipStatusToGroups(groupsWithCounts, userId);
   }
 
   /**
@@ -385,9 +446,7 @@ export class GroupRepository extends BaseRepositoryImpl<Group> {
   private async addMembershipStatusToGroups(groups: any[], userId?: string): Promise<Group[]> {
     const groupsWithMembership = groups.map(group => ({
       ...group,
-      member_count: typeof group.member_count === 'object'
-        ? group.member_count?.count || 0
-        : group.member_count || 0,
+      // Keep the member_count as is since it's already calculated correctly
       prayer_count: typeof group.prayer_count === 'object'
         ? group.prayer_count?.count || 0
         : group.prayer_count || 0,

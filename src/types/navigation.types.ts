@@ -13,12 +13,15 @@ export type RootStackParamList = {
   PrayerDetails: { prayerId: string; createReminder?: boolean };
   CreatePrayer: { groupId?: string };
   EditPrayer: { prayerId: string };
+  CreateBibleStudy: undefined;
+  CreateEvent: undefined;
   UserProfile: { userId: string };
   GroupDetails: { groupId: string };
   CreateGroup: undefined;
   EditGroup: { groupId: string };
   BibleStudy: { studyId: string };
   BibleStudyDetails: { studyId: string; prayerId: string };
+  BibleStudyList: undefined;
   BibleStudySuggestions: undefined;
   Settings: undefined;
   Privacy: undefined;
@@ -33,7 +36,14 @@ export type RootStackParamList = {
   TermsOfService: undefined;
   BlockedUsers: undefined;
   GroupMemberManagement: { groupId: string };
-  GroupChat: { prayerId: string; groupId: string };
+  ChangePassword: undefined;
+  AccountSecurity: undefined;
+  NotificationSettings: undefined;
+  Theme: undefined;
+  Language: undefined;
+  DataUsage: undefined;
+  StorageBackup: undefined;
+  LocationSettings: undefined;
 };
 
 // Auth Stack Navigator
@@ -66,7 +76,8 @@ export type GroupsStackParamList = {
   MyGroups: undefined;
   DiscoverGroups: undefined;
   CreateGroup: undefined;
-  GroupDetails: { groupId: string };
+  GroupDetails: { groupId: string; refresh?: number };
+  EditGroup: { groupId: string };
   GroupChat: { prayerId: string; groupId: string };
   GroupMembers: { groupId: string };
   GroupSettings: { groupId: string };
@@ -75,7 +86,6 @@ export type GroupsStackParamList = {
 // Profile Stack Navigator
 export type ProfileStackParamList = {
   MyProfile: undefined;
-  EditProfile: undefined;
   SavedPrayers: undefined;
   PrayerHistory: undefined;
   Following: undefined;

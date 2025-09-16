@@ -13,7 +13,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/auth/authStore';
-import { profileService } from '@/services/api/profileService';
 import { imageUploadService, ImageUploadResult } from '@/services/api/imageUploadService';
 import ImagePicker from '@/components/common/ImagePicker';
 
@@ -24,8 +23,7 @@ export default function EditProfileScreen() {
   const [formData, setFormData] = useState({
     display_name: '',
     bio: '',
-    location: '',
-    website: '',
+    location_city: '',
   });
   
   const [avatarUrl, setAvatarUrl] = useState<string>('');
@@ -37,8 +35,7 @@ export default function EditProfileScreen() {
       setFormData({
         display_name: profile.display_name || '',
         bio: profile.bio || '',
-        location: profile.location || '',
-        website: profile.website || '',
+        location_city: profile.location_city || '',
       });
       setAvatarUrl(profile.avatar_url || '');
       setLoading(false);
@@ -69,15 +66,13 @@ export default function EditProfileScreen() {
     try {
       setSaving(true);
       
-      const updatedProfile = await profileService.updateProfile({
+      await updateProfile({
         display_name: formData.display_name.trim(),
         bio: formData.bio.trim(),
-        location: formData.location.trim(),
-        website: formData.website.trim(),
+        location_city: formData.location_city.trim(),
         avatar_url: avatarUrl,
       });
 
-      updateProfile(updatedProfile);
       Alert.alert('Success', 'Profile updated successfully');
       router.back();
     } catch (error) {
@@ -183,27 +178,13 @@ export default function EditProfileScreen() {
           <TextInput
             style={styles.textInput}
             placeholder="City, Country"
-            value={formData.location}
-            onChangeText={(value) => handleInputChange('location', value)}
+            value={formData.location_city}
+            onChangeText={(value) => handleInputChange('location_city', value)}
             maxLength={100}
             editable={!saving}
           />
         </View>
 
-        {/* Website */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Website</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="https://yourwebsite.com"
-            value={formData.website}
-            onChangeText={(value) => handleInputChange('website', value)}
-            maxLength={200}
-            keyboardType="url"
-            autoCapitalize="none"
-            editable={!saving}
-          />
-        </View>
 
         {/* Help Text */}
         <View style={styles.helpContainer}>

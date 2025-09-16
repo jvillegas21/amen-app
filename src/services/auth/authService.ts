@@ -160,8 +160,16 @@ class AuthService implements IAuthService {
    * Update user profile
    */
   async updateProfile(updates: Partial<Profile>): Promise<Profile> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      console.error('Error getting user:', userError);
+      throw new Error('Authentication error. Please sign in again.');
+    }
+    
+    if (!user) {
+      throw new Error('Not authenticated. Please sign in to update your profile.');
+    }
 
     return await profileService.updateProfile(user.id, updates);
   }

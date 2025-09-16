@@ -106,8 +106,21 @@ class ProfileService {
       .select()
       .single();
 
-    if (error) throw error;
-    if (!data) throw new Error('Failed to update profile');
+    if (error) {
+      console.error('Profile update error:', error);
+      // Provide more specific error messages
+      if (error.code === 'PGRST116') {
+        throw new Error('Profile not found or access denied. Please ensure you are signed in.');
+      }
+      if (error.message.includes('violates check constraint')) {
+        throw new Error('Invalid profile data. Please check your input and try again.');
+      }
+      throw new Error(`Failed to update profile: ${error.message}`);
+    }
+    
+    if (!data) {
+      throw new Error('Profile update failed. No data returned from server.');
+    }
 
     return data;
   }

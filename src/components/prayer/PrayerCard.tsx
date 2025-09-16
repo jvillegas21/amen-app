@@ -44,6 +44,7 @@ const PrayerCard: React.FC<PrayerCardProps> = (
   const displayName = isAnonymous ? 'Anonymous' : prayer.user?.display_name || 'User';
   const avatarUrl = isAnonymous ? null : prayer.user?.avatar_url;
 
+
   const handlePressIn = useCallback(() => {
     Animated.parallel([
       Animated.spring(scaleAnim, {
@@ -131,7 +132,9 @@ const PrayerCard: React.FC<PrayerCardProps> = (
                   <Text style={styles.separator}>•</Text>
                   <View style={styles.locationContainer}>
                     <Ionicons name="location-outline" size={12} color={theme.colors.neutral[400]} />
-                    <Text style={styles.locationText}>{prayer.location_city}</Text>
+                    <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">
+                      {prayer.location_city}
+                    </Text>
                   </View>
                 </>
               )}
@@ -297,6 +300,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   metaInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
   },
   timeText: {
     ...theme.typography.caption.medium,
@@ -310,11 +314,15 @@ const createStyles = (theme: any) => StyleSheet.create({
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    minWidth: 0,
   },
   locationText: {
     fontSize: 12,
     color: '#9CA3AF',
     marginLeft: 2,
+    flex: 1,
+    minWidth: 0,
   },
   headerRight: {
     flexDirection: 'row',

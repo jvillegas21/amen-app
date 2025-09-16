@@ -13,20 +13,14 @@ import { MainTabScreenProps } from '@/types/navigation.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth/authStore';
 
-interface TrendingTopic {
-  id: string;
-  title: string;
-  prayerCount: number;
-  category: string;
-}
 
 interface FeaturedPrayer {
   id: string;
   text: string;
   user: {
     id: string;
-    displayName: string;
-    avatarUrl?: string;
+    display_name: string;
+    avatar_url?: string;
   };
   location?: string;
   prayerCount: number;
@@ -43,17 +37,18 @@ interface Category {
 }
 
 /**
- * Discover Screen - Content discovery with trending topics and featured prayers
+ * Discover Screen - Content discovery with featured prayers and categories
  */
 const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }) => {
   const { profile } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'trending' | 'featured' | 'categories'>('trending');
+  const [activeTab, setActiveTab] = useState<'featured' | 'categories' | 'bible_studies'>('featured');
   
-  const [trendingTopics, setTrendingTopics] = useState<TrendingTopic[]>([]);
   const [featuredPrayers, setFeaturedPrayers] = useState<FeaturedPrayer[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [categoryPrayers, setCategoryPrayers] = useState<FeaturedPrayer[]>([]);
 
   useEffect(() => {
     fetchDiscoverData();
@@ -63,13 +58,6 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
     try {
       setIsLoading(true);
       // TODO: Implement real API calls
-      const mockTrendingTopics: TrendingTopic[] = [
-        { id: '550e8400-e29b-41d4-a716-446655440001', title: 'Healing', prayerCount: 1247, category: 'Health' },
-        { id: '550e8400-e29b-41d4-a716-446655440002', title: 'Family', prayerCount: 892, category: 'Relationships' },
-        { id: '550e8400-e29b-41d4-a716-446655440003', title: 'Peace', prayerCount: 756, category: 'Spiritual' },
-        { id: '550e8400-e29b-41d4-a716-446655440004', title: 'Guidance', prayerCount: 634, category: 'Spiritual' },
-        { id: '550e8400-e29b-41d4-a716-446655440005', title: 'Strength', prayerCount: 521, category: 'Spiritual' },
-      ];
 
       const mockFeaturedPrayers: FeaturedPrayer[] = [
         {
@@ -77,8 +65,8 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
           text: 'Please pray for my grandmother who is recovering from surgery. She needs strength and healing.',
           user: {
             id: '550e8400-e29b-41d4-a716-446655440011',
-            displayName: 'Sarah Johnson',
-            avatarUrl: 'https://via.placeholder.com/40',
+            display_name: 'Sarah Johnson',
+            avatar_url: 'https://via.placeholder.com/40',
           },
           location: 'Chicago, IL',
           prayerCount: 45,
@@ -90,8 +78,8 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
           text: 'Praying for peace in our community and for those who are struggling with difficult circumstances.',
           user: {
             id: '550e8400-e29b-41d4-a716-446655440012',
-            displayName: 'Michael Chen',
-            avatarUrl: 'https://via.placeholder.com/40',
+            display_name: 'Michael Chen',
+            avatar_url: 'https://via.placeholder.com/40',
           },
           location: 'Austin, TX',
           prayerCount: 32,
@@ -110,7 +98,6 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
         { id: '550e8400-e29b-41d4-a716-446655440007', name: 'AI Bible Studies', icon: 'library', color: '#7C3AED', prayerCount: 0 },
       ];
 
-      setTrendingTopics(mockTrendingTopics);
       setFeaturedPrayers(mockFeaturedPrayers);
       setCategories(mockCategories);
     } catch (error) {
@@ -127,21 +114,56 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
     }
   };
 
-  const handleTrendingTopicPress = (topic: TrendingTopic) => {
-    // Navigate to search with topic
-    navigation.navigate('Search', { query: topic.title });
-  };
 
   const handleFeaturedPrayerPress = (prayer: FeaturedPrayer) => {
     navigation.navigate('PrayerDetails', { prayerId: prayer.id });
   };
 
   const handleCategoryPress = (category: Category) => {
-    if (category.id === '7') { // AI Bible Studies
-      navigation.navigate('BibleStudySuggestions');
+    if (category.id === '550e8400-e29b-41d4-a716-446655440007') { // AI Bible Studies
+      navigation.navigate('BibleStudyList', {});
     } else {
-      // Navigate to search with category
-      navigation.navigate('Search', { query: category.name });
+      // Show prayers from this category
+      setSelectedCategory(category);
+      fetchCategoryPrayers(category);
+    }
+  };
+
+  const fetchCategoryPrayers = async (category: Category) => {
+    try {
+      // TODO: Implement real API call to get prayers by category
+      // For now, we'll show mock data
+      const mockCategoryPrayers: FeaturedPrayer[] = [
+        {
+          id: `cat-${category.id}-1`,
+          text: `Sample prayer for ${category.name.toLowerCase()}. This is a mock prayer request.`,
+          user: {
+            id: '550e8400-e29b-41d4-a716-446655440011',
+            display_name: 'Community Member',
+            avatar_url: 'https://via.placeholder.com/40',
+          },
+          location: 'Various',
+          prayerCount: Math.floor(Math.random() * 50) + 10,
+          commentCount: Math.floor(Math.random() * 20) + 5,
+          createdAt: '2 hours ago',
+        },
+        {
+          id: `cat-${category.id}-2`,
+          text: `Another prayer request related to ${category.name.toLowerCase()}.`,
+          user: {
+            id: '550e8400-e29b-41d4-a716-446655440012',
+            display_name: 'Prayer Warrior',
+            avatar_url: 'https://via.placeholder.com/40',
+          },
+          location: 'Various',
+          prayerCount: Math.floor(Math.random() * 50) + 10,
+          commentCount: Math.floor(Math.random() * 20) + 5,
+          createdAt: '4 hours ago',
+        },
+      ];
+      setCategoryPrayers(mockCategoryPrayers);
+    } catch (error) {
+      console.error('Failed to fetch category prayers:', error);
     }
   };
 
@@ -170,14 +192,6 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
   const renderTabBar = () => (
     <View style={styles.tabBar}>
       <TouchableOpacity
-        style={[styles.tab, activeTab === 'trending' && styles.activeTab]}
-        onPress={() => setActiveTab('trending')}
-      >
-        <Text style={[styles.tabText, activeTab === 'trending' && styles.activeTabText]}>
-          Trending
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
         style={[styles.tab, activeTab === 'featured' && styles.activeTab]}
         onPress={() => setActiveTab('featured')}
       >
@@ -193,25 +207,17 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
           Categories
         </Text>
       </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.tab, activeTab === 'bible_studies' && styles.activeTab]}
+        onPress={() => setActiveTab('bible_studies')}
+      >
+        <Text style={[styles.tabText, activeTab === 'bible_studies' && styles.activeTabText]}>
+          Bible Studies
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 
-  const renderTrendingTopic = ({ item }: { item: TrendingTopic }) => (
-    <TouchableOpacity
-      style={styles.trendingItem}
-      onPress={() => handleTrendingTopicPress(item)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.trendingContent}>
-        <Text style={styles.trendingTitle}>{item.title}</Text>
-        <Text style={styles.trendingCategory}>{item.category}</Text>
-      </View>
-      <View style={styles.trendingStats}>
-        <Ionicons name="heart" size={16} color="theme.colors.error[700]" />
-        <Text style={styles.trendingCount}>{item.prayerCount}</Text>
-      </View>
-    </TouchableOpacity>
-  );
 
   const renderFeaturedPrayer = ({ item }: { item: FeaturedPrayer }) => (
     <TouchableOpacity
@@ -225,9 +231,11 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
             <Ionicons name="person" size={20} color="#6B7280" />
           </View>
           <View style={styles.userDetails}>
-            <Text style={styles.userName}>{item.user.displayName}</Text>
+            <Text style={styles.userName}>{item.user.display_name}</Text>
             {item.location && (
-              <Text style={styles.location}>{item.location}</Text>
+              <Text style={styles.location} numberOfLines={1} ellipsizeMode="tail">
+                {item.location}
+              </Text>
             )}
           </View>
         </View>
@@ -279,16 +287,6 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
     }
 
     switch (activeTab) {
-      case 'trending':
-        return (
-          <FlatList
-            data={trendingTopics}
-            renderItem={renderTrendingTopic}
-            keyExtractor={(item) => item.id}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContainer}
-          />
-        );
       case 'featured':
         return (
           <FlatList
@@ -300,14 +298,88 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
           />
         );
       case 'categories':
+        if (selectedCategory) {
+          return (
+            <View style={styles.categoryContent}>
+              <View style={styles.categoryHeader}>
+                <TouchableOpacity
+                  style={styles.backToCategories}
+                  onPress={() => setSelectedCategory(null)}
+                >
+                  <Ionicons name="arrow-back" size={20} color="#5B21B6" />
+                  <Text style={styles.backToCategoriesText}>Back to Categories</Text>
+                </TouchableOpacity>
+                <Text style={styles.categoryTitle}>{selectedCategory.name}</Text>
+                <Text style={styles.categorySubtitle}>
+                  {selectedCategory.prayerCount} prayers in this category
+                </Text>
+              </View>
+              <FlatList
+                data={categoryPrayers}
+                renderItem={renderFeaturedPrayer}
+                keyExtractor={(item) => item.id}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.listContainer}
+              />
+            </View>
+          );
+        } else {
+          return (
+            <FlatList
+              data={categories}
+              renderItem={renderCategory}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.listContainer}
+            />
+          );
+        }
+      case 'bible_studies':
         return (
-          <FlatList
-            data={categories}
-            renderItem={renderCategory}
-            keyExtractor={(item) => item.id}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContainer}
-          />
+          <View style={styles.bibleStudiesContainer}>
+            <View style={styles.bibleStudiesHeader}>
+              <Text style={styles.bibleStudiesTitle}>Explore Bible Studies</Text>
+              <Text style={styles.bibleStudiesSubtitle}>
+                Discover AI-powered Bible studies and spiritual insights
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.bibleStudiesButton}
+              onPress={() => navigation.navigate('BibleStudyList', {})}
+              activeOpacity={0.7}
+            >
+              <View style={styles.bibleStudiesButtonContent}>
+                <View style={styles.bibleStudiesIcon}>
+                  <Ionicons name="library" size={32} color="#FFFFFF" />
+                </View>
+                <View style={styles.bibleStudiesButtonText}>
+                  <Text style={styles.bibleStudiesButtonTitle}>Browse All Studies</Text>
+                  <Text style={styles.bibleStudiesButtonSubtitle}>
+                    View featured, recent, and your studies
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.bibleStudiesButton}
+              onPress={() => navigation.navigate('CreateBibleStudy', {})}
+              activeOpacity={0.7}
+            >
+              <View style={styles.bibleStudiesButtonContent}>
+                <View style={[styles.bibleStudiesIcon, { backgroundColor: '#D97706' }]}>
+                  <Ionicons name="add" size={32} color="#FFFFFF" />
+                </View>
+                <View style={styles.bibleStudiesButtonText}>
+                  <Text style={styles.bibleStudiesButtonTitle}>Create New Study</Text>
+                  <Text style={styles.bibleStudiesButtonSubtitle}>
+                    Start a new Bible study with AI insights
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+              </View>
+            </TouchableOpacity>
+          </View>
         );
       default:
         return null;
@@ -392,43 +464,6 @@ const styles = StyleSheet.create({
   listContainer: {
     padding: 16,
   },
-  trendingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  trendingContent: {
-    flex: 1,
-  },
-  trendingTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 2,
-  },
-  trendingCategory: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  trendingStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  trendingCount: {
-    marginLeft: 4,
-    fontSize: 14,
-    fontWeight: '500',
-    color: 'theme.colors.error[700]',
-  },
   featuredItem: {
     backgroundColor: '#FFFFFF',
     padding: 16,
@@ -472,6 +507,8 @@ const styles = StyleSheet.create({
   location: {
     fontSize: 14,
     color: '#6B7280',
+    flex: 1,
+    minWidth: 0,
   },
   timeAgo: {
     fontSize: 14,
@@ -529,6 +566,94 @@ const styles = StyleSheet.create({
   },
   categoryCount: {
     fontSize: 14,
+    color: '#6B7280',
+  },
+  bibleStudiesContainer: {
+    padding: 16,
+  },
+  bibleStudiesHeader: {
+    marginBottom: 24,
+  },
+  bibleStudiesTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  bibleStudiesSubtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    lineHeight: 24,
+  },
+  bibleStudiesButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  bibleStudiesButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  bibleStudiesIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#5B21B6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  bibleStudiesButtonText: {
+    flex: 1,
+  },
+  bibleStudiesButtonTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  bibleStudiesButtonSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+  },
+  categoryContent: {
+    flex: 1,
+  },
+  categoryHeader: {
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  backToCategories: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  backToCategoriesText: {
+    fontSize: 16,
+    color: '#5B21B6',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  categoryTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  categorySubtitle: {
+    fontSize: 16,
     color: '#6B7280',
   },
 });

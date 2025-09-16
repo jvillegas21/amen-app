@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { ProfileStackScreenProps } from '@/types/navigation.types';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,7 +26,7 @@ interface UserStats {
  * My Profile Screen - User profile with stats and quick actions
  */
 const MyProfileScreen: React.FC<ProfileStackScreenProps<'MyProfile'>> = ({ navigation }) => {
-  const { profile } = useAuthStore();
+  const { profile, signOut } = useAuthStore();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -54,7 +55,8 @@ const MyProfileScreen: React.FC<ProfileStackScreenProps<'MyProfile'>> = ({ navig
   };
 
   const handleEditProfile = () => {
-    navigation.navigate('EditProfile');
+    // Navigate to Settings and open Edit Profile modal
+    navigation.getParent()?.navigate('Settings');
   };
 
   const handleViewFollowers = () => {
@@ -77,6 +79,26 @@ const MyProfileScreen: React.FC<ProfileStackScreenProps<'MyProfile'>> = ({ navig
     navigation.navigate('Statistics');
   };
 
+  const handleSettings = () => {
+    // Navigate to Settings in the root stack
+    navigation.getParent()?.navigate('Settings');
+  };
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: signOut,
+        },
+      ]
+    );
+  };
+
   const renderProfileHeader = () => (
     <View style={styles.profileHeader}>
       <View style={styles.avatarContainer}>
@@ -89,12 +111,14 @@ const MyProfileScreen: React.FC<ProfileStackScreenProps<'MyProfile'>> = ({ navig
       </View>
       
       <View style={styles.profileInfo}>
-        <Text style={styles.displayName}>{profile?.displayName || 'User'}</Text>
+        <Text style={styles.displayName}>{profile?.display_name || 'User'}</Text>
         <Text style={styles.bio}>{profile?.bio || 'No bio yet'}</Text>
-        {profile?.location && (
+        {profile?.location_city && (
           <View style={styles.locationContainer}>
             <Ionicons name="location" size={16} color="#6B7280" />
-            <Text style={styles.location}>{profile.location}</Text>
+            <Text style={styles.location} numberOfLines={1} ellipsizeMode="tail">
+              {profile.location_city}
+            </Text>
           </View>
         )}
       </View>
@@ -164,11 +188,18 @@ const MyProfileScreen: React.FC<ProfileStackScreenProps<'MyProfile'>> = ({ navig
           <Text style={styles.quickActionText}>Saved Prayers</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.quickAction}>
+        <TouchableOpacity style={styles.quickAction} onPress={handleSettings}>
           <View style={styles.quickActionIcon}>
             <Ionicons name="settings-outline" size={24} color="#6B7280" />
           </View>
           <Text style={styles.quickActionText}>Settings</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.quickAction} onPress={handleSignOut}>
+          <View style={styles.quickActionIcon}>
+            <Ionicons name="log-out-outline" size={24} color="#EF4444" />
+          </View>
+          <Text style={[styles.quickActionText, { color: '#EF4444' }]}>Sign Out</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -263,11 +294,15 @@ const styles = StyleSheet.create({
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    minWidth: 0,
   },
   location: {
     marginLeft: 4,
     fontSize: 14,
     color: '#6B7280',
+    flex: 1,
+    minWidth: 0,
   },
   statsContainer: {
     flexDirection: 'row',

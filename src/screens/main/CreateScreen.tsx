@@ -29,13 +29,11 @@ const CreateScreen: React.FC<MainTabScreenProps<'Create'>> = ({ navigation }) =>
   };
 
   const handleCreateBibleStudy = () => {
-    // TODO: Implement Bible study creation
-    Alert.alert('Coming Soon', 'Bible study creation will be available soon');
+    navigation.navigate('CreateBibleStudy', {});
   };
 
   const handleCreateEvent = () => {
-    // TODO: Implement prayer event creation
-    Alert.alert('Coming Soon', 'Prayer event creation will be available soon');
+    navigation.navigate('CreateEvent', {});
   };
 
   const handleCreatePoll = () => {
@@ -101,7 +99,7 @@ const CreateScreen: React.FC<MainTabScreenProps<'Create'>> = ({ navigation }) =>
           onPress={handleCreateGroup}
           activeOpacity={0.7}
         >
-          <View style={[styles.quickActionIcon, { backgroundColor: 'theme.colors.success[700]' }]}>
+          <View style={[styles.quickActionIcon, { backgroundColor: '#059669' }]}>
             <Ionicons name="people" size={24} color="#FFFFFF" />
           </View>
           <Text style={styles.quickActionText}>Group</Text>
@@ -112,8 +110,8 @@ const CreateScreen: React.FC<MainTabScreenProps<'Create'>> = ({ navigation }) =>
           onPress={handleCreateBibleStudy}
           activeOpacity={0.7}
         >
-          <View style={[styles.quickActionIcon, { backgroundColor: 'theme.colors.warning[700]' }]}>
-            <Ionicons name="book" size={24} color="#FFFFFF" />
+          <View style={[styles.quickActionIcon, { backgroundColor: '#D97706' }]}>
+            <Ionicons name="library" size={24} color="#FFFFFF" />
           </View>
           <Text style={styles.quickActionText}>Study</Text>
         </TouchableOpacity>
@@ -123,8 +121,8 @@ const CreateScreen: React.FC<MainTabScreenProps<'Create'>> = ({ navigation }) =>
           onPress={handleCreateEvent}
           activeOpacity={0.7}
         >
-          <View style={[styles.quickActionIcon, { backgroundColor: 'theme.colors.error[700]' }]}>
-            <Ionicons name="calendar" size={24} color="#FFFFFF" />
+          <View style={[styles.quickActionIcon, { backgroundColor: '#DC2626' }]}>
+            <Ionicons name="calendar-outline" size={24} color="#FFFFFF" />
           </View>
           <Text style={styles.quickActionText}>Event</Text>
         </TouchableOpacity>
@@ -148,26 +146,24 @@ const CreateScreen: React.FC<MainTabScreenProps<'Create'>> = ({ navigation }) =>
         'Prayer Group',
         'Create a group for focused prayer',
         'people-outline',
-        'theme.colors.success[700]',
+        '#059669',
         handleCreateGroup
       )}
 
       {renderCreateOption(
         'Bible Study',
         'Create a Bible study with AI insights',
-        'book-outline',
-        'theme.colors.warning[700]',
-        handleCreateBibleStudy,
-        false
+        'library-outline',
+        '#D97706',
+        handleCreateBibleStudy
       )}
 
       {renderCreateOption(
         'Prayer Event',
         'Schedule a group prayer session',
         'calendar-outline',
-        'theme.colors.error[700]',
-        handleCreateEvent,
-        false
+        '#DC2626',
+        handleCreateEvent
       )}
 
       {renderCreateOption(

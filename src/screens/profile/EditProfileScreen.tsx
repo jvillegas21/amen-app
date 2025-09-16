@@ -21,7 +21,7 @@ import * as ImagePicker from 'expo-image-picker';
 interface ProfileFormData {
   display_name: string;
   bio: string;
-  location: string;
+  location_city: string;
   avatar_url?: string;
 }
 
@@ -34,7 +34,7 @@ const EditProfileScreen: React.FC<ProfileStackScreenProps<'EditProfile'>> = ({ n
   const [formData, setFormData] = useState<ProfileFormData>({
     display_name: '',
     bio: '',
-    location: '',
+    location_city: '',
     avatar_url: undefined,
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -45,7 +45,7 @@ const EditProfileScreen: React.FC<ProfileStackScreenProps<'EditProfile'>> = ({ n
       setFormData({
         display_name: profile.display_name || '',
         bio: profile.bio || '',
-        location: profile.location || '',
+        location_city: profile.location_city || '',
         avatar_url: profile.avatar_url,
       });
     }
@@ -92,7 +92,7 @@ const EditProfileScreen: React.FC<ProfileStackScreenProps<'EditProfile'>> = ({ n
       await updateProfile({
         display_name: formData.display_name.trim(),
         bio: formData.bio.trim(),
-        location: formData.location.trim(),
+        location_city: formData.location_city.trim(),
         avatar_url: formData.avatar_url,
       });
       
@@ -198,14 +198,14 @@ const EditProfileScreen: React.FC<ProfileStackScreenProps<'EditProfile'>> = ({ n
         <Text style={styles.inputLabel}>Location</Text>
         <TextInput
           style={styles.textInput}
-          value={formData.location}
-          onChangeText={(value) => handleInputChange('location', value)}
+          value={formData.location_city}
+          onChangeText={(value) => handleInputChange('location_city', value)}
           placeholder="City, State/Country"
           placeholderTextColor="#9CA3AF"
           maxLength={100}
         />
         <Text style={styles.characterCount}>
-          {formData.location.length}/100
+          {formData.location_city.length}/100
         </Text>
       </View>
     </View>

@@ -44,7 +44,6 @@ class GroupService {
           *,
           user:profiles!user_id(*)
         ),
-        member_count:group_members(count),
         prayer_count:prayers(count)
       `)
       .eq('id', groupId)
@@ -53,10 +52,13 @@ class GroupService {
     if (error) throw error;
     if (!data) throw new Error('Group not found');
     
+    // Get actual member count by counting the members array
+    const memberCount = data.members ? data.members.length : 0;
+    
     // Fix count aggregations - Supabase returns {count: number} objects
     return {
       ...data,
-      member_count: typeof data.member_count === 'object' ? data.member_count?.count || 0 : data.member_count || 0,
+      member_count: memberCount,
       prayer_count: typeof data.prayer_count === 'object' ? data.prayer_count?.count || 0 : data.prayer_count || 0,
     };
   }
@@ -91,12 +93,10 @@ class GroupService {
     // Add creator as admin member
     await this.addMember(data.id, user.id, 'admin');
 
-    // Fix count aggregations - Supabase returns {count: number} objects
-    return {
-      ...data,
-      member_count: typeof data.member_count === 'object' ? data.member_count?.count || 0 : data.member_count || 0,
-      prayer_count: typeof data.prayer_count === 'object' ? data.prayer_count?.count || 0 : data.prayer_count || 0,
-    };
+    // Fetch the group again to get the updated member count
+    const updatedGroup = await this.getGroup(data.id);
+
+    return updatedGroup;
   }
 
   /**
@@ -112,7 +112,9 @@ class GroupService {
       .eq('id', groupId)
       .select(`
         *,
-        member_count:group_members(count),
+        members:group_members(
+          *
+        ),
         prayer_count:prayers(count)
       `)
       .single();
@@ -120,10 +122,13 @@ class GroupService {
     if (error) throw error;
     if (!data) throw new Error('Failed to update group');
     
+    // Get actual member count by counting the members array
+    const memberCount = data.members ? data.members.length : 0;
+    
     // Fix count aggregations - Supabase returns {count: number} objects
     return {
       ...data,
-      member_count: typeof data.member_count === 'object' ? data.member_count?.count || 0 : data.member_count || 0,
+      member_count: memberCount,
       prayer_count: typeof data.prayer_count === 'object' ? data.prayer_count?.count || 0 : data.prayer_count || 0,
     };
   }

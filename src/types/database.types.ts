@@ -334,17 +334,29 @@ export interface PrayerReminder {
 export interface CreatePrayerRequest {
   text: string;
   privacy_level: 'public' | 'friends' | 'groups' | 'private';
-  location?: {
-    city?: string;
-    lat?: number;
-    lon?: number;
-    granularity: 'hidden' | 'city' | 'precise';
-  };
+  location_city?: string;
+  location_lat?: number;
+  location_lon?: number;
+  location_granularity?: 'hidden' | 'city' | 'precise';
   group_id?: string;
   is_anonymous?: boolean;
   tags?: string[];
   images?: string[];
   scheduled_for?: string;
+}
+
+export interface UpdatePrayerRequest {
+  text?: string;
+  privacy_level?: 'public' | 'friends' | 'groups' | 'private';
+  location_city?: string;
+  location_lat?: number;
+  location_lon?: number;
+  location_granularity?: 'hidden' | 'city' | 'precise';
+  group_id?: string;
+  is_anonymous?: boolean;
+  tags?: string[];
+  images?: string[];
+  status?: 'open' | 'answered' | 'closed';
 }
 
 export interface PrayerInteractionRequest {

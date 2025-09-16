@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Prayer } from '@/types/database.types';
+import { Prayer, UpdatePrayerRequest } from '@/types/database.types';
 import { prayerService } from '@/services/api/prayerService';
 import { prayerRealtimeService } from '@/services/realtime/prayerRealtimeService';
 import { offlineService } from '@/services/offline/offlineService';
@@ -24,7 +24,7 @@ interface PrayerState {
   refreshPrayers: (feedType: 'following' | 'discover') => Promise<void>;
   loadMorePrayers: (feedType: 'following' | 'discover') => Promise<void>;
   createPrayer: (prayer: any) => Promise<Prayer>;
-  updatePrayer: (prayerId: string, updates: Partial<Prayer>) => Promise<void>;
+  updatePrayer: (prayerId: string, updates: UpdatePrayerRequest) => Promise<void>;
   deletePrayer: (prayerId: string) => Promise<void>;
   interactWithPrayer: (prayerId: string, type: 'PRAY' | 'LIKE' | 'SHARE' | 'SAVE') => Promise<void>;
   clearError: () => void;
@@ -178,7 +178,7 @@ export const usePrayerStore = create<PrayerState>((set: any, get: any) => ({
   },
 
   // Update Prayer
-  updatePrayer: async (prayerId: string, updates: Partial<Prayer>) => {
+  updatePrayer: async (prayerId: string, updates: UpdatePrayerRequest) => {
     set({ isLoading: true, error: null });
     
     try {
@@ -195,6 +195,7 @@ export const usePrayerStore = create<PrayerState>((set: any, get: any) => ({
         error: error instanceof Error ? error.message : 'Failed to update prayer',
         isLoading: false,
       });
+      throw error;
     }
   },
 

@@ -26,7 +26,7 @@ const SignUpScreen: React.FC<AuthStackScreenProps<'SignUp'>> = ({ navigation }) 
   const { signUp, signInWithGoogle, signInWithApple, isLoading, error, clearError } = useAuthStore();
   
   const [formData, setFormData] = useState({
-    displayName: '',
+    display_name: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -40,9 +40,9 @@ const SignUpScreen: React.FC<AuthStackScreenProps<'SignUp'>> = ({ navigation }) 
   };
 
   const validateForm = () => {
-    const { displayName, email, password, confirmPassword } = formData;
+    const { display_name, email, password, confirmPassword } = formData;
 
-    if (!displayName.trim()) {
+    if (!display_name.trim()) {
       Alert.alert('Error', 'Please enter your display name');
       return false;
     }
@@ -85,7 +85,7 @@ const SignUpScreen: React.FC<AuthStackScreenProps<'SignUp'>> = ({ navigation }) 
 
     try {
       clearError();
-      await signUp(formData.email.trim(), formData.password, formData.displayName.trim());
+      await signUp(formData.email.trim(), formData.password, formData.display_name.trim());
       // Navigation to verification screen will be handled by the auth flow
     } catch (error) {
       // Error is handled by the store
@@ -169,8 +169,8 @@ const SignUpScreen: React.FC<AuthStackScreenProps<'SignUp'>> = ({ navigation }) 
                 <Text style={styles.inputLabel}>Display Name</Text>
                 <TextInput
                   style={styles.input}
-                  value={formData.displayName}
-                  onChangeText={(value) => handleInputChange('displayName', value)}
+                  value={formData.display_name}
+                  onChangeText={(value) => handleInputChange('display_name', value)}
                   placeholder="Enter your display name"
                   placeholderTextColor="#9CA3AF"
                   autoCapitalize="words"
