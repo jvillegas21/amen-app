@@ -72,7 +72,7 @@ const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ na
   }, [prayerText, isConfigured]);
 
   const generateBibleStudySuggestions = async () => {
-    if (prayerText.length < 20 || !isConfigured) return;
+    if (prayerText.length < 20 || !isConfigured || !profile?.id) return;
 
     try {
       // Generate a temporary prayer ID for suggestions

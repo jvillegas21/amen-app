@@ -26,9 +26,9 @@ const ProfileSetupScreen: React.FC<AuthStackScreenProps<'ProfileSetup'>> = ({ na
   const { updateProfile, isLoading, error, clearError } = useAuthStore();
   
   const [formData, setFormData] = useState({
-    displayName: '',
+    display_name: '',
     bio: '',
-    location: '',
+    location_city: '',
   });
   const [avatar, setAvatar] = useState<string | null>(null);
 
@@ -54,7 +54,7 @@ const ProfileSetupScreen: React.FC<AuthStackScreenProps<'ProfileSetup'>> = ({ na
   };
 
   const handleContinue = async () => {
-    if (!formData.displayName.trim()) {
+    if (!formData.display_name.trim()) {
       Alert.alert('Error', 'Please enter your display name');
       return;
     }
@@ -62,9 +62,9 @@ const ProfileSetupScreen: React.FC<AuthStackScreenProps<'ProfileSetup'>> = ({ na
     try {
       clearError();
       await updateProfile({
-        display_name: formData.displayName.trim(),
+        display_name: formData.display_name.trim(),
         bio: formData.bio.trim() || undefined,
-        location_city: formData.location.trim() || undefined,
+        location_city: formData.location_city.trim() || undefined,
         avatar_url: avatar || undefined,
       });
       navigation.navigate('LocationPermission');
@@ -121,8 +121,8 @@ const ProfileSetupScreen: React.FC<AuthStackScreenProps<'ProfileSetup'>> = ({ na
                 <Text style={styles.inputLabel}>Display Name *</Text>
                 <TextInput
                   style={styles.input}
-                  value={formData.displayName}
-                  onChangeText={(value) => handleInputChange('displayName', value)}
+                  value={formData.display_name}
+                  onChangeText={(value) => handleInputChange('display_name', value)}
                   placeholder="How should others see you?"
                   placeholderTextColor="#9CA3AF"
                   autoCapitalize="words"
@@ -153,8 +153,8 @@ const ProfileSetupScreen: React.FC<AuthStackScreenProps<'ProfileSetup'>> = ({ na
                 <Text style={styles.inputLabel}>Location (Optional)</Text>
                 <TextInput
                   style={styles.input}
-                  value={formData.location}
-                  onChangeText={(value) => handleInputChange('location', value)}
+                  value={formData.location_city}
+                  onChangeText={(value) => handleInputChange('location_city', value)}
                   placeholder="City, State"
                   placeholderTextColor="#9CA3AF"
                   autoCapitalize="words"

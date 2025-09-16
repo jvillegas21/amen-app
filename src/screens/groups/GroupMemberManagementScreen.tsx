@@ -12,10 +12,11 @@ import {
   RefreshControl,
   TextInput,
 } from 'react-native';
-import { GroupsStackScreenProps } from '@/types/navigation.types';
+import { RootStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
+import UserAvatar from '@/components/common/UserAvatar';
 
 interface GroupMember {
   id: string;
@@ -34,7 +35,7 @@ interface GroupMember {
  * Group Member Management Screen - Manage group members and roles
  * Based on manage_group_members mockups
  */
-const GroupMemberManagementScreen: React.FC<GroupsStackScreenProps<'GroupMembers'>> = ({ navigation, route }) => {
+const GroupMemberManagementScreen: React.FC<RootStackScreenProps<'GroupMemberManagement'>> = ({ navigation, route }) => {
   const { groupId } = route.params;
   const { profile } = useAuthStore();
   const [members, setMembers] = useState<GroupMember[]>([]);
@@ -57,7 +58,7 @@ const GroupMemberManagementScreen: React.FC<GroupsStackScreenProps<'GroupMembers
           id: '1',
           user_id: 'user1',
           user_display_name: 'John Smith',
-          user_avatar_url: 'https://via.placeholder.com/40',
+          user_avatar_url: null,
           role: 'admin',
           joined_at: new Date(Date.now() - 2592000000).toISOString(),
         },
@@ -65,7 +66,7 @@ const GroupMemberManagementScreen: React.FC<GroupsStackScreenProps<'GroupMembers
           id: '2',
           user_id: 'user2',
           user_display_name: 'Sarah Johnson',
-          user_avatar_url: 'https://via.placeholder.com/40',
+          user_avatar_url: null,
           role: 'moderator',
           joined_at: new Date(Date.now() - 1728000000).toISOString(),
         },
@@ -73,7 +74,7 @@ const GroupMemberManagementScreen: React.FC<GroupsStackScreenProps<'GroupMembers
           id: '3',
           user_id: 'user3',
           user_display_name: 'Mike Wilson',
-          user_avatar_url: 'https://via.placeholder.com/40',
+          user_avatar_url: null,
           role: 'member',
           joined_at: new Date(Date.now() - 864000000).toISOString(),
         },
@@ -81,7 +82,7 @@ const GroupMemberManagementScreen: React.FC<GroupsStackScreenProps<'GroupMembers
           id: '4',
           user_id: 'user4',
           user_display_name: 'Emily Chen',
-          user_avatar_url: 'https://via.placeholder.com/40',
+          user_avatar_url: null,
           role: 'member',
           joined_at: new Date(Date.now() - 432000000).toISOString(),
         },
@@ -89,7 +90,7 @@ const GroupMemberManagementScreen: React.FC<GroupsStackScreenProps<'GroupMembers
           id: '5',
           user_id: 'user5',
           user_display_name: 'David Rodriguez',
-          user_avatar_url: 'https://via.placeholder.com/40',
+          user_avatar_url: null,
           role: 'member',
           joined_at: new Date(Date.now() - 216000000).toISOString(),
         },
@@ -195,8 +196,9 @@ const GroupMemberManagementScreen: React.FC<GroupsStackScreenProps<'GroupMembers
     <View key={member.id} style={styles.memberItem}>
       <View style={styles.memberContent}>
         <View style={styles.avatarContainer}>
-          <Image
-            source={{ uri: member.user_avatar_url || 'https://via.placeholder.com/40' }}
+          <UserAvatar
+            avatarUrl={member.user_avatar_url}
+            size={48}
             style={styles.avatar}
           />
           {/* Online indicator would need to be calculated from profiles.last_active */}

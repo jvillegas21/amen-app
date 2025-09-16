@@ -141,12 +141,14 @@ class LocationService {
   ): Promise<PrayerLocation[]> {
     try {
       const { data, error } = await supabase
-        .from('prayer_locations')
+        .from('prayers')
         .select(`
           *,
-          prayer:prayers!prayer_id(*)
+          user:profiles!user_id(display_name, avatar_url)
         `)
-        .not('granularity', 'eq', 'hidden')
+        .not('location_granularity', 'eq', 'hidden')
+        .not('location_lat', 'is', null)
+        .not('location_lon', 'is', null)
         .limit(limit);
 
       if (error) throw error;
@@ -308,14 +310,12 @@ class LocationService {
   ): Promise<void> {
     try {
       const { error } = await supabase
-        .from('user_location_preferences')
-        .upsert({
-          user_id: userId,
-          share_location: preference.shareLocation,
-          granularity: preference.granularity,
-          allow_nearby_discovery: preference.allowNearbyDiscovery,
+        .from('profiles')
+        .update({
+          location_granularity: preference.granularity,
           updated_at: new Date().toISOString(),
-        });
+        })
+        .eq('id', userId);
 
       if (error) throw error;
     } catch (error) {
@@ -334,18 +334,18 @@ class LocationService {
   } | null> {
     try {
       const { data, error } = await supabase
-        .from('user_location_preferences')
-        .select('*')
-        .eq('user_id', userId)
+        .from('profiles')
+        .select('location_granularity')
+        .eq('id', userId)
         .single();
 
       if (error && error.code !== 'PGRST116') throw error;
       if (!data) return null;
 
       return {
-        shareLocation: data.share_location,
-        granularity: data.granularity,
-        allowNearbyDiscovery: data.allow_nearby_discovery,
+        shareLocation: data.location_granularity !== 'hidden',
+        granularity: data.location_granularity,
+        allowNearbyDiscovery: data.location_granularity !== 'hidden',
       };
     } catch (error) {
       console.error('Error getting location preference:', error);

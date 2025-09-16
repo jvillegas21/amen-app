@@ -32,9 +32,6 @@ const MainNavigator: React.FC = () => {
             case 'Discover':
               iconName = focused ? 'compass' : 'compass-outline';
               break;
-            case 'Search':
-              iconName = focused ? 'search' : 'search-outline';
-              break;
             case 'Create':
               iconName = focused ? 'add-circle' : 'add-circle-outline';
               break;
@@ -87,7 +84,7 @@ const MainNavigator: React.FC = () => {
           tabBarAccessibilityLabel: 'Home, tab 1 of 4',
           headerRight: () => (
             <TouchableOpacity
-              onPress={() => navigation.navigate('Search')}
+              onPress={() => navigation.getParent()?.navigate('Search')}
               style={{ marginRight: theme.spacing[4] }}
               accessibilityLabel="Search"
               accessibilityRole="button"
@@ -116,10 +113,10 @@ const MainNavigator: React.FC = () => {
         name="Create"
         component={CreateScreen}
         options={{
-          title: 'Create Prayer',
+          title: 'Create',
           headerShown: true,
           tabBarLabel: '',
-          tabBarAccessibilityLabel: 'Create prayer',
+          tabBarAccessibilityLabel: 'Create content',
         }}
       />
       <Tab.Screen

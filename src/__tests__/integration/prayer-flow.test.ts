@@ -38,12 +38,10 @@ describe('Prayer Flow Integration Tests', () => {
       const createRequest: CreatePrayerRequest = {
         text: 'Please pray for my family during this difficult time',
         privacy_level: 'public',
-        location: {
-          city: 'New York',
-          lat: 40.7128,
-          lon: -74.0060,
-          granularity: 'city',
-        },
+        location_city: 'New York',
+        location_lat: 40.7128,
+        location_lon: -74.0060,
+        location_granularity: 'city',
         tags: ['family', 'health'],
       };
 
@@ -110,12 +108,10 @@ describe('Prayer Flow Integration Tests', () => {
         is_anonymous: true,
         tags: ['guidance', 'wisdom'],
         images: ['image1.jpg', 'image2.jpg'],
-        location: {
-          city: 'Los Angeles',
-          lat: 34.0522,
-          lon: -118.2437,
-          granularity: 'precise',
-        },
+        location_city: 'Los Angeles',
+        location_lat: 34.0522,
+        location_lon: -118.2437,
+        location_granularity: 'precise',
       };
 
       const mockCreatedPrayer: Prayer = {

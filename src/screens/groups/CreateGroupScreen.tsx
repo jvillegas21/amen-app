@@ -75,6 +75,11 @@ const CreateGroupScreen: React.FC<RootStackScreenProps<'CreateGroup'>> = ({ navi
     return true;
   };
 
+  const isFormValid = () => {
+    return formData.name.trim().length >= 3 && 
+           formData.description.length <= 1000;
+  };
+
   const handleCreateGroup = async () => {
     if (!validateForm()) return;
 
@@ -144,25 +149,21 @@ const CreateGroupScreen: React.FC<RootStackScreenProps<'CreateGroup'>> = ({ navi
     </TouchableOpacity>
   );
 
+  const renderSubtitle = () => (
+    <View style={styles.subtitleContainer}>
+      <Text style={styles.subtitleText}>Create a community for shared prayers</Text>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView 
         style={styles.keyboardAvoid}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        {renderSubtitle()}
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <View style={styles.content}>
-            {/* Header */}
-            <View style={styles.header}>
-              <TouchableOpacity 
-                style={styles.backButton}
-                onPress={() => navigation.goBack()}
-              >
-                <Ionicons name="arrow-back" size={24} color="#111827" />
-              </TouchableOpacity>
-              <Text style={styles.title}>Create Group</Text>
-              <View style={styles.placeholder} />
-            </View>
 
             {/* Avatar Section */}
             <View style={styles.avatarSection}>
@@ -269,20 +270,31 @@ const CreateGroupScreen: React.FC<RootStackScreenProps<'CreateGroup'>> = ({ navi
               </View>
             </View>
 
-            {/* Create Button */}
-            <TouchableOpacity
-              style={[styles.createButton, isLoading && styles.createButtonDisabled]}
-              onPress={handleCreateGroup}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <Text style={styles.createButtonText}>Create Group</Text>
-              )}
-            </TouchableOpacity>
           </View>
         </ScrollView>
+        
+        {/* Floating Create Button */}
+        <View style={styles.floatingButtonContainer}>
+          <TouchableOpacity
+            style={[
+              styles.floatingButton,
+              (!isFormValid() || isLoading) && styles.floatingButtonDisabled
+            ]}
+            onPress={handleCreateGroup}
+            disabled={!isFormValid() || isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={[
+                styles.floatingButtonText,
+                (!isFormValid() || isLoading) && styles.floatingButtonTextDisabled
+              ]}>
+                Create Group
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -296,6 +308,17 @@ const styles = StyleSheet.create({
   keyboardAvoid: {
     flex: 1,
   },
+  subtitleContainer: {
+    backgroundColor: '#059669',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  subtitleText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
   scrollView: {
     flex: 1,
   },
@@ -303,27 +326,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 20,
   },
-  header: {
-    flexDirection: 'row',
+  floatingButtonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    paddingBottom: 34, // Safe area for home indicator
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  floatingButton: {
+    backgroundColor: '#059669',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 32,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
+  floatingButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
+  floatingButtonDisabled: {
+    backgroundColor: '#9CA3AF',
   },
-  placeholder: {
-    width: 40,
+  floatingButtonTextDisabled: {
+    color: '#FFFFFF',
   },
   avatarSection: {
     alignItems: 'center',
@@ -468,21 +516,6 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     backgroundColor: '#5B21B6',
-  },
-  createButton: {
-    height: 56,
-    backgroundColor: '#5B21B6',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  createButtonDisabled: {
-    backgroundColor: '#9CA3AF',
-  },
-  createButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
 

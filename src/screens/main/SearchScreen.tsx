@@ -14,13 +14,13 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { MainTabScreenProps } from '@/types/navigation.types';
+import { RootStackScreenProps } from '@/types/navigation.types';
 import { searchService, SearchSuggestion, SearchFilters } from '@/services/search/searchService';
 import { Prayer, Profile, Group } from '@/types/database.types';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/theme';
 
-interface SearchScreenProps extends MainTabScreenProps<'Search'> {}
+interface SearchScreenProps extends RootStackScreenProps<'Search'> {}
 
 type SearchTab = 'prayers' | 'users' | 'groups';
 type SearchResult = Prayer | Profile | Group;

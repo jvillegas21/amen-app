@@ -1,9 +1,8 @@
 import { supabase } from '@/config/supabase';
-import { Prayer, CreatePrayerRequest, PrayerInteractionRequest, PrayerReminder } from '@/types/database.types';
+import { Prayer, CreatePrayerRequest, UpdatePrayerRequest, PrayerInteractionRequest, PrayerReminder } from '@/types/database.types';
 import { PrayerRepository } from '@/repositories/prayer.repository';
 import { InteractionRepository } from '@/repositories/interaction.repository';
 import { ErrorTransformationService } from '@/services/errorTransformationService';
-import { RepositoryFactory } from '@/repositories/base.repository';
 
 /**
  * Prayer Service - Manages prayer-related API operations
@@ -14,8 +13,9 @@ class PrayerService {
   private interactionRepository: InteractionRepository;
 
   constructor() {
-    this.prayerRepository = RepositoryFactory.getRepository(PrayerRepository);
-    this.interactionRepository = RepositoryFactory.getRepository(InteractionRepository);
+    // Create new instances to ensure we have the latest methods
+    this.prayerRepository = new PrayerRepository();
+    this.interactionRepository = new InteractionRepository();
   }
   /**
    * Fetch prayers based on feed type
@@ -30,6 +30,7 @@ class PrayerService {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const userId = user?.id;
+
 
       // Use repository to get prayers with optimized queries
       const prayers = await this.prayerRepository.getPrayersWithDetails({
@@ -106,12 +107,17 @@ class PrayerService {
   /**
    * Update prayer
    */
-  async updatePrayer(prayerId: string, updates: Partial<Prayer>): Promise<Prayer> {
+  async updatePrayer(prayerId: string, updates: UpdatePrayerRequest): Promise<Prayer> {
     try {
-      return await this.prayerRepository.update(prayerId, {
-        ...updates,
-        updated_at: new Date().toISOString(),
-      });
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        throw new Error(ErrorTransformationService.transformAuthError(authError, 'updatePrayer'));
+      }
+      if (!user) {
+        throw new Error('Not authenticated - no user found');
+      }
+
+      return await this.prayerRepository.updatePrayer(prayerId, updates, user.id);
     } catch (error) {
       throw new Error(ErrorTransformationService.transformError(error, 'updatePrayer'));
     }

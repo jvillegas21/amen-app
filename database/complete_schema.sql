@@ -186,6 +186,27 @@ CREATE TABLE IF NOT EXISTS studies (
   created_at timestamptz DEFAULT now()
 );
 
+-- User saved studies tracking
+CREATE TABLE IF NOT EXISTS saved_studies (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  study_id uuid NOT NULL REFERENCES studies(id) ON DELETE CASCADE,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE (user_id, study_id)
+);
+
+-- Prayer reminders table
+CREATE TABLE IF NOT EXISTS prayer_reminders (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  prayer_id uuid NOT NULL REFERENCES prayers(id) ON DELETE CASCADE,
+  reminder_time timestamptz NOT NULL,
+  frequency reminder_frequency DEFAULT 'daily',
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
 -- Group Members table
 CREATE TABLE IF NOT EXISTS group_members (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -269,6 +290,125 @@ CREATE TABLE IF NOT EXISTS user_analytics (
   created_at timestamptz DEFAULT now()
 );
 
+-- Prayer-specific analytics
+CREATE TABLE IF NOT EXISTS prayer_analytics (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  prayer_id uuid NOT NULL REFERENCES prayers(id) ON DELETE CASCADE,
+  view_count integer DEFAULT 0,
+  interaction_count integer DEFAULT 0,
+  share_count integer DEFAULT 0,
+  save_count integer DEFAULT 0,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- App-wide analytics
+CREATE TABLE IF NOT EXISTS app_analytics (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  total_users integer DEFAULT 0,
+  total_prayers integer DEFAULT 0,
+  total_interactions integer DEFAULT 0,
+  daily_active_users integer DEFAULT 0,
+  weekly_active_users integer DEFAULT 0,
+  monthly_active_users integer DEFAULT 0,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Help and FAQ system
+CREATE TABLE IF NOT EXISTS help_categories (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name text NOT NULL,
+  description text,
+  sort_order integer DEFAULT 0,
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS faq_items (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  category_id uuid REFERENCES help_categories(id) ON DELETE SET NULL,
+  question text NOT NULL,
+  answer text NOT NULL,
+  helpful_count integer DEFAULT 0,
+  sort_order integer DEFAULT 0,
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS faq_helpful_votes (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  faq_id uuid NOT NULL REFERENCES faq_items(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE (faq_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS help_articles (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  category_id uuid REFERENCES help_categories(id) ON DELETE SET NULL,
+  title text NOT NULL,
+  content text NOT NULL,
+  is_published boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS help_feedback (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id uuid REFERENCES profiles(id) ON DELETE SET NULL,
+  article_id uuid REFERENCES help_articles(id) ON DELETE CASCADE,
+  rating integer CHECK (rating BETWEEN 1 AND 5),
+  feedback text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Support system extensions
+CREATE TABLE IF NOT EXISTS support_messages (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  ticket_id uuid NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
+  sender_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  message text NOT NULL,
+  is_from_support boolean DEFAULT false,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Content moderation extensions
+CREATE TABLE IF NOT EXISTS content_reports (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  reporter_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  resource_type text NOT NULL CHECK (resource_type IN ('prayer','comment','user','group','study')),
+  resource_id uuid NOT NULL,
+  reason report_reason NOT NULL,
+  description text,
+  status report_status DEFAULT 'pending',
+  moderator_id uuid REFERENCES profiles(id),
+  moderator_notes text,
+  action_taken text,
+  created_at timestamptz DEFAULT now(),
+  resolved_at timestamptz
+);
+
+-- Notification settings
+CREATE TABLE IF NOT EXISTS notification_settings (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  push_notifications boolean DEFAULT true,
+  email_notifications boolean DEFAULT true,
+  prayer_reminders boolean DEFAULT true,
+  group_updates boolean DEFAULT false,
+  weekly_summary boolean DEFAULT true,
+  prayer_responses boolean DEFAULT true,
+  new_followers boolean DEFAULT true,
+  direct_messages boolean DEFAULT true,
+  system_updates boolean DEFAULT false,
+  reminder_time time DEFAULT '09:00',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE (user_id)
+);
+
 -- Following/Followers table (for social features)
 CREATE TABLE IF NOT EXISTS follows (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -339,6 +479,15 @@ CREATE INDEX IF NOT EXISTS idx_studies_user_id ON studies(user_id);
 CREATE INDEX IF NOT EXISTS idx_studies_featured ON studies(is_featured);
 CREATE INDEX IF NOT EXISTS idx_studies_created_at ON studies(created_at DESC);
 
+CREATE INDEX IF NOT EXISTS idx_saved_studies_user_id ON saved_studies(user_id);
+CREATE INDEX IF NOT EXISTS idx_saved_studies_study_id ON saved_studies(study_id);
+CREATE INDEX IF NOT EXISTS idx_saved_studies_created_at ON saved_studies(created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_prayer_reminders_user_id ON prayer_reminders(user_id);
+CREATE INDEX IF NOT EXISTS idx_prayer_reminders_prayer_id ON prayer_reminders(prayer_id);
+CREATE INDEX IF NOT EXISTS idx_prayer_reminders_reminder_time ON prayer_reminders(reminder_time);
+CREATE INDEX IF NOT EXISTS idx_prayer_reminders_active ON prayer_reminders(is_active);
+
 CREATE INDEX IF NOT EXISTS idx_follows_follower_id ON follows(follower_id);
 CREATE INDEX IF NOT EXISTS idx_follows_following_id ON follows(following_id);
 
@@ -364,6 +513,41 @@ CREATE INDEX IF NOT EXISTS idx_user_analytics_user_id ON user_analytics(user_id)
 CREATE INDEX IF NOT EXISTS idx_user_analytics_event_type ON user_analytics(event_type);
 CREATE INDEX IF NOT EXISTS idx_user_analytics_created_at ON user_analytics(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_user_analytics_session_id ON user_analytics(session_id);
+
+CREATE INDEX IF NOT EXISTS idx_prayer_analytics_prayer_id ON prayer_analytics(prayer_id);
+CREATE INDEX IF NOT EXISTS idx_prayer_analytics_created_at ON prayer_analytics(created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_app_analytics_created_at ON app_analytics(created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_help_categories_sort_order ON help_categories(sort_order);
+CREATE INDEX IF NOT EXISTS idx_help_categories_active ON help_categories(is_active);
+
+CREATE INDEX IF NOT EXISTS idx_faq_items_category_id ON faq_items(category_id);
+CREATE INDEX IF NOT EXISTS idx_faq_items_helpful_count ON faq_items(helpful_count DESC);
+CREATE INDEX IF NOT EXISTS idx_faq_items_sort_order ON faq_items(sort_order);
+CREATE INDEX IF NOT EXISTS idx_faq_items_active ON faq_items(is_active);
+
+CREATE INDEX IF NOT EXISTS idx_faq_helpful_votes_faq_id ON faq_helpful_votes(faq_id);
+CREATE INDEX IF NOT EXISTS idx_faq_helpful_votes_user_id ON faq_helpful_votes(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_help_articles_category_id ON help_articles(category_id);
+CREATE INDEX IF NOT EXISTS idx_help_articles_published ON help_articles(is_published);
+CREATE INDEX IF NOT EXISTS idx_help_articles_created_at ON help_articles(created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_help_feedback_user_id ON help_feedback(user_id);
+CREATE INDEX IF NOT EXISTS idx_help_feedback_article_id ON help_feedback(article_id);
+CREATE INDEX IF NOT EXISTS idx_help_feedback_created_at ON help_feedback(created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_support_messages_ticket_id ON support_messages(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_support_messages_sender_id ON support_messages(sender_id);
+CREATE INDEX IF NOT EXISTS idx_support_messages_created_at ON support_messages(created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_content_reports_reporter_id ON content_reports(reporter_id);
+CREATE INDEX IF NOT EXISTS idx_content_reports_status ON content_reports(status);
+CREATE INDEX IF NOT EXISTS idx_content_reports_resource ON content_reports(resource_type, resource_id);
+CREATE INDEX IF NOT EXISTS idx_content_reports_created_at ON content_reports(created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_notification_settings_user_id ON notification_settings(user_id);
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -391,6 +575,24 @@ CREATE TRIGGER update_comments_updated_at BEFORE UPDATE ON comments FOR EACH ROW
 
 DROP TRIGGER IF EXISTS update_support_tickets_updated_at ON support_tickets;
 CREATE TRIGGER update_support_tickets_updated_at BEFORE UPDATE ON support_tickets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_prayer_reminders_updated_at ON prayer_reminders;
+CREATE TRIGGER update_prayer_reminders_updated_at BEFORE UPDATE ON prayer_reminders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_prayer_analytics_updated_at ON prayer_analytics;
+CREATE TRIGGER update_prayer_analytics_updated_at BEFORE UPDATE ON prayer_analytics FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_app_analytics_updated_at ON app_analytics;
+CREATE TRIGGER update_app_analytics_updated_at BEFORE UPDATE ON app_analytics FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_faq_items_updated_at ON faq_items;
+CREATE TRIGGER update_faq_items_updated_at BEFORE UPDATE ON faq_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_help_articles_updated_at ON help_articles;
+CREATE TRIGGER update_help_articles_updated_at BEFORE UPDATE ON help_articles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_notification_settings_updated_at ON notification_settings;
+CREATE TRIGGER update_notification_settings_updated_at BEFORE UPDATE ON notification_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Create member count trigger function
 CREATE OR REPLACE FUNCTION update_group_member_count()
@@ -578,7 +780,7 @@ COMMENT ON TABLE reports IS 'Content moderation reports and actions';
 DO $$
 BEGIN
     RAISE NOTICE 'Amenity database schema created successfully!';
-    RAISE NOTICE 'Tables created: profiles, groups, prayers, interactions, studies, group_members, comments, notifications, support_tickets, reports, user_analytics, follows, blocked_users, direct_messages';
+    RAISE NOTICE 'Tables created: profiles, groups, prayers, interactions, studies, saved_studies, prayer_reminders, group_members, comments, notifications, support_tickets, support_messages, reports, content_reports, user_analytics, prayer_analytics, app_analytics, help_categories, faq_items, faq_helpful_votes, help_articles, help_feedback, notification_settings, follows, blocked_users, direct_messages';
     RAISE NOTICE 'Indexes, triggers, and functions created for optimal performance';
     RAISE NOTICE 'Next step: Run the RLS policies script to set up Row Level Security';
 END $$;

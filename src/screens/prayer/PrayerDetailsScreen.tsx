@@ -19,7 +19,7 @@ import { usePrayerStore } from '@/store/prayer/prayerStore';
 import { RootStackScreenProps } from '@/types/navigation.types';
 import { prayerService } from '@/services/api/prayerService';
 import { commentService } from '@/services/api/commentService';
-import { Prayer, Comment } from '@/types/database.types';
+import { Comment } from '@/types/database.types';
 import { formatDistanceToNow } from 'date-fns';
 
 type PrayerDetailsScreenProps = RootStackScreenProps<'PrayerDetails'>;
@@ -70,27 +70,48 @@ export default function PrayerDetailsScreen() {
 
   // Set navigation options
   useLayoutEffect(() => {
+    const isOwner = prayer && profile && prayer.user_id === profile.id;
+    
     navigation.setOptions({
       title: 'Prayer Details',
       headerRight: () => (
-        <TouchableOpacity
-          onPress={() => {
-            navigation.setParams({ createReminder: true });
-          }}
-          style={{ marginRight: 16 }}
-          accessibilityLabel="Create reminder"
-          accessibilityRole="button"
-          accessibilityHint="Set a reminder for this prayer"
-        >
-          <Ionicons
-            name="notifications-outline"
-            size={24}
-            color="#FFFFFF"
-          />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {isOwner && (
+            <TouchableOpacity
+              onPress={() => {
+                navigation.navigate('EditPrayer', { prayerId: prayerId });
+              }}
+              style={{ marginRight: 16 }}
+              accessibilityLabel="Edit prayer"
+              accessibilityRole="button"
+              accessibilityHint="Edit this prayer"
+            >
+              <Ionicons
+                name="create-outline"
+                size={24}
+                color="#FFFFFF"
+              />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            onPress={() => {
+              navigation.setParams({ createReminder: true });
+            }}
+            style={{ marginRight: 16 }}
+            accessibilityLabel="Create reminder"
+            accessibilityRole="button"
+            accessibilityHint="Set a reminder for this prayer"
+          >
+            <Ionicons
+              name="notifications-outline"
+              size={24}
+              color="#FFFFFF"
+            />
+          </TouchableOpacity>
+        </View>
       ),
     });
-  }, [navigation]);
+  }, [navigation, prayer, profile, prayerId]);
 
   // Handle reminder creation from navigation params
   useEffect(() => {
@@ -258,8 +279,8 @@ export default function PrayerDetailsScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Prayer not found</Text>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Text style={styles.backButtonText}>Go Back</Text>
+          <TouchableOpacity style={styles.errorButton} onPress={() => navigation.goBack()}>
+            <Text style={styles.errorButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -365,17 +386,26 @@ export default function PrayerDetailsScreen() {
           maxLength={500}
         />
         <TouchableOpacity
-          style={[styles.submitButton, (!newComment.trim() || submittingComment) && styles.submitButtonDisabled]}
+          style={[
+            styles.submitButton, 
+            (!newComment.trim() || submittingComment) && styles.submitButtonDisabled
+          ]}
           onPress={handleSubmitComment}
           disabled={!newComment.trim() || submittingComment}
         >
           {submittingComment ? (
-            <ActivityIndicator size="small" color="#007AFF" />
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : !newComment.trim() ? (
+            <Ionicons 
+              name="send-outline" 
+              size={20} 
+              color="#FFFFFF" 
+            />
           ) : (
             <Ionicons 
               name="send" 
               size={20} 
-              color={(!newComment.trim() || submittingComment) ? "#C7C7CC" : "#007AFF"} 
+              color="#FFFFFF" 
             />
           )}
         </TouchableOpacity>
@@ -413,7 +443,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   prayerContainer: {
-    padding: 16,
+    paddingTop: 0,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E7',
   },
@@ -532,8 +564,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   submitButtonDisabled: {
     backgroundColor: '#C7C7CC',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  errorButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  errorButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

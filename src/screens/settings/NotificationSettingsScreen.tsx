@@ -20,7 +20,7 @@ import { NotificationSettings } from '@/services/notifications/notificationServi
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/theme';
 
-interface NotificationSettingsScreenProps extends RootStackScreenProps<'Notifications'> {}
+interface NotificationSettingsScreenProps extends RootStackScreenProps<'NotificationSettings'> {}
 
 const NotificationSettingsScreen: React.FC<NotificationSettingsScreenProps> = ({ navigation }) => {
   const {

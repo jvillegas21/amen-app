@@ -101,7 +101,7 @@ class AnalyticsService {
       };
 
       const { error } = await supabase
-        .from('analytics_events')
+        .from('user_analytics')
         .insert(event);
 
       if (error) {
@@ -130,7 +130,7 @@ class AnalyticsService {
       prayer_type: prayerData.privacy_level,
       is_anonymous: prayerData.is_anonymous,
       has_images: prayerData.images?.length > 0,
-      has_location: !!prayerData.location,
+      has_location: !!prayerData.location_city,
       text_length: prayerData.text?.length || 0,
     }, userId);
   }
@@ -282,7 +282,7 @@ class AnalyticsService {
     try {
       // Get events for the user
       const { data: events, error } = await supabase
-        .from('analytics_events')
+        .from('user_analytics')
         .select('*')
         .eq('user_id', userId)
         .gte('timestamp', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()); // Last 30 days
@@ -367,7 +367,7 @@ class AnalyticsService {
 
       // Get trending prayers
       const { data: prayerEvents, error: prayerError } = await supabase
-        .from('analytics_events')
+        .from('user_analytics')
         .select('event_data')
         .eq('event_type', 'prayer_interaction')
         .gte('timestamp', timeAgo.toISOString());

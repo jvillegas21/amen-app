@@ -105,11 +105,11 @@ const SearchScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }) 
           id: user.id,
           type: 'user' as const,
           title: user.display_name || 'Anonymous',
-          subtitle: user.location || 'Location not specified',
+          subtitle: user.location_city || 'Location not specified',
           avatar_url: user.avatar_url,
           user_display_name: user.display_name,
           created_at: user.created_at,
-          location: user.location,
+          location: user.location_city,
         })),
         ...searchResults.prayers.map(prayer => ({
           id: prayer.id,
