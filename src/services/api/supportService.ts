@@ -18,11 +18,11 @@ export interface SupportTicket {
 export interface SupportMessage {
   id: string;
   ticket_id: string;
-  user_id: string;
+  sender_id: string;
   message: string;
-  is_admin: boolean;
-  created_at: string;
+  is_from_support: boolean;
   attachments?: string[];
+  created_at: string;
 }
 
 /**
@@ -121,9 +121,9 @@ class SupportService {
       .from('support_messages')
       .insert({
         ticket_id: ticketId,
-        user_id: user.id,
+        sender_id: user.id,
         message,
-        is_admin: false,
+        is_from_support: false,
         attachments: attachments || [],
       })
       .select()

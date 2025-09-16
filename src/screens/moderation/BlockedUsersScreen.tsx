@@ -63,7 +63,7 @@ export default function BlockedUsersScreen() {
           onPress: async () => {
             try {
               await contentModerationService.unblockUser(blockedUserId);
-              setBlockedUsers(prev => prev.filter(user => user.blocked_user_id !== blockedUserId));
+              setBlockedUsers(prev => prev.filter(user => user.blocked_id !== blockedUserId));
               Alert.alert('Success', 'User has been unblocked');
             } catch (error) {
               console.error('Error unblocking user:', error);
@@ -98,7 +98,7 @@ export default function BlockedUsersScreen() {
       
       <TouchableOpacity
         style={styles.unblockButton}
-        onPress={() => handleUnblockUser(blockedUser.blocked_user_id)}
+        onPress={() => handleUnblockUser(blockedUser.blocked_id)}
       >
         <Ionicons name="person-add" size={20} color="#5B21B6" />
       </TouchableOpacity>

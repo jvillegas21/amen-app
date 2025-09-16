@@ -70,7 +70,7 @@ EXCEPTION
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE ticket_category AS ENUM ('bug', 'feature', 'account', 'content', 'other');
+    CREATE TYPE ticket_category AS ENUM ('bug', 'feature', 'feature_request', 'account', 'billing', 'content', 'other');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
@@ -82,7 +82,7 @@ EXCEPTION
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE ticket_status AS ENUM ('open', 'pending', 'resolved', 'closed');
+    CREATE TYPE ticket_status AS ENUM ('open', 'pending', 'in_progress', 'resolved', 'closed');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
@@ -112,6 +112,8 @@ CREATE TABLE IF NOT EXISTS profiles (
   onboarding_completed boolean DEFAULT false,
   email_notifications boolean DEFAULT true,
   push_notifications boolean DEFAULT true,
+  push_token text,
+  push_token_updated_at timestamptz,
   is_verified boolean DEFAULT false,
   last_active timestamptz DEFAULT now(),
   created_at timestamptz DEFAULT now(),
@@ -203,6 +205,7 @@ CREATE TABLE IF NOT EXISTS prayer_reminders (
   reminder_time timestamptz NOT NULL,
   frequency reminder_frequency DEFAULT 'daily',
   is_active boolean DEFAULT true,
+  is_sent boolean DEFAULT false,
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
@@ -235,10 +238,15 @@ CREATE TABLE IF NOT EXISTS comments (
 CREATE TABLE IF NOT EXISTS notifications (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  sender_id uuid REFERENCES profiles(id) ON DELETE SET NULL,
+  prayer_id uuid REFERENCES prayers(id) ON DELETE SET NULL,
+  group_id uuid REFERENCES groups(id) ON DELETE SET NULL,
   type notification_type NOT NULL,
   title text NOT NULL,
   body text NOT NULL,
+  message text,
   payload jsonb DEFAULT '{}',
+  metadata jsonb DEFAULT '{}',
   action_url text,
   read boolean DEFAULT false,
   sent_push boolean DEFAULT false,
@@ -253,10 +261,12 @@ CREATE TABLE IF NOT EXISTS support_tickets (
   user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   subject text NOT NULL CHECK (length(subject) BETWEEN 5 AND 200),
   description text NOT NULL CHECK (length(description) BETWEEN 10 AND 2000),
+  attachments text[] DEFAULT '{}',
   category ticket_category DEFAULT 'other',
   priority ticket_priority DEFAULT 'medium',
   status ticket_status NOT NULL DEFAULT 'open',
   assigned_to uuid REFERENCES profiles(id),
+  admin_notes text,
   satisfaction_rating integer CHECK (satisfaction_rating BETWEEN 1 AND 5),
   satisfaction_feedback text,
   created_at timestamptz DEFAULT now(),
@@ -287,6 +297,9 @@ CREATE TABLE IF NOT EXISTS user_analytics (
   event_type text NOT NULL,
   event_data jsonb DEFAULT '{}',
   session_id text,
+  platform text,
+  app_version text,
+  timestamp timestamptz DEFAULT now(),
   created_at timestamptz DEFAULT now()
 );
 
@@ -294,10 +307,12 @@ CREATE TABLE IF NOT EXISTS user_analytics (
 CREATE TABLE IF NOT EXISTS prayer_analytics (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   prayer_id uuid NOT NULL REFERENCES prayers(id) ON DELETE CASCADE,
-  view_count integer DEFAULT 0,
-  interaction_count integer DEFAULT 0,
-  share_count integer DEFAULT 0,
-  save_count integer DEFAULT 0,
+  total_views integer DEFAULT 0,
+  total_likes integer DEFAULT 0,
+  total_comments integer DEFAULT 0,
+  total_shares integer DEFAULT 0,
+  total_saves integer DEFAULT 0,
+  average_engagement_time numeric DEFAULT 0,
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
@@ -308,9 +323,14 @@ CREATE TABLE IF NOT EXISTS app_analytics (
   total_users integer DEFAULT 0,
   total_prayers integer DEFAULT 0,
   total_interactions integer DEFAULT 0,
+  total_groups integer DEFAULT 0,
+  total_bible_studies integer DEFAULT 0,
   daily_active_users integer DEFAULT 0,
   weekly_active_users integer DEFAULT 0,
   monthly_active_users integer DEFAULT 0,
+  average_session_duration numeric DEFAULT 0,
+  retention_rate_7d numeric DEFAULT 0,
+  retention_rate_30d numeric DEFAULT 0,
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
@@ -371,6 +391,7 @@ CREATE TABLE IF NOT EXISTS support_messages (
   sender_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   message text NOT NULL,
   is_from_support boolean DEFAULT false,
+  attachments text[] DEFAULT '{}',
   created_at timestamptz DEFAULT now()
 );
 
@@ -378,6 +399,10 @@ CREATE TABLE IF NOT EXISTS support_messages (
 CREATE TABLE IF NOT EXISTS content_reports (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   reporter_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  reported_user_id uuid REFERENCES profiles(id),
+  reported_prayer_id uuid REFERENCES prayers(id),
+  reported_comment_id uuid REFERENCES comments(id),
+  reported_group_id uuid REFERENCES groups(id),
   resource_type text NOT NULL CHECK (resource_type IN ('prayer','comment','user','group','study')),
   resource_id uuid NOT NULL,
   reason report_reason NOT NULL,
@@ -388,6 +413,15 @@ CREATE TABLE IF NOT EXISTS content_reports (
   action_taken text,
   created_at timestamptz DEFAULT now(),
   resolved_at timestamptz
+);
+
+CREATE TABLE IF NOT EXISTS content_filters (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  filter_type text NOT NULL CHECK (filter_type IN ('keyword','user','category')),
+  filter_value text NOT NULL,
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now()
 );
 
 -- Notification settings
@@ -404,6 +438,7 @@ CREATE TABLE IF NOT EXISTS notification_settings (
   direct_messages boolean DEFAULT true,
   system_updates boolean DEFAULT false,
   reminder_time time DEFAULT '09:00',
+  settings jsonb DEFAULT '{}',
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(),
   UNIQUE (user_id)
@@ -424,6 +459,7 @@ CREATE TABLE IF NOT EXISTS blocked_users (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   blocker_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   blocked_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  reason text,
   created_at timestamptz DEFAULT now(),
   UNIQUE (blocker_id, blocked_id),
   CHECK (blocker_id != blocked_id)

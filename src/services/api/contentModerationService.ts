@@ -1,4 +1,5 @@
 import { supabase } from '@/config/supabase';
+import { Profile } from '@/types/database.types';
 
 export interface ContentReport {
   id: string;
@@ -18,9 +19,10 @@ export interface ContentReport {
 export interface BlockedUser {
   id: string;
   blocker_id: string;
-  blocked_user_id: string;
+  blocked_id: string;
   created_at: string;
   reason?: string;
+  blocked_user?: Profile;
 }
 
 export interface ContentFilter {
@@ -82,8 +84,8 @@ class ContentModerationService {
       .from('blocked_users')
       .select('id')
       .eq('blocker_id', user.id)
-      .eq('blocked_user_id', blockedUserId)
-      .single();
+      .eq('blocked_id', blockedUserId)
+      .maybeSingle();
 
     if (existing) {
       throw new Error('User is already blocked');
@@ -93,7 +95,7 @@ class ContentModerationService {
       .from('blocked_users')
       .insert({
         blocker_id: user.id,
-        blocked_user_id: blockedUserId,
+        blocked_id: blockedUserId,
         reason,
       })
       .select()
@@ -115,7 +117,7 @@ class ContentModerationService {
       .from('blocked_users')
       .delete()
       .eq('blocker_id', user.id)
-      .eq('blocked_user_id', blockedUserId);
+      .eq('blocked_id', blockedUserId);
 
     if (error) throw error;
   }
@@ -128,7 +130,7 @@ class ContentModerationService {
       .from('blocked_users')
       .select(`
         *,
-        blocked_user:profiles!blocked_user_id(*)
+        blocked_user:profiles!blocked_id(*)
       `)
       .eq('blocker_id', userId)
       .order('created_at', { ascending: false });
@@ -145,8 +147,8 @@ class ContentModerationService {
       .from('blocked_users')
       .select('id')
       .eq('blocker_id', blockerId)
-      .eq('blocked_user_id', blockedUserId)
-      .single();
+      .eq('blocked_id', blockedUserId)
+      .maybeSingle();
 
     if (error && error.code !== 'PGRST116') throw error;
     return !!data;

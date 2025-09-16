@@ -91,7 +91,18 @@ class NotificationService {
   }): Promise<Notification> {
     const { data, error } = await supabase
       .from('notifications')
-      .insert(notification)
+      .insert({
+        user_id: notification.user_id,
+        sender_id: notification.sender_id,
+        type: notification.type,
+        title: notification.title,
+        body: notification.message,
+        message: notification.message,
+        prayer_id: notification.prayer_id,
+        group_id: notification.group_id,
+        metadata: notification.metadata || {},
+        payload: notification.metadata || {},
+      })
       .select(`
         *,
         sender:profiles!sender_id(*),

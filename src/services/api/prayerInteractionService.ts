@@ -264,6 +264,9 @@ class PrayerInteractionService {
         prayer_id: prayerId,
         user_id: user.id,
         reminder_time: reminderTime.toISOString(),
+        frequency: 'daily',
+        is_active: true,
+        is_sent: false,
       });
 
     if (error) throw error;
