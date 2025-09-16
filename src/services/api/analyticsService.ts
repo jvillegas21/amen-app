@@ -1,14 +1,13 @@
 import { supabase } from '@/config/supabase';
 
 export interface AnalyticsEvent {
-  id: string;
   user_id: string;
   event_type: string;
   event_data: any;
-  session_id: string;
+  session_id?: string;
   timestamp: string;
-  platform: 'ios' | 'android' | 'web';
-  app_version: string;
+  platform?: 'ios' | 'android' | 'web';
+  app_version?: string;
 }
 
 export interface UserAnalytics {
@@ -34,6 +33,7 @@ export interface PrayerAnalytics {
   total_saves: number;
   average_engagement_time: number;
   created_at: string;
+  updated_at: string;
 }
 
 export interface AppAnalytics {
@@ -41,6 +41,7 @@ export interface AppAnalytics {
   total_prayers: number;
   total_groups: number;
   total_bible_studies: number;
+  total_interactions: number;
   daily_active_users: number;
   weekly_active_users: number;
   monthly_active_users: number;
@@ -90,7 +91,6 @@ class AnalyticsService {
       }
 
       const event: AnalyticsEvent = {
-        id: `event_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`,
         user_id: currentUserId,
         event_type: eventType,
         event_data: eventData,
@@ -102,7 +102,7 @@ class AnalyticsService {
 
       const { error } = await supabase
         .from('user_analytics')
-        .insert(event);
+        .insert(event as any);
 
       if (error) {
         console.error('Analytics: Failed to track event:', error);
@@ -218,12 +218,50 @@ class AnalyticsService {
     try {
       const { data, error } = await supabase
         .from('user_analytics')
-        .select('*')
+        .select('event_type, event_data, timestamp')
         .eq('user_id', userId)
-        .single();
+        .order('timestamp', { ascending: false });
 
-      if (error && error.code !== 'PGRST116') throw error;
-      return data;
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        return null;
+      }
+
+      const events = data as { event_type: string; event_data: any; timestamp: string }[];
+      const sessionEvents = events.filter(e => e.event_type === 'session_end');
+      const prayerEvents = events.filter(e => e.event_type === 'prayer_created');
+      const interactionEvents = events.filter(e => e.event_type === 'prayer_interaction');
+      const groupEvents = events.filter(e => e.event_type === 'group_activity');
+      const studyEvents = events.filter(e => e.event_type === 'bible_study_engagement');
+
+      const totalSessions = sessionEvents.length;
+      const totalPrayers = prayerEvents.length;
+      const totalComments = interactionEvents.filter(e => e.event_data?.interaction_type === 'comment').length;
+      const totalShares = interactionEvents.filter(e => e.event_data?.interaction_type === 'share').length;
+      const totalLikes = interactionEvents.filter(e => e.event_data?.interaction_type === 'like').length;
+      const totalGroupsJoined = groupEvents.filter(e => e.event_data?.activity_type === 'join').length;
+      const totalBibleStudiesViewed = studyEvents.filter(e => e.event_data?.engagement_type === 'view').length;
+
+      const averageSessionDuration = sessionEvents.length > 0
+        ? sessionEvents.reduce((sum, e) => sum + (e.event_data?.session_duration || 0), 0) / sessionEvents.length
+        : 0;
+
+      const lastActive = events[0]?.timestamp || new Date().toISOString();
+      const createdAt = events[events.length - 1]?.timestamp || new Date().toISOString();
+
+      return {
+        user_id: userId,
+        total_sessions: totalSessions,
+        total_prayers: totalPrayers,
+        total_comments: totalComments,
+        total_shares: totalShares,
+        total_likes: totalLikes,
+        total_groups_joined: totalGroupsJoined,
+        total_bible_studies_viewed: totalBibleStudiesViewed,
+        average_session_duration: averageSessionDuration,
+        last_active: lastActive,
+        created_at: createdAt,
+      };
     } catch (error) {
       console.error('Error getting user analytics:', error);
       return null;
@@ -408,15 +446,7 @@ class AnalyticsService {
    */
   async updateUserAnalytics(userId: string, updates: Partial<UserAnalytics>): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('user_analytics')
-        .upsert({
-          user_id: userId,
-          ...updates,
-          updated_at: new Date().toISOString(),
-        });
-
-      if (error) throw error;
+      await this.trackEvent('user_analytics_update', updates, userId);
     } catch (error) {
       console.error('Error updating user analytics:', error);
     }

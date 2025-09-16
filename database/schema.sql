@@ -25,9 +25,9 @@ CREATE TYPE notification_type AS ENUM (
   'system_announcement',
   'moderation_action'
 );
-CREATE TYPE ticket_category AS ENUM ('bug', 'feature', 'account', 'content', 'other');
+CREATE TYPE ticket_category AS ENUM ('bug', 'feature', 'feature_request', 'account', 'billing', 'content', 'other');
 CREATE TYPE ticket_priority AS ENUM ('low', 'medium', 'high', 'urgent');
-CREATE TYPE ticket_status AS ENUM ('open', 'pending', 'resolved', 'closed');
+CREATE TYPE ticket_status AS ENUM ('open', 'pending', 'in_progress', 'resolved', 'closed');
 CREATE TYPE report_reason AS ENUM ('spam', 'inappropriate', 'harassment', 'false_info', 'other');
 CREATE TYPE report_status AS ENUM ('pending', 'reviewed', 'resolved', 'dismissed');
 
@@ -44,6 +44,8 @@ CREATE TABLE profiles (
   onboarding_completed boolean DEFAULT false,
   email_notifications boolean DEFAULT true,
   push_notifications boolean DEFAULT true,
+  push_token text,
+  push_token_updated_at timestamptz,
   is_verified boolean DEFAULT false,
   last_active timestamptz DEFAULT now(),
   created_at timestamptz DEFAULT now(),
@@ -146,10 +148,15 @@ CREATE TABLE comments (
 CREATE TABLE notifications (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  sender_id uuid REFERENCES profiles(id) ON DELETE SET NULL,
+  prayer_id uuid REFERENCES prayers(id) ON DELETE SET NULL,
+  group_id uuid REFERENCES groups(id) ON DELETE SET NULL,
   type notification_type NOT NULL,
   title text NOT NULL,
   body text NOT NULL,
+  message text,
   payload jsonb DEFAULT '{}',
+  metadata jsonb DEFAULT '{}',
   action_url text,
   read boolean DEFAULT false,
   sent_push boolean DEFAULT false,
@@ -164,10 +171,12 @@ CREATE TABLE support_tickets (
   user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   subject text NOT NULL CHECK (length(subject) BETWEEN 5 AND 200),
   description text NOT NULL CHECK (length(description) BETWEEN 10 AND 2000),
+  attachments text[] DEFAULT '{}',
   category ticket_category DEFAULT 'other',
   priority ticket_priority DEFAULT 'medium',
   status ticket_status NOT NULL DEFAULT 'open',
   assigned_to uuid REFERENCES profiles(id),
+  admin_notes text,
   satisfaction_rating integer CHECK (satisfaction_rating BETWEEN 1 AND 5),
   satisfaction_feedback text,
   created_at timestamptz DEFAULT now(),
@@ -198,6 +207,9 @@ CREATE TABLE user_analytics (
   event_type text NOT NULL,
   event_data jsonb DEFAULT '{}',
   session_id text,
+  platform text,
+  app_version text,
+  timestamp timestamptz DEFAULT now(),
   created_at timestamptz DEFAULT now()
 );
 
@@ -216,6 +228,7 @@ CREATE TABLE blocked_users (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   blocker_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   blocked_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  reason text,
   created_at timestamptz DEFAULT now(),
   UNIQUE (blocker_id, blocked_id),
   CHECK (blocker_id != blocked_id)

@@ -1,6 +1,7 @@
 import { useNotificationStore } from '@/store/notification/notificationStore';
 import { pushNotificationService } from './pushNotificationService';
 import { notificationService } from '@/services/api/notificationService';
+import { supabase } from '@/config/supabase';
 
 /**
  * Notification Manager - Coordinates notification system
@@ -73,7 +74,7 @@ class NotificationManager {
   ): Promise<void> {
     try {
       // Create notification in database
-      const createdNotification = await notificationService.createNotification({
+      await notificationService.createNotification({
         user_id: userId,
         sender_id: notification.sender_id,
         type: notification.type,
@@ -192,7 +193,6 @@ class NotificationManager {
       .from('group_members')
       .select('user_id')
       .eq('group_id', groupId)
-      .eq('status', 'active')
       .neq('user_id', updaterId);
 
     if (members) {
