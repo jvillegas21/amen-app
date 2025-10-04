@@ -54,74 +54,15 @@ const ChatConversationScreen: React.FC<RootStackScreenProps<'ChatConversation'>>
   const fetchConversationData = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implement conversation data fetch from API
-      // For now, using mock data
+      // TODO: Implement real-time direct messaging with Supabase
+      // For now, show empty state
       const mockOtherUser = {
         id: userId,
         display_name: userName,
-        avatar_url: 'https://via.placeholder.com/40',
-        // Note: is_online and last_seen would need to be calculated from profiles.last_active
+        avatar_url: undefined,
       };
       setOtherUser(mockOtherUser);
-
-      const mockMessages: Message[] = [
-        {
-          id: '1',
-          conversation_id: conversationId,
-          user_id: userId,
-          user_display_name: userName,
-          user_avatar_url: 'https://via.placeholder.com/40',
-          message: 'Hi! Thank you for praying for my grandmother. She\'s doing much better now! 🙏',
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-          is_read: true,
-          message_type: 'text',
-        },
-        {
-          id: '2',
-          conversation_id: conversationId,
-          user_id: profile?.id || 'current_user',
-          user_display_name: profile?.display_name || 'You',
-          user_avatar_url: profile?.avatar_url,
-          message: 'That\'s wonderful news! I\'m so glad to hear she\'s recovering well. I\'ll continue to keep her in my prayers.',
-          created_at: new Date(Date.now() - 3000000).toISOString(),
-          is_read: true,
-          message_type: 'text',
-        },
-        {
-          id: '3',
-          conversation_id: conversationId,
-          user_id: userId,
-          user_display_name: userName,
-          user_avatar_url: 'https://via.placeholder.com/40',
-          message: 'Your prayers mean so much to our family. Thank you for being such a blessing!',
-          created_at: new Date(Date.now() - 2400000).toISOString(),
-          is_read: true,
-          message_type: 'text',
-        },
-        {
-          id: '4',
-          conversation_id: conversationId,
-          user_id: profile?.id || 'current_user',
-          user_display_name: profile?.display_name || 'You',
-          user_avatar_url: profile?.avatar_url,
-          message: 'You\'re very welcome! That\'s what the prayer community is all about - supporting each other through both good times and challenging ones.',
-          created_at: new Date(Date.now() - 1800000).toISOString(),
-          is_read: true,
-          message_type: 'text',
-        },
-        {
-          id: '5',
-          conversation_id: conversationId,
-          user_id: userId,
-          user_display_name: userName,
-          user_avatar_url: 'https://via.placeholder.com/40',
-          message: 'Absolutely! I\'d love to pray for you too. Is there anything specific you\'d like me to pray about?',
-          created_at: new Date(Date.now() - 300000).toISOString(),
-          is_read: false,
-          message_type: 'text',
-        },
-      ];
-      setMessages(mockMessages);
+      setMessages([]);
     } catch (error) {
       Alert.alert('Error', 'Failed to load conversation');
     } finally {

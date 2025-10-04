@@ -43,70 +43,9 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route, navigation }) 
   const fetchMessages = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implement real API calls
-      // For now, show different messages based on whether this is a prayer-specific chat or general group chat
-      const isGeneralChat = prayerId === 'general-chat';
-      
-      const mockMessages: Message[] = isGeneralChat ? [
-        {
-          id: '1',
-          text: 'Welcome to our group! Feel free to share updates, prayer requests, or just chat.',
-          senderId: 'system',
-          senderName: 'System',
-          timestamp: '1 day ago',
-          isOwn: false,
-        },
-        {
-          id: '2',
-          text: 'Thanks for creating this group! Looking forward to connecting with everyone.',
-          senderId: 'user1',
-          senderName: 'John Doe',
-          timestamp: '12 hours ago',
-          isOwn: false,
-        },
-        {
-          id: '3',
-          text: 'Hello everyone! Excited to be part of this community.',
-          senderId: profile?.id || 'current',
-          senderName: profile?.display_name || 'You',
-          timestamp: '2 hours ago',
-          isOwn: true,
-        },
-      ] : [
-        {
-          id: '1',
-          text: 'Thank you all for praying for my family during this difficult time.',
-          senderId: 'user1',
-          senderName: 'John Doe',
-          timestamp: '2 hours ago',
-          isOwn: false,
-        },
-        {
-          id: '2',
-          text: 'We are here for you, John. God is with you.',
-          senderId: 'user2',
-          senderName: 'Jane Smith',
-          timestamp: '1 hour ago',
-          isOwn: false,
-        },
-        {
-          id: '3',
-          text: 'Praying for strength and peace for your family.',
-          senderId: profile?.id || 'current',
-          senderName: profile?.display_name || 'You',
-          timestamp: '30 minutes ago',
-          isOwn: true,
-        },
-        {
-          id: '4',
-          text: 'Amen. Let us continue to lift each other up in prayer.',
-          senderId: 'user3',
-          senderName: 'Mike Johnson',
-          timestamp: '15 minutes ago',
-          isOwn: false,
-        },
-      ];
-      setMessages(mockMessages);
+      // TODO: Implement real-time messaging with Supabase
+      // For now, show empty state - messages will be implemented with real-time subscriptions
+      setMessages([]);
     } catch (error) {
       console.error('Failed to fetch messages:', error);
       Alert.alert('Error', 'Failed to load messages');

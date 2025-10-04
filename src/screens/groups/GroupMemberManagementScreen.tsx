@@ -17,6 +17,7 @@ import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import UserAvatar from '@/components/common/UserAvatar';
+import { supabase } from '@/config/supabase';
 
 interface GroupMember {
   id: string;
@@ -51,55 +52,41 @@ const GroupMemberManagementScreen: React.FC<RootStackScreenProps<'GroupMemberMan
   const fetchGroupMembers = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implement group members fetch from API
-      // For now, using mock data
-      const mockMembers: GroupMember[] = [
-        {
-          id: '1',
-          user_id: 'user1',
-          user_display_name: 'John Smith',
-          user_avatar_url: null,
-          role: 'admin',
-          joined_at: new Date(Date.now() - 2592000000).toISOString(),
-        },
-        {
-          id: '2',
-          user_id: 'user2',
-          user_display_name: 'Sarah Johnson',
-          user_avatar_url: null,
-          role: 'moderator',
-          joined_at: new Date(Date.now() - 1728000000).toISOString(),
-        },
-        {
-          id: '3',
-          user_id: 'user3',
-          user_display_name: 'Mike Wilson',
-          user_avatar_url: null,
-          role: 'member',
-          joined_at: new Date(Date.now() - 864000000).toISOString(),
-        },
-        {
-          id: '4',
-          user_id: 'user4',
-          user_display_name: 'Emily Chen',
-          user_avatar_url: null,
-          role: 'member',
-          joined_at: new Date(Date.now() - 432000000).toISOString(),
-        },
-        {
-          id: '5',
-          user_id: 'user5',
-          user_display_name: 'David Rodriguez',
-          user_avatar_url: null,
-          role: 'member',
-          joined_at: new Date(Date.now() - 216000000).toISOString(),
-        },
-      ];
-      setMembers(mockMembers);
-      
-      // Set current user's role (assuming they're the admin for demo)
-      setUserRole('admin');
+
+      // Fetch group members with profile data
+      const { data: membersData, error: membersError } = await supabase
+        .from('group_members')
+        .select(`
+          id,
+          user_id,
+          role,
+          joined_at,
+          profiles!group_members_user_id_fkey (
+            display_name,
+            avatar_url
+          )
+        `)
+        .eq('group_id', groupId)
+        .order('joined_at', { ascending: true });
+
+      if (membersError) throw membersError;
+
+      const formattedMembers: GroupMember[] = (membersData || []).map((member: any) => ({
+        id: member.id,
+        user_id: member.user_id,
+        user_display_name: member.profiles?.display_name || 'Unknown User',
+        user_avatar_url: member.profiles?.avatar_url || null,
+        role: member.role,
+        joined_at: member.joined_at,
+      }));
+
+      setMembers(formattedMembers);
+
+      // Get current user's role in the group
+      const currentUserMember = formattedMembers.find(m => m.user_id === profile?.id);
+      setUserRole(currentUserMember?.role || 'member');
     } catch (error) {
+      console.error('Failed to fetch group members:', error);
       Alert.alert('Error', 'Failed to load group members');
     } finally {
       setIsLoading(false);

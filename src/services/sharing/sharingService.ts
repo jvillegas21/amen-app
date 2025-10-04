@@ -275,28 +275,28 @@ Download Amenity and let's pray together!`;
    * Generate prayer URL
    */
   private generatePrayerUrl(prayerId: string): string {
-    return `https://amenity.app/prayer/${prayerId}`;
+    return `https://Amenity.app/prayer/${prayerId}`;
   }
 
   /**
    * Generate Bible study URL
    */
   private generateBibleStudyUrl(studyId: string): string {
-    return `https://amenity.app/study/${studyId}`;
+    return `https://Amenity.app/study/${studyId}`;
   }
 
   /**
    * Generate group URL
    */
   private generateGroupUrl(groupId: string): string {
-    return `https://amenity.app/group/${groupId}`;
+    return `https://Amenity.app/group/${groupId}`;
   }
 
   /**
    * Generate user URL
    */
   private generateUserUrl(userId: string): string {
-    return `https://amenity.app/user/${userId}`;
+    return `https://Amenity.app/user/${userId}`;
   }
 
   /**
@@ -304,9 +304,9 @@ Download Amenity and let's pray together!`;
    */
   private getAppStoreUrl(): string {
     if (Platform.OS === 'ios') {
-      return 'https://apps.apple.com/app/amenity-prayer-community/id1234567890';
+      return 'https://apps.apple.com/app/Amenity-prayer-community/id1234567890';
     } else {
-      return 'https://play.google.com/store/apps/details?id=com.amenity.app';
+      return 'https://play.google.com/store/apps/details?id=com.Amenity.app';
     }
   }
 

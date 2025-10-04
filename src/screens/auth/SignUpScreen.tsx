@@ -98,7 +98,7 @@ const SignUpScreen: React.FC<AuthStackScreenProps<'SignUp'>> = ({ navigation }) 
 
   const handleTermsPress = async () => {
     try {
-      const termsUrl = 'https://amen-prayer-app.com/terms';
+      const termsUrl = 'https://Amenity-prayer-app.com/terms';
       const supported = await Linking.canOpenURL(termsUrl);
       if (supported) {
         await Linking.openURL(termsUrl);
@@ -112,7 +112,7 @@ const SignUpScreen: React.FC<AuthStackScreenProps<'SignUp'>> = ({ navigation }) 
 
   const handlePrivacyPress = async () => {
     try {
-      const privacyUrl = 'https://amen-prayer-app.com/privacy';
+      const privacyUrl = 'https://Amenity-prayer-app.com/privacy';
       const supported = await Linking.canOpenURL(privacyUrl);
       if (supported) {
         await Linking.openURL(privacyUrl);

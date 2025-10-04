@@ -1,6 +1,11 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
+import { TouchableOpacity, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GroupsStackParamList } from '@/types/navigation.types';
+import { theme } from '@/theme';
+import { createStackScreenOptions } from './headerUtils';
 
 // Groups Screen imports
 import GroupsListScreen from '@/screens/groups/GroupsListScreen';
@@ -19,23 +24,49 @@ const Stack = createStackNavigator<GroupsStackParamList>();
  * Groups Navigator - Manages group-related navigation
  */
 const GroupsNavigator: React.FC = () => {
+  const insets = useSafeAreaInsets();
+
   return (
     <Stack.Navigator
       initialRouteName="GroupsList"
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: '#5B21B6',
-        },
-        headerTintColor: '#FFFFFF',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
-      }}
+      screenOptions={createStackScreenOptions(insets)}
     >
       <Stack.Screen
         name="GroupsList"
         component={GroupsListScreen}
-        options={{ title: 'Groups' }}
+        options={({ navigation }) => ({
+          title: 'Groups',
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('CreateGroup')}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: '#5B21B6',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 16,
+                ...Platform.select({
+                  ios: {
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 3.84,
+                  },
+                  android: {
+                    elevation: 4,
+                  },
+                }),
+              }}
+              accessibilityLabel="Create Group"
+              accessibilityRole="button"
+              accessibilityHint="Create a new group"
+            >
+              <Ionicons name="add" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          ),
+        })}
       />
       <Stack.Screen
         name="MyGroups"

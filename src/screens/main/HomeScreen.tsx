@@ -10,7 +10,6 @@ import { theme } from '@/theme';
 import { MainTabScreenProps } from '@/types/navigation.types';
 import { Prayer } from '@/types/database.types';
 import { usePrayerStore } from '@/store/prayer/prayerStore';
-import { prayerService } from '@/services/api/prayerService';
 import { contentModerationService } from '@/services/api/contentModerationService';
 import { useSharing } from '@/hooks/useSharing';
 import PrayerCard from '@/components/prayer/PrayerCard';
@@ -63,6 +62,11 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
   };
 
   const handlePrayPress = async (prayerId: string) => {
+    // Prevent double-clicks by checking if already praying
+    if (prayingPrayers.has(prayerId)) {
+      return;
+    }
+
     setPrayingPrayers(prev => new Set(prev).add(prayerId));
     try {
       await interactWithPrayer(prayerId, 'PRAY');
@@ -70,11 +74,14 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
       console.error('Failed to interact with prayer:', error);
       Alert.alert('Error', 'Failed to pray for this request. Please try again.');
     } finally {
-      setPrayingPrayers(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(prayerId);
-        return newSet;
-      });
+      // Clear praying state after a short delay to prevent visual flickering
+      setTimeout(() => {
+        setPrayingPrayers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(prayerId);
+          return newSet;
+        });
+      }, 200);
     }
   };
 
@@ -101,6 +108,11 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
   };
 
   const handleSavePress = async (prayerId: string) => {
+    // Prevent double-clicks by checking if already saving
+    if (savingPrayers.has(prayerId)) {
+      return;
+    }
+
     setSavingPrayers(prev => new Set(prev).add(prayerId));
     try {
       await interactWithPrayer(prayerId, 'SAVE');
@@ -108,11 +120,14 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
       console.error('Failed to save prayer:', error);
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
     } finally {
-      setSavingPrayers(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(prayerId);
-        return newSet;
-      });
+      // Clear saving state after a short delay to prevent visual flickering
+      setTimeout(() => {
+        setSavingPrayers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(prayerId);
+          return newSet;
+        });
+      }, 200);
     }
   };
 
@@ -143,7 +158,7 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
       onCommentPress={() => handleCommentPress(prayer.id)}
       onSharePress={() => handleSharePress(prayer.id)}
       onSavePress={() => handleSavePress(prayer.id)}
-      isSaved={prayer.user_interaction?.type === 'SAVE'}
+      isSaved={prayer.user_interactions?.isSaved || prayer.user_interaction?.type === 'SAVE'}
       isPraying={prayingPrayers.has(prayer.id)}
       isSharing={isSharing}
       isSaving={savingPrayers.has(prayer.id)}
@@ -267,17 +282,6 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
         testID="home-prayer-list"
       />
 
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={handleCreatePress}
-        activeOpacity={0.8}
-        accessibilityRole="button"
-        accessibilityLabel="Create prayer"
-        accessibilityHint="Double tap to create a new prayer"
-      >
-        <Ionicons name="add" size={28} color={theme.colors.text.inverse} />
-      </TouchableOpacity>
     </View>
   );
 };
@@ -380,19 +384,6 @@ const styles = StyleSheet.create({
   footerLoader: {
     paddingVertical: theme.spacing[5],
     alignItems: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    right: theme.spacing[4],
-    bottom: theme.spacing[4],
-    width: theme.spacing[14],
-    height: theme.spacing[14],
-    borderRadius: theme.spacing[7],
-    backgroundColor: theme.colors.primary[600],
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...theme.shadows.lg,
-    shadowColor: theme.colors.neutral[1000],
   },
 });
 

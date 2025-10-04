@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,19 +12,25 @@ import {
   ActivityIndicator,
   ScrollView,
   Switch,
+  Modal,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { supabase } from '@/config/supabase';
+import { layout } from '@/theme/spacing';
+import aiService, { BibleStudy, AIScriptureVerse } from '@/services/aiService';
+import { analyticsService } from '@/services/api/analyticsService';
 
 /**
  * Create Bible Study Screen - Create a new Bible study with AI insights
  */
-const CreateBibleStudyScreen: React.FC<RootStackScreenProps<'CreateBibleStudy'>> = ({ navigation, route }) => {
-  const { profile } = useAuthStore();
+const CreateBibleStudyScreen: React.FC<RootStackScreenProps<'CreateBibleStudy'>> = ({ navigation }) => {
+  const user = useAuthStore(state => state.user);
+  const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -44,11 +50,249 @@ const CreateBibleStudyScreen: React.FC<RootStackScreenProps<'CreateBibleStudy'>>
 
   const textInputRef = useRef<TextInput>(null);
 
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [aiMode, setAIMode] = useState<'fullStudy' | 'scriptureSuggestions'>('fullStudy');
+  const [aiTopic, setAITopic] = useState('');
+  const [aiContext, setAIContext] = useState('');
+  const [aiGeneratedStudy, setAIGeneratedStudy] = useState<BibleStudy | null>(null);
+  const [aiScriptureSuggestions, setAIScriptureSuggestions] = useState<AIScriptureVerse[]>([]);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiError, setAIError] = useState<string | null>(null);
+  const generationStartRef = useRef<number | null>(null);
+  const lastResultTypeRef = useRef<'none' | 'fullStudy' | 'scriptureSuggestions'>('none');
+
+  const trackAIEvent = useCallback((eventType: string, eventData: Record<string, any> = {}) => {
+    if (!user?.id) {
+      return;
+    }
+
+    analyticsService.trackEvent(eventType, {
+      source: 'create_bible_study',
+      ...eventData,
+    }, user.id);
+  }, [user?.id]);
+
   const handleInputChange = (field: string, value: string | boolean | number) => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
     }));
+  };
+
+  const handleOpenAIAssistant = () => {
+    if (!aiService.isConfigured()) {
+      trackAIEvent('ai_assistant_open_blocked', { reason: 'missing_api_key' });
+      Alert.alert(
+        'AI Assistant Unavailable',
+        'Add your OpenAI API key to enable AI generated studies.'
+      );
+      return;
+    }
+
+    trackAIEvent('ai_assistant_opened', {
+      mode: aiMode,
+      has_topic: aiTopic.trim().length > 0,
+      has_context: aiContext.trim().length > 0,
+    });
+
+    lastResultTypeRef.current = 'none';
+    generationStartRef.current = null;
+    setAIError(null);
+    setShowAIAssistant(true);
+  };
+
+  const handleCloseAIAssistant = (
+    reason: 'dismissed' | 'applied_outline' | 'applied_verses' | 'error' = 'dismissed'
+  ) => {
+    trackAIEvent('ai_assistant_closed', {
+      reason,
+      result_type: lastResultTypeRef.current,
+    });
+
+    setShowAIAssistant(false);
+    setIsGeneratingAI(false);
+    setAITopic('');
+    setAIContext('');
+    setAIGeneratedStudy(null);
+    setAIScriptureSuggestions([]);
+    setAIError(null);
+  };
+
+  const handleAIModeChange = (mode: 'fullStudy' | 'scriptureSuggestions') => {
+    if (mode === aiMode) {
+      return;
+    }
+
+    trackAIEvent('ai_assistant_mode_change', {
+      previous_mode: aiMode,
+      next_mode: mode,
+    });
+
+    setAIMode(mode);
+    setAIGeneratedStudy(null);
+    setAIScriptureSuggestions([]);
+    setAIError(null);
+  };
+
+  const handleGenerateWithAI = async () => {
+    if (!aiTopic.trim() && !aiContext.trim()) {
+      setAIError('Provide a topic or a short description so we know what to generate.');
+      return;
+    }
+
+    generationStartRef.current = Date.now();
+    lastResultTypeRef.current = 'none';
+    trackAIEvent('ai_generation_start', {
+      mode: aiMode,
+      topic_length: aiTopic.trim().length,
+      context_length: aiContext.trim().length,
+    });
+
+    setIsGeneratingAI(true);
+    setAIError(null);
+    setAIGeneratedStudy(null);
+    setAIScriptureSuggestions([]);
+
+    try {
+      if (aiMode === 'fullStudy') {
+        const response = await aiService.generateBibleStudy(
+          aiContext.trim() || aiTopic.trim(),
+          aiTopic.trim() || undefined,
+          user?.id
+        );
+
+        if (!response.success || !response.data) {
+          const latencyMs = generationStartRef.current ? Date.now() - generationStartRef.current : null;
+          trackAIEvent('ai_generation_error', {
+            mode: 'fullStudy',
+            latency_ms: latencyMs,
+            error: response.error || 'unknown_error',
+          });
+          generationStartRef.current = null;
+          lastResultTypeRef.current = 'none';
+          setAIError(response.error || 'Unable to generate a study right now.');
+          return;
+        }
+
+        setAIGeneratedStudy(response.data);
+        lastResultTypeRef.current = 'fullStudy';
+
+        const latencyMs = generationStartRef.current ? Date.now() - generationStartRef.current : null;
+        const usage = response.metadata?.usage || {};
+        trackAIEvent('ai_generation_success', {
+          mode: 'fullStudy',
+          latency_ms: latencyMs,
+          prompt_tokens: usage.prompt_tokens ?? null,
+          completion_tokens: usage.completion_tokens ?? null,
+          total_tokens: usage.total_tokens ?? null,
+        });
+        generationStartRef.current = null;
+      } else {
+        const response = await aiService.generateScriptureVerses(
+          aiContext.trim() || aiTopic.trim(),
+          3
+        );
+
+        if (!response.success || !response.data) {
+          const latencyMs = generationStartRef.current ? Date.now() - generationStartRef.current : null;
+          trackAIEvent('ai_generation_error', {
+            mode: 'scriptureSuggestions',
+            latency_ms: latencyMs,
+            error: response.error || 'unknown_error',
+          });
+          generationStartRef.current = null;
+          lastResultTypeRef.current = 'none';
+          setAIError(response.error || 'Unable to find matching verses. Try refining your topic.');
+          return;
+        }
+
+        setAIScriptureSuggestions(response.data);
+        lastResultTypeRef.current = 'scriptureSuggestions';
+
+        const latencyMs = generationStartRef.current ? Date.now() - generationStartRef.current : null;
+        const usage = response.metadata?.usage || {};
+        trackAIEvent('ai_generation_success', {
+          mode: 'scriptureSuggestions',
+          latency_ms: latencyMs,
+          prompt_tokens: usage.prompt_tokens ?? null,
+          completion_tokens: usage.completion_tokens ?? null,
+          total_tokens: usage.total_tokens ?? null,
+          verse_count: response.data.length,
+        });
+        generationStartRef.current = null;
+      }
+    } catch (error) {
+      console.error('AI generation error:', error);
+      setAIError('Something went wrong while talking with the AI service. Please try again.');
+      const latencyMs = generationStartRef.current ? Date.now() - generationStartRef.current : null;
+      trackAIEvent('ai_generation_error', {
+        mode: aiMode,
+        latency_ms: latencyMs,
+        error: error instanceof Error ? error.message : 'unknown_error',
+      });
+      generationStartRef.current = null;
+      lastResultTypeRef.current = 'none';
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+
+  const applyAIGeneratedStudy = () => {
+    if (!aiGeneratedStudy) return;
+
+    const sectionedDescription = [
+      aiGeneratedStudy.reflection,
+      aiGeneratedStudy.questions?.length
+        ? 'Discussion Questions:\n' + aiGeneratedStudy.questions.map((question: string, index: number) => `${index + 1}. ${question}`).join('\n')
+        : null,
+      aiGeneratedStudy.prayer_focus
+        ? `Prayer Focus: ${aiGeneratedStudy.prayer_focus}`
+        : null,
+      aiGeneratedStudy.application
+        ? `Application: ${aiGeneratedStudy.application}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+
+    setFormData(prev => ({
+      ...prev,
+      title: prev.title.trim().length > 0 ? prev.title : aiGeneratedStudy.title,
+      description: sectionedDescription.trim().length > 0 ? sectionedDescription : prev.description,
+      scripture: aiGeneratedStudy.scripture || prev.scripture,
+    }));
+
+    trackAIEvent('ai_generation_apply_outline', {
+      mode: 'fullStudy',
+      question_count: aiGeneratedStudy.questions?.length || 0,
+      included_prayer_focus: !!aiGeneratedStudy.prayer_focus,
+      included_application: !!aiGeneratedStudy.application,
+    });
+
+    Alert.alert('AI Outline Applied', 'We filled in your study details. Review and edit before publishing.');
+    handleCloseAIAssistant('applied_outline');
+  };
+
+  const applyAIScriptureSuggestions = () => {
+    if (aiScriptureSuggestions.length === 0) return;
+
+    const scriptureValue = aiScriptureSuggestions
+      .map(suggestion => suggestion.reference)
+      .join(', ');
+
+    setFormData(prev => ({
+      ...prev,
+      scripture: scriptureValue,
+      description: prev.description,
+    }));
+
+    trackAIEvent('ai_generation_apply_verses', {
+      mode: 'scriptureSuggestions',
+      verse_count: aiScriptureSuggestions.length,
+    });
+
+    Alert.alert('Verses Added', 'We added AI-recommended verses to your study.');
+    handleCloseAIAssistant('applied_verses');
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
@@ -160,17 +404,9 @@ const CreateBibleStudyScreen: React.FC<RootStackScreenProps<'CreateBibleStudy'>>
       }
 
       console.log('Bible study created successfully:', data);
-      
-      Alert.alert(
-        'Success',
-        'Bible study created successfully!',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]
-      );
+
+      // Navigate to the created Bible study details
+      navigation.replace('BibleStudyDetails', { studyId: data.id });
     } catch (error) {
       console.error('Error creating Bible study:', error);
       Alert.alert('Error', 'Failed to create Bible study. Please try again.');
@@ -184,6 +420,44 @@ const CreateBibleStudyScreen: React.FC<RootStackScreenProps<'CreateBibleStudy'>>
       <Text style={styles.subtitleText}>Start a new study with AI insights</Text>
     </View>
   );
+
+  const renderAISupportSection = () => {
+    const aiAvailable = aiService.isConfigured();
+
+    return (
+      <View style={[styles.section, styles.aiSection]}>
+        <View style={styles.aiHeaderRow}>
+          <View style={styles.aiHeaderText}>
+            <Text style={styles.sectionTitle}>AI Study Assistant</Text>
+            <Text style={styles.aiSectionSubtitle}>
+              Generate outlines or add scripture references instantly. Free while in beta.
+            </Text>
+          </View>
+          <View style={styles.aiBadge}>
+            <Ionicons name="sparkles-outline" size={16} color="#5B21B6" />
+            <Text style={styles.aiBadgeText}>Beta</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.aiActionButton, !aiAvailable && styles.aiActionButtonDisabled]}
+          onPress={handleOpenAIAssistant}
+          accessibilityRole="button"
+          accessibilityLabel="Open AI assistant"
+          accessibilityHint="Generate Bible study content or verse suggestions"
+        >
+          <Ionicons name="sparkles" size={18} color="#FFFFFF" style={styles.aiActionIcon} />
+          <Text style={styles.aiActionButtonText}>
+            {aiAvailable ? 'Generate with AI' : 'Connect OpenAI to enable AI'}
+          </Text>
+        </TouchableOpacity>
+
+        <Text style={styles.aiDisclaimerText}>
+          You can still edit everything manually. We’ll eventually offer this as a premium feature—capture usage analytics now to plan pricing later.
+        </Text>
+      </View>
+    );
+  };
 
   const renderBasicInfoSection = () => (
     <View style={styles.section}>
@@ -236,7 +510,7 @@ const CreateBibleStudyScreen: React.FC<RootStackScreenProps<'CreateBibleStudy'>>
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Study Settings</Text>
       
-      <View style={styles.settingRow}>
+      <View style={styles.settingColumn}>
         <View style={styles.settingInfo}>
           <Text style={styles.settingLabel}>Study Type</Text>
           <Text style={styles.settingDescription}>Choose how participants will study</Text>
@@ -363,19 +637,187 @@ const CreateBibleStudyScreen: React.FC<RootStackScreenProps<'CreateBibleStudy'>>
         {renderSubtitle()}
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <View style={styles.content}>
+            {renderAISupportSection()}
             {renderBasicInfoSection()}
             {renderStudySettingsSection()}
             {renderScheduleSection()}
             
-            {/* Bottom Spacing */}
-            <View style={styles.bottomSpacing} />
           </View>
         </ScrollView>
+
+        <Modal
+          visible={showAIAssistant}
+          transparent
+          animationType="slide"
+          presentationStyle="overFullScreen"
+          onRequestClose={() => handleCloseAIAssistant('dismissed')}
+        >
+          <View style={styles.aiModalOverlay}>
+            <View style={[styles.aiModalContainer, { paddingBottom: Math.max(insets.bottom, layout.drawerBottomPadding) }]}>
+              <View style={styles.aiModalHeader}>
+                <View style={styles.aiModalHeaderText}>
+                  <Text style={styles.aiModalTitle}>AI Study Assistant</Text>
+                  <Text style={styles.aiModalSubtitle}>
+                    {aiMode === 'fullStudy'
+                      ? 'We will generate an outline, reflection, questions, and prayer focus.'
+                      : 'We will suggest verses that align with your theme.'}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => handleCloseAIAssistant('dismissed')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close AI assistant"
+                >
+                  <Ionicons name="close" size={24} color="#111827" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.aiModeToggle}>
+                <TouchableOpacity
+                  style={[styles.aiModeButton, aiMode === 'fullStudy' && styles.aiModeButtonActive]}
+                  onPress={() => handleAIModeChange('fullStudy')}
+                >
+                  <Text style={[styles.aiModeButtonText, aiMode === 'fullStudy' && styles.aiModeButtonTextActive]}>
+                    Generate Outline
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.aiModeButton, aiMode === 'scriptureSuggestions' && styles.aiModeButtonActive]}
+                  onPress={() => handleAIModeChange('scriptureSuggestions')}
+                >
+                  <Text style={[styles.aiModeButtonText, aiMode === 'scriptureSuggestions' && styles.aiModeButtonTextActive]}>
+                    Suggest Verses
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Topic or theme</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={aiTopic}
+                  onChangeText={setAITopic}
+                  placeholder="e.g., Forgiveness, Hope, James 1"
+                  placeholderTextColor="#9CA3AF"
+                  autoCapitalize="sentences"
+                  returnKeyType="done"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>
+                  {aiMode === 'fullStudy' ? 'What should we focus on?' : 'Additional context (optional)'}
+                </Text>
+                <TextInput
+                  style={[styles.textInput, styles.textArea]}
+                  value={aiContext}
+                  onChangeText={setAIContext}
+                  placeholder={aiMode === 'fullStudy' ? 'Share goals, audience, or key points to emphasize.' : 'Add any details we should consider.'}
+                  placeholderTextColor="#9CA3AF"
+                  multiline
+                  textAlignVertical="top"
+                />
+              </View>
+
+              <Text style={styles.aiHintText}>
+                Tip: The more context you provide, the better the AI can tailor the study.
+              </Text>
+
+              {aiError && <Text style={styles.aiErrorText}>{aiError}</Text>}
+
+              <TouchableOpacity
+                style={[styles.aiGenerateButton, isGeneratingAI && styles.aiGenerateButtonDisabled]}
+                onPress={handleGenerateWithAI}
+                disabled={isGeneratingAI}
+              >
+                {isGeneratingAI ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Ionicons name="sparkles" size={18} color="#FFFFFF" style={styles.aiActionIcon} />
+                    <Text style={styles.aiGenerateButtonText}>
+                      {aiMode === 'fullStudy' ? 'Generate Study Outline' : 'Find Supporting Verses'}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              {aiGeneratedStudy && (
+                <ScrollView style={styles.aiResultScroll} showsVerticalScrollIndicator={false}>
+                  <View style={styles.aiResultContainer}>
+                    <Text style={styles.aiResultTitle}>{aiGeneratedStudy.title}</Text>
+                    {aiGeneratedStudy.scripture ? (
+                      <View style={styles.aiResultBlock}>
+                        <Text style={styles.aiResultLabel}>Primary Scripture</Text>
+                        <Text style={styles.aiResultText}>{aiGeneratedStudy.scripture}</Text>
+                      </View>
+                    ) : null}
+                    {aiGeneratedStudy.reflection ? (
+                      <View style={styles.aiResultBlock}>
+                        <Text style={styles.aiResultLabel}>Reflection</Text>
+                        <Text style={styles.aiResultText}>{aiGeneratedStudy.reflection}</Text>
+                      </View>
+                    ) : null}
+                    {aiGeneratedStudy.questions?.length ? (
+                      <View style={styles.aiResultBlock}>
+                        <Text style={styles.aiResultLabel}>Discussion Questions</Text>
+                        {aiGeneratedStudy.questions.map((question, index) => (
+                          <Text key={index} style={styles.aiResultListItem}>
+                            {index + 1}. {question}
+                          </Text>
+                        ))}
+                      </View>
+                    ) : null}
+                    {aiGeneratedStudy.prayer_focus ? (
+                      <View style={styles.aiResultBlock}>
+                        <Text style={styles.aiResultLabel}>Prayer Focus</Text>
+                        <Text style={styles.aiResultText}>{aiGeneratedStudy.prayer_focus}</Text>
+                      </View>
+                    ) : null}
+                    {aiGeneratedStudy.application ? (
+                      <View style={styles.aiResultBlock}>
+                        <Text style={styles.aiResultLabel}>Application</Text>
+                        <Text style={styles.aiResultText}>{aiGeneratedStudy.application}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </ScrollView>
+              )}
+
+              {aiScriptureSuggestions.length > 0 && (
+                <ScrollView style={styles.aiResultScroll} showsVerticalScrollIndicator={false}>
+                  <View style={styles.aiResultContainer}>
+                    <Text style={styles.aiResultLabel}>Suggested Verses</Text>
+                    {aiScriptureSuggestions.map((verse, index) => (
+                      <View key={index} style={styles.aiScriptureItem}>
+                        <Text style={styles.aiResultText}>{verse.reference}</Text>
+                        <Text style={styles.aiResultText}>{verse.verse}</Text>
+                        <Text style={styles.aiResultHint}>{verse.relevance}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </ScrollView>
+              )}
+
+              {aiGeneratedStudy && (
+                <TouchableOpacity style={styles.aiUseButton} onPress={applyAIGeneratedStudy}>
+                  <Text style={styles.aiUseButtonText}>Use This Outline</Text>
+                </TouchableOpacity>
+              )}
+
+              {aiScriptureSuggestions.length > 0 && (
+                <TouchableOpacity style={styles.aiUseButton} onPress={applyAIScriptureSuggestions}>
+                  <Text style={styles.aiUseButtonText}>Add Verses to Study</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </Modal>
         
         {/* Date Picker Modal */}
         {showDatePicker && (
           <View style={styles.pickerModal}>
-            <View style={styles.pickerContainer}>
+            <View style={[styles.pickerContainer, { paddingBottom: Math.max(insets.bottom, layout.drawerBottomPadding) }]}>
               <View style={styles.pickerHeader}>
                 <TouchableOpacity onPress={() => setShowDatePicker(false)}>
                   <Text style={styles.pickerCancelText}>Cancel</Text>
@@ -400,7 +842,7 @@ const CreateBibleStudyScreen: React.FC<RootStackScreenProps<'CreateBibleStudy'>>
         {/* Time Picker Modal */}
         {showTimePicker && (
           <View style={styles.pickerModal}>
-            <View style={styles.pickerContainer}>
+            <View style={[styles.pickerContainer, { paddingBottom: Math.max(insets.bottom, layout.drawerBottomPadding) }]}>
               <View style={styles.pickerHeader}>
                 <TouchableOpacity onPress={() => setShowTimePicker(false)}>
                   <Text style={styles.pickerCancelText}>Cancel</Text>
@@ -422,7 +864,7 @@ const CreateBibleStudyScreen: React.FC<RootStackScreenProps<'CreateBibleStudy'>>
         )}
         
         {/* Floating Create Button */}
-        <View style={styles.floatingButtonContainer}>
+        <View style={[styles.floatingButtonContainer, { paddingBottom: 0 }]}>
           <TouchableOpacity
             style={[
               styles.floatingButton,
@@ -472,12 +914,71 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+    paddingBottom: 50,
   },
   section: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
+  },
+  aiSection: {
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  aiHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    gap: 12,
+  },
+  aiHeaderText: {
+    flex: 1,
+  },
+  aiSectionSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  aiBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4FF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  aiBadgeText: {
+    color: '#5B21B6',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  aiActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#5B21B6',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  aiActionButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+  },
+  aiActionButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  aiActionIcon: {
+    marginRight: 8,
+  },
+  aiDisclaimerText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 12,
   },
   sectionTitle: {
     fontSize: 18,
@@ -519,8 +1020,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 16,
   },
+  settingColumn: {
+    flexDirection: 'column',
+    marginBottom: 16,
+  },
   settingInfo: {
     flex: 1,
+    paddingBottom: 16,
   },
   settingLabel: {
     fontSize: 16,
@@ -535,6 +1041,7 @@ const styles = StyleSheet.create({
   typeButtons: {
     flexDirection: 'row',
     gap: 8,
+    paddingBottom: 16,
   },
   typeButton: {
     flexDirection: 'row',
@@ -582,8 +1089,155 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginLeft: 8,
   },
-  bottomSpacing: {
-    height: 20,
+  aiModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(17, 24, 39, 0.4)',
+    justifyContent: 'flex-end',
+  },
+  aiModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    maxHeight: '90%',
+  },
+  aiModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  aiModalHeaderText: {
+    flex: 1,
+    paddingRight: 16,
+  },
+  aiModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  aiModalSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  aiModeToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+  },
+  aiModeButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  aiModeButtonActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  aiModeButtonText: {
+    fontSize: 14,
+    color: '#4B5563',
+    fontWeight: '500',
+  },
+  aiModeButtonTextActive: {
+    color: '#5B21B6',
+    fontWeight: '600',
+  },
+  aiHintText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 12,
+  },
+  aiErrorText: {
+    fontSize: 12,
+    color: '#DC2626',
+    marginBottom: 12,
+  },
+  aiGenerateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#5B21B6',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  aiGenerateButtonDisabled: {
+    opacity: 0.7,
+  },
+  aiGenerateButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  aiResultScroll: {
+    marginTop: 16,
+    maxHeight: 280,
+  },
+  aiResultContainer: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  aiResultTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  aiResultBlock: {
+    marginBottom: 12,
+  },
+  aiResultLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4B5563',
+    marginBottom: 6,
+  },
+  aiResultText: {
+    fontSize: 14,
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  aiResultListItem: {
+    fontSize: 14,
+    color: '#1F2937',
+    marginBottom: 4,
+    paddingLeft: 4,
+  },
+  aiResultHint: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  aiScriptureItem: {
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  aiUseButton: {
+    backgroundColor: '#10B981',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  aiUseButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
   },
   pickerModal: {
     position: 'absolute',
@@ -599,7 +1253,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingBottom: 34, // Safe area for home indicator
+    paddingBottom: layout.drawerBottomPadding,
   },
   pickerHeader: {
     flexDirection: 'row',
@@ -635,8 +1289,7 @@ const styles = StyleSheet.create({
     zIndex: 100,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
-    paddingVertical: 20,
-    paddingBottom: 34, // Safe area for home indicator
+    paddingTop: 20,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     shadowColor: '#000',

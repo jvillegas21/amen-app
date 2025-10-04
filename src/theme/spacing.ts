@@ -70,15 +70,23 @@ export const layout = {
   buttonMargin: spacing[3], // 12px
 
   // Navigation spacing
-  tabBarHeight: 60,
-  headerHeight: 56,
+  tabBarHeight: 50, // Increased base height for better touch targets
+  headerHeight: 100, // Increased to provide better spacing for titles and prevent cutoff
 
   // Touch targets (accessibility)
   minTouchTarget: 44, // Minimum 44px for accessibility
 
-  // Safe areas
-  safeAreaTop: spacing[12], // 48px - for status bar
-  safeAreaBottom: spacing[8], // 32px - for home indicator
+  // Safe areas - Dynamic values that should be overridden by actual device insets
+  safeAreaTop: spacing[12], // 48px - for status bar (fallback)
+  safeAreaBottom: spacing[8], // 32px - for home indicator (fallback)
+
+  // Edge-to-edge specific spacing (for Android edgeToEdgeEnabled)
+  edgeToEdgeBottomPadding: spacing[6], // 24px - minimum bottom padding when edge-to-edge
+  
+  // Modal and drawer spacing
+  modalBottomPadding: spacing[8], // 32px - for modal bottom padding
+  drawerBottomPadding: spacing[8], // 32px - for drawer bottom padding
+  floatingButtonBottomPadding: spacing[8], // 32px - for floating button bottom padding
 } as const;
 
 // Border radius system
@@ -138,6 +146,128 @@ export const shadows = {
     shadowRadius: 21.0,
     elevation: 30,
   },
+  // iOS 26 Liquid Glass shadow system
+  glass: {
+    light: {
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    medium: {
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.12,
+      shadowRadius: 12,
+      elevation: 6,
+    },
+    heavy: {
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.16,
+      shadowRadius: 20,
+      elevation: 10,
+    },
+  },
+} as const;
+
+// iOS 26 Glassmorphism Design System
+export const glassmorphism = {
+  // Blur intensities for backdrop filters
+  blur: {
+    subtle: 10,
+    medium: 20,
+    strong: 40,
+    intense: 60,
+  },
+
+  // Transparency levels for glass elements (increased for better visibility)
+  opacity: {
+    translucent: 0.95,
+    semiTransparent: 0.90,
+    transparent: 0.85,
+    minimal: 0.75,
+  },
+
+  // Glass material colors with built-in transparency (increased opacity for visibility)
+  glass: {
+    // Primary glass surfaces - more opaque for better readability
+    primary: 'rgba(255, 255, 255, 0.95)',
+    secondary: 'rgba(249, 250, 251, 0.92)',
+    tertiary: 'rgba(243, 244, 246, 0.88)',
+
+    // Tinted glass for brand elements - more visible
+    purple: 'rgba(91, 33, 182, 0.25)',
+    purpleStrong: 'rgba(91, 33, 182, 0.35)',
+
+    // Dark mode variants
+    dark: {
+      primary: 'rgba(31, 41, 55, 0.95)',
+      secondary: 'rgba(55, 65, 81, 0.92)',
+      tertiary: 'rgba(75, 85, 99, 0.88)',
+    },
+  },
+
+  // Border styles for glass elements (stronger for better visibility)
+  borders: {
+    subtle: {
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.4)',
+    },
+    medium: {
+      borderWidth: 1.5,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+    },
+    strong: {
+      borderWidth: 2,
+      borderColor: 'rgba(255, 255, 255, 0.25)',
+    },
+  },
+
+  // Spatial depth layers for hierarchy
+  depth: {
+    background: 0,
+    surface: 1,
+    overlay: 2,
+    modal: 3,
+    popover: 4,
+    tooltip: 5,
+    notification: 6,
+  },
+} as const;
+
+// Physics-based animation curves for iOS 26
+export const motionDesign = {
+  // Spring animation presets
+  springs: {
+    gentle: {
+      tension: 120,
+      friction: 14,
+      useNativeDriver: true,
+    },
+    snappy: {
+      tension: 200,
+      friction: 10,
+      useNativeDriver: true,
+    },
+    bouncy: {
+      tension: 180,
+      friction: 6,
+      useNativeDriver: true,
+    },
+  },
+
+  // Timing curves for different interactions
+  timings: {
+    quick: { duration: 200, useNativeDriver: true },
+    smooth: { duration: 300, useNativeDriver: true },
+    gentle: { duration: 500, useNativeDriver: true },
+  },
+
+  // Transform presets for interactive elements
+  transforms: {
+    press: { scale: 0.96, opacity: 0.8 },
+    hover: { scale: 1.02, opacity: 1 },
+    focus: { scale: 1.05, opacity: 1 },
+  },
 } as const;
 
 // Type definitions
@@ -146,3 +276,5 @@ export type SpacingKey = keyof Spacing;
 export type Layout = typeof layout;
 export type BorderRadius = typeof borderRadius;
 export type Shadows = typeof shadows;
+export type Glassmorphism = typeof glassmorphism;
+export type MotionDesign = typeof motionDesign;

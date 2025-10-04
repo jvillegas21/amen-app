@@ -207,7 +207,7 @@ class AuthService implements IAuthService {
 
       // Create the OAuth URL
       const redirectUrl = AuthSession.makeRedirectUri({
-        scheme: 'amenity',
+        scheme: 'Amenity',
         path: 'auth/callback',
       });
 
@@ -272,7 +272,7 @@ class AuthService implements IAuthService {
 
       // Create the OAuth URL
       const redirectUrl = AuthSession.makeRedirectUri({
-        scheme: 'amenity',
+        scheme: 'Amenity',
         path: 'auth/callback',
       });
 

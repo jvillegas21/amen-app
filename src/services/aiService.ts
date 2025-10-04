@@ -3,7 +3,7 @@
  * Provides AI-powered features for the Amenity app
  */
 
-interface PrayerSuggestion {
+export interface PrayerSuggestion {
   title: string;
   content: string;
   category: string;
@@ -11,7 +11,7 @@ interface PrayerSuggestion {
   tags: string[];
 }
 
-interface BibleStudy {
+export interface BibleStudy {
   title: string;
   scripture: string;
   reflection: string;
@@ -20,10 +20,25 @@ interface BibleStudy {
   application?: string;
 }
 
-interface AIResponse<T> {
+export interface AIResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
+  metadata?: {
+    model?: string;
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      total_tokens?: number;
+    };
+    [key: string]: any;
+  };
+}
+
+export interface AIScriptureVerse {
+  verse: string;
+  reference: string;
+  relevance: string;
 }
 
 class AIService {
@@ -64,6 +79,7 @@ class AIService {
       return {
         success: true,
         data: suggestions,
+        metadata: response.metadata,
       };
     } catch (error) {
       console.error('Error generating prayer suggestions:', error);
@@ -105,13 +121,15 @@ class AIService {
         await this.saveGenerationAnalytics(userId, 'bible_study', {
           prayer_text: prayerText,
           topic,
-          generated_study: bibleStudy.title
+          generated_study: bibleStudy.title,
+          usage: response.metadata?.usage,
         });
       }
 
       return {
         success: true,
         data: bibleStudy,
+        metadata: response.metadata,
       };
     } catch (error) {
       console.error('Error generating Bible study:', error);
@@ -156,7 +174,7 @@ class AIService {
   async generateScriptureVerses(
     prayerText: string,
     count: number = 3
-  ): Promise<AIResponse<Array<{ verse: string; reference: string; relevance: string }>>> {
+  ): Promise<AIResponse<AIScriptureVerse[]>> {
     try {
       if (!this.apiKey) {
         return {
@@ -178,6 +196,7 @@ class AIService {
       return {
         success: true,
         data: verses,
+        metadata: response.metadata,
       };
     } catch (error) {
       console.error('Error generating scripture verses:', error);
@@ -227,6 +246,7 @@ class AIService {
 
       const data = await response.json();
       const content = data.choices?.[0]?.message?.content;
+      const usage = data.usage || {};
 
       if (!content) {
         throw new Error('No content received from OpenAI');
@@ -235,12 +255,19 @@ class AIService {
       return {
         success: true,
         data: content,
+        metadata: {
+          model: data.model,
+          usage,
+        },
       };
     } catch (error) {
       console.error('OpenAI API call failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',
+        metadata: {
+          model: undefined,
+        },
       };
     }
   }
@@ -375,7 +402,7 @@ Format the response as JSON with this structure:
       return {
         title: 'Finding Peace in Difficult Times',
         scripture: 'Peace I leave with you; my peace I give you. I do not give to you as the world gives. Do not let your hearts be troubled and do not be afraid. - John 14:27',
-        reflection: 'In times of uncertainty and difficulty, Jesus offers us a peace that is fundamentally different from what the world provides. This peace is not dependent on our circumstances, but on His unchanging character and promises. When we feel overwhelmed by life\'s challenges, we can anchor our hearts in this divine peace that surpasses all understanding. Christ\'s peace is not the absence of trouble, but His presence in the midst of our troubles.',
+        reflection: 'In times of uncertainty and difficulty, Jesus offers us a peace that is fundAmenitytally different from what the world provides. This peace is not dependent on our circumstances, but on His unchanging character and promises. When we feel overwhelmed by life\'s challenges, we can anchor our hearts in this divine peace that surpasses all understanding. Christ\'s peace is not the absence of trouble, but His presence in the midst of our troubles.',
         questions: [
           'What does it mean to have peace that is different from the world\'s peace?',
           'How can we practice not letting our hearts be troubled?',
@@ -392,7 +419,7 @@ Format the response as JSON with this structure:
   /**
    * Parse scripture verses from AI response
    */
-  private parseScriptureVerses(response: string): Array<{ verse: string; reference: string; relevance: string }> {
+  private parseScriptureVerses(response: string): AIScriptureVerse[] {
     try {
       const parsed = JSON.parse(response);
       return parsed.verses || [];
@@ -438,13 +465,10 @@ Format the response as JSON with this structure:
    */
   private async saveGenerationAnalytics(userId: string, type: string, data: any): Promise<void> {
     try {
-      const { supabase } = await import('@/config/supabase');
-      await supabase.from('user_analytics').insert({
-        user_id: userId,
-        event_type: `ai_generation_${type}`,
-        event_data: data,
-        timestamp: new Date().toISOString(),
-      });
+      const { analyticsService } = await import('@/services/api/analyticsService');
+      await analyticsService.trackEvent(`ai_generation_${type}`, {
+        ...data,
+      }, userId);
     } catch (error) {
       console.error('Failed to save generation analytics:', error);
       // Don't throw - analytics is non-critical

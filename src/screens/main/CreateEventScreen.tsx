@@ -14,16 +14,19 @@ import {
   Switch,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
+import { layout } from '@/theme/spacing';
 
 /**
  * Create Event Screen - Create a new prayer event
  */
-const CreateEventScreen: React.FC<RootStackScreenProps<'CreateEvent'>> = ({ navigation, route }) => {
-  const { profile } = useAuthStore();
+const CreateEventScreen: React.FC<RootStackScreenProps<'CreateEvent'>> = ({ navigation }) => {
+  useAuthStore();
+  const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -140,16 +143,11 @@ const CreateEventScreen: React.FC<RootStackScreenProps<'CreateEvent'>> = ({ navi
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      Alert.alert(
-        'Success',
-        'Event created successfully!',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]
-      );
+      // Navigate to Feed tab (events will appear in feed when implemented)
+      navigation.navigate('MainTabs', { screen: 'Feed' });
+
+      // Show success feedback
+      Alert.alert('Success', 'Event created successfully!');
     } catch (error) {
       console.error('Error creating event:', error);
       Alert.alert('Error', 'Failed to create event. Please try again.');
@@ -358,15 +356,13 @@ const CreateEventScreen: React.FC<RootStackScreenProps<'CreateEvent'>> = ({ navi
             {renderEventSettingsSection()}
             {renderScheduleSection()}
             
-            {/* Bottom Spacing */}
-            <View style={styles.bottomSpacing} />
           </View>
         </ScrollView>
         
         {/* Date Picker Modal */}
         {showDatePicker && (
           <View style={styles.pickerModal}>
-            <View style={styles.pickerContainer}>
+            <View style={[styles.pickerContainer, { paddingBottom: Math.max(insets.bottom, layout.drawerBottomPadding) }]}>
               <View style={styles.pickerHeader}>
                 <TouchableOpacity onPress={() => setShowDatePicker(false)}>
                   <Text style={styles.pickerCancelText}>Cancel</Text>
@@ -391,7 +387,7 @@ const CreateEventScreen: React.FC<RootStackScreenProps<'CreateEvent'>> = ({ navi
         {/* Time Picker Modal */}
         {showTimePicker && (
           <View style={styles.pickerModal}>
-            <View style={styles.pickerContainer}>
+            <View style={[styles.pickerContainer, { paddingBottom: Math.max(insets.bottom, layout.drawerBottomPadding) }]}>
               <View style={styles.pickerHeader}>
                 <TouchableOpacity onPress={() => setShowTimePicker(false)}>
                   <Text style={styles.pickerCancelText}>Cancel</Text>
@@ -413,7 +409,7 @@ const CreateEventScreen: React.FC<RootStackScreenProps<'CreateEvent'>> = ({ navi
         )}
         
         {/* Floating Create Button */}
-        <View style={styles.floatingButtonContainer}>
+        <View style={[styles.floatingButtonContainer, { paddingBottom: 0 }]}>
           <TouchableOpacity
             style={[
               styles.floatingButton,
@@ -463,6 +459,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+    paddingBottom: 50,
   },
   section: {
     backgroundColor: '#FFFFFF',
@@ -574,9 +571,6 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginLeft: 8,
   },
-  bottomSpacing: {
-    height: 20,
-  },
   pickerModal: {
     position: 'absolute',
     top: 0,
@@ -591,7 +585,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingBottom: 34, // Safe area for home indicator
+    paddingBottom: layout.drawerBottomPadding,
   },
   pickerHeader: {
     flexDirection: 'row',
@@ -627,8 +621,7 @@ const styles = StyleSheet.create({
     zIndex: 100,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
-    paddingVertical: 20,
-    paddingBottom: 34, // Safe area for home indicator
+    paddingTop: 20,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     shadowColor: '#000',

@@ -47,8 +47,6 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
   
   const [featuredPrayers, setFeaturedPrayers] = useState<FeaturedPrayer[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  const [categoryPrayers, setCategoryPrayers] = useState<FeaturedPrayer[]>([]);
 
   useEffect(() => {
     fetchDiscoverData();
@@ -57,49 +55,23 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
   const fetchDiscoverData = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implement real API calls
 
-      const mockFeaturedPrayers: FeaturedPrayer[] = [
-        {
-          id: '550e8400-e29b-41d4-a716-446655440001',
-          text: 'Please pray for my grandmother who is recovering from surgery. She needs strength and healing.',
-          user: {
-            id: '550e8400-e29b-41d4-a716-446655440011',
-            display_name: 'Sarah Johnson',
-            avatar_url: 'https://via.placeholder.com/40',
-          },
-          location: 'Chicago, IL',
-          prayerCount: 45,
-          commentCount: 12,
-          createdAt: '2 hours ago',
-        },
-        {
-          id: '550e8400-e29b-41d4-a716-446655440002',
-          text: 'Praying for peace in our community and for those who are struggling with difficult circumstances.',
-          user: {
-            id: '550e8400-e29b-41d4-a716-446655440012',
-            display_name: 'Michael Chen',
-            avatar_url: 'https://via.placeholder.com/40',
-          },
-          location: 'Austin, TX',
-          prayerCount: 32,
-          commentCount: 8,
-          createdAt: '4 hours ago',
-        },
+      // Categories are hardcoded for now - they represent tags that can be used on prayers
+      const predefinedCategories: Category[] = [
+        { id: 'health-healing', name: 'Health & Healing', icon: 'medical', color: '#DC2626', prayerCount: 0 },
+        { id: 'family-relationships', name: 'Family & Relationships', icon: 'people', color: '#059669', prayerCount: 0 },
+        { id: 'spiritual-growth', name: 'Spiritual Growth', icon: 'book', color: '#5B21B6', prayerCount: 0 },
+        { id: 'work-career', name: 'Work & Career', icon: 'briefcase', color: '#D97706', prayerCount: 0 },
+        { id: 'peace-comfort', name: 'Peace & Comfort', icon: 'heart', color: '#06B6D4', prayerCount: 0 },
+        { id: 'community-world', name: 'Community & World', icon: 'globe', color: '#8B5CF6', prayerCount: 0 },
+        { id: 'financial-provision', name: 'Financial Provision', icon: 'cash', color: '#10B981', prayerCount: 0 },
+        { id: 'guidance-decisions', name: 'Guidance & Decisions', icon: 'compass', color: '#F59E0B', prayerCount: 0 },
       ];
 
-      const mockCategories: Category[] = [
-        { id: '550e8400-e29b-41d4-a716-446655440001', name: 'Health & Healing', icon: 'medical', color: 'theme.colors.error[700]', prayerCount: 2341 },
-        { id: '550e8400-e29b-41d4-a716-446655440002', name: 'Family & Relationships', icon: 'people', color: 'theme.colors.success[700]', prayerCount: 1892 },
-        { id: '550e8400-e29b-41d4-a716-446655440003', name: 'Spiritual Growth', icon: 'book', color: '#5B21B6', prayerCount: 1654 },
-        { id: '550e8400-e29b-41d4-a716-446655440004', name: 'Work & Career', icon: 'briefcase', color: 'theme.colors.warning[700]', prayerCount: 1234 },
-        { id: '550e8400-e29b-41d4-a716-446655440005', name: 'Peace & Comfort', icon: 'heart', color: '#06B6D4', prayerCount: 987 },
-        { id: '550e8400-e29b-41d4-a716-446655440006', name: 'Community', icon: 'globe', color: '#8B5CF6', prayerCount: 756 },
-        { id: '550e8400-e29b-41d4-a716-446655440007', name: 'AI Bible Studies', icon: 'library', color: '#7C3AED', prayerCount: 0 },
-      ];
-
-      setFeaturedPrayers(mockFeaturedPrayers);
-      setCategories(mockCategories);
+      // TODO: Fetch featured prayers from Supabase
+      // For now, show empty state
+      setFeaturedPrayers([]);
+      setCategories(predefinedCategories);
     } catch (error) {
       console.error('Failed to fetch discover data:', error);
     } finally {
@@ -120,51 +92,13 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
   };
 
   const handleCategoryPress = (category: Category) => {
-    if (category.id === '550e8400-e29b-41d4-a716-446655440007') { // AI Bible Studies
-      navigation.navigate('BibleStudyList', {});
-    } else {
-      // Show prayers from this category
-      setSelectedCategory(category);
-      fetchCategoryPrayers(category);
-    }
-  };
-
-  const fetchCategoryPrayers = async (category: Category) => {
-    try {
-      // TODO: Implement real API call to get prayers by category
-      // For now, we'll show mock data
-      const mockCategoryPrayers: FeaturedPrayer[] = [
-        {
-          id: `cat-${category.id}-1`,
-          text: `Sample prayer for ${category.name.toLowerCase()}. This is a mock prayer request.`,
-          user: {
-            id: '550e8400-e29b-41d4-a716-446655440011',
-            display_name: 'Community Member',
-            avatar_url: 'https://via.placeholder.com/40',
-          },
-          location: 'Various',
-          prayerCount: Math.floor(Math.random() * 50) + 10,
-          commentCount: Math.floor(Math.random() * 20) + 5,
-          createdAt: '2 hours ago',
-        },
-        {
-          id: `cat-${category.id}-2`,
-          text: `Another prayer request related to ${category.name.toLowerCase()}.`,
-          user: {
-            id: '550e8400-e29b-41d4-a716-446655440012',
-            display_name: 'Prayer Warrior',
-            avatar_url: 'https://via.placeholder.com/40',
-          },
-          location: 'Various',
-          prayerCount: Math.floor(Math.random() * 50) + 10,
-          commentCount: Math.floor(Math.random() * 20) + 5,
-          createdAt: '4 hours ago',
-        },
-      ];
-      setCategoryPrayers(mockCategoryPrayers);
-    } catch (error) {
-      console.error('Failed to fetch category prayers:', error);
-    }
+    // Navigate to CategoryPrayers screen
+    navigation.navigate('CategoryPrayers', {
+      categoryId: category.id,
+      categoryName: category.name,
+      categoryIcon: category.icon,
+      categoryColor: category.color,
+    });
   };
 
   const renderSearchBar = () => (
@@ -248,7 +182,7 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
       
       <View style={styles.prayerStats}>
         <View style={styles.statItem}>
-          <Ionicons name="heart" size={16} color="theme.colors.error[700]" />
+          <Ionicons name="heart" size={16} color="#DC2626" />
           <Text style={styles.statText}>{item.prayerCount} praying</Text>
         </View>
         <View style={styles.statItem}>
@@ -270,7 +204,9 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
       </View>
       <View style={styles.categoryContent}>
         <Text style={styles.categoryName}>{item.name}</Text>
-        <Text style={styles.categoryCount}>{item.prayerCount} prayers</Text>
+        <Text style={styles.categoryCount}>
+          {item.prayerCount > 0 ? `${item.prayerCount} prayers` : 'No prayers yet'}
+        </Text>
       </View>
       <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
     </TouchableOpacity>
@@ -295,45 +231,27 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContainer}
+            ListEmptyComponent={() => (
+              <View style={styles.emptyState}>
+                <Ionicons name="heart-outline" size={64} color="#9CA3AF" />
+                <Text style={styles.emptyStateTitle}>No featured prayers yet</Text>
+                <Text style={styles.emptyStateSubtitle}>
+                  Check back soon for featured prayers from the community
+                </Text>
+              </View>
+            )}
           />
         );
       case 'categories':
-        if (selectedCategory) {
-          return (
-            <View style={styles.categoryContent}>
-              <View style={styles.categoryHeader}>
-                <TouchableOpacity
-                  style={styles.backToCategories}
-                  onPress={() => setSelectedCategory(null)}
-                >
-                  <Ionicons name="arrow-back" size={20} color="#5B21B6" />
-                  <Text style={styles.backToCategoriesText}>Back to Categories</Text>
-                </TouchableOpacity>
-                <Text style={styles.categoryTitle}>{selectedCategory.name}</Text>
-                <Text style={styles.categorySubtitle}>
-                  {selectedCategory.prayerCount} prayers in this category
-                </Text>
-              </View>
-              <FlatList
-                data={categoryPrayers}
-                renderItem={renderFeaturedPrayer}
-                keyExtractor={(item) => item.id}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.listContainer}
-              />
-            </View>
-          );
-        } else {
-          return (
-            <FlatList
-              data={categories}
-              renderItem={renderCategory}
-              keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.listContainer}
-            />
-          );
-        }
+        return (
+          <FlatList
+            data={categories}
+            renderItem={renderCategory}
+            keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContainer}
+          />
+        );
       case 'bible_studies':
         return (
           <View style={styles.bibleStudiesContainer}>
@@ -607,7 +525,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#5B21B6',
+    backgroundColor: '#D97706',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -626,35 +544,25 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     lineHeight: 20,
   },
-  categoryContent: {
+  emptyState: {
     flex: 1,
-  },
-  categoryHeader: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  backToCategories: {
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    paddingVertical: 80,
+    paddingHorizontal: 32,
   },
-  backToCategoriesText: {
-    fontSize: 16,
-    color: '#5B21B6',
-    marginLeft: 8,
-    fontWeight: '500',
-  },
-  categoryTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: '600',
     color: '#111827',
-    marginBottom: 4,
+    marginTop: 16,
+    marginBottom: 8,
   },
-  categorySubtitle: {
+  emptyStateSubtitle: {
     fontSize: 16,
     color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 24,
   },
 });
 

@@ -118,11 +118,15 @@ export class PrayerRepository extends BaseRepositoryImpl<Prayer> {
       const interactions = prayer.interactions || [];
       const prayCount = interactions.filter((i: any) => i.type === 'PRAY').length;
       const likeCount = interactions.filter((i: any) => i.type === 'LIKE').length;
+      const saveCount = interactions.filter((i: any) => i.type === 'SAVE').length;
+      const shareCount = interactions.filter((i: any) => i.type === 'SHARE').length;
       
       return {
         ...prayer,
         pray_count: prayCount,
         like_count: likeCount,
+        save_count: saveCount,
+        share_count: shareCount,
         comment_count: commentCountMap[prayer.id] || 0,
       };
     });
@@ -160,6 +164,8 @@ export class PrayerRepository extends BaseRepositoryImpl<Prayer> {
     const interactions = (data as any).interactions || [];
     const prayCount = interactions.filter((i: any) => i.type === 'PRAY').length;
     const likeCount = interactions.filter((i: any) => i.type === 'LIKE').length;
+    const saveCount = interactions.filter((i: any) => i.type === 'SAVE').length;
+    const shareCount = interactions.filter((i: any) => i.type === 'SHARE').length;
     
     // Find user's specific interaction
     const userInteraction = userId 
@@ -172,6 +178,8 @@ export class PrayerRepository extends BaseRepositoryImpl<Prayer> {
       like_count: likeCount,
       comment_count: (data as any).comment_count || 0,
       user_interaction: userInteraction,
+      save_count: saveCount,
+      share_count: shareCount,
     };
   }
 

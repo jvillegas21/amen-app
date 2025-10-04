@@ -126,9 +126,9 @@ const PrivacyPolicyScreen: React.FC<RootStackScreenProps<'PrivacyPolicy'>> = ({ 
 
         {renderSection('12. Contact Us', [
           'If you have any questions about this Privacy Policy, please contact us:',
-          'Email: privacy@amenity.app',
+          'Email: privacy@Amenity.app',
           'Address: Amenity Privacy Team, 123 Prayer Street, Faith City, FC 12345',
-          'Phone: 1-800-AMENITY'
+          'Phone: 1-800-Amenity'
         ])}
 
         <View style={styles.bottomSpacing} />

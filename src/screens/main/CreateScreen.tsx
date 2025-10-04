@@ -79,60 +79,9 @@ const CreateScreen: React.FC<MainTabScreenProps<'Create'>> = ({ navigation }) =>
     </TouchableOpacity>
   );
 
-  const renderQuickActions = () => (
-    <View style={styles.quickActionsSection}>
-      <Text style={styles.sectionTitle}>Quick Actions</Text>
-      <View style={styles.quickActionsGrid}>
-        <TouchableOpacity
-          style={styles.quickAction}
-          onPress={handleCreatePrayer}
-          activeOpacity={0.7}
-        >
-          <View style={[styles.quickActionIcon, { backgroundColor: '#5B21B6' }]}>
-            <Ionicons name="heart" size={24} color="#FFFFFF" />
-          </View>
-          <Text style={styles.quickActionText}>Prayer</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.quickAction}
-          onPress={handleCreateGroup}
-          activeOpacity={0.7}
-        >
-          <View style={[styles.quickActionIcon, { backgroundColor: '#059669' }]}>
-            <Ionicons name="people" size={24} color="#FFFFFF" />
-          </View>
-          <Text style={styles.quickActionText}>Group</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.quickAction}
-          onPress={handleCreateBibleStudy}
-          activeOpacity={0.7}
-        >
-          <View style={[styles.quickActionIcon, { backgroundColor: '#D97706' }]}>
-            <Ionicons name="library" size={24} color="#FFFFFF" />
-          </View>
-          <Text style={styles.quickActionText}>Study</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.quickAction}
-          onPress={handleCreateEvent}
-          activeOpacity={0.7}
-        >
-          <View style={[styles.quickActionIcon, { backgroundColor: '#DC2626' }]}>
-            <Ionicons name="calendar-outline" size={24} color="#FFFFFF" />
-          </View>
-          <Text style={styles.quickActionText}>Event</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
 
   const renderCreateOptions = () => (
     <View style={styles.createOptionsSection}>
-      <Text style={styles.sectionTitle}>Create Content</Text>
       
       {renderCreateOption(
         'Prayer Request',
@@ -214,9 +163,6 @@ const CreateScreen: React.FC<MainTabScreenProps<'Create'>> = ({ navigation }) =>
           </Text>
         </View>
 
-        {/* Quick Actions */}
-        {renderQuickActions()}
-
         {/* Create Options */}
         {renderCreateOptions()}
 
@@ -255,38 +201,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B7280',
   },
-  quickActionsSection: {
-    backgroundColor: '#FFFFFF',
-    marginTop: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#111827',
     marginBottom: 16,
-  },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  quickAction: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  quickActionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  quickActionText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
   },
   createOptionsSection: {
     backgroundColor: '#FFFFFF',

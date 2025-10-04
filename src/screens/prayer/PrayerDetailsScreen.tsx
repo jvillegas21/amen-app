@@ -68,46 +68,54 @@ export default function PrayerDetailsScreen() {
     };
   }, [prayerId]);
 
-  // Set navigation options
+  // Set navigation options with proper header centering and actions
   useLayoutEffect(() => {
     const isOwner = prayer && profile && prayer.user_id === profile.id;
-    
+
+    const actions = [];
+
+    // Add edit action if user owns the prayer
+    if (isOwner) {
+      actions.push({
+        onPress: () => navigation.navigate('EditPrayer', { prayerId: prayerId }),
+        iconName: 'create-outline',
+        accessibilityLabel: 'Edit prayer',
+        accessibilityHint: 'Edit this prayer'
+      });
+    }
+
+    // Add reminder action for all users
+    actions.push({
+      onPress: () => navigation.setParams({ createReminder: true }),
+      iconName: 'notifications-outline',
+      accessibilityLabel: 'Create reminder',
+      accessibilityHint: 'Set a reminder for this prayer'
+    });
+
     navigation.setOptions({
       title: 'Prayer Details',
+      headerTitleAlign: 'center', // Ensure title is centered
       headerRight: () => (
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          {isOwner && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
+          {actions.map((action, index) => (
             <TouchableOpacity
-              onPress={() => {
-                navigation.navigate('EditPrayer', { prayerId: prayerId });
+              key={index}
+              onPress={action.onPress}
+              style={{
+                padding: 8,
+                marginLeft: index > 0 ? 8 : 0,
               }}
-              style={{ marginRight: 16 }}
-              accessibilityLabel="Edit prayer"
+              accessibilityLabel={action.accessibilityLabel}
               accessibilityRole="button"
-              accessibilityHint="Edit this prayer"
+              accessibilityHint={action.accessibilityHint}
             >
               <Ionicons
-                name="create-outline"
+                name={action.iconName}
                 size={24}
                 color="#FFFFFF"
               />
             </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            onPress={() => {
-              navigation.setParams({ createReminder: true });
-            }}
-            style={{ marginRight: 16 }}
-            accessibilityLabel="Create reminder"
-            accessibilityRole="button"
-            accessibilityHint="Set a reminder for this prayer"
-          >
-            <Ionicons
-              name="notifications-outline"
-              size={24}
-              color="#FFFFFF"
-            />
-          </TouchableOpacity>
+          ))}
         </View>
       ),
     });
@@ -170,7 +178,10 @@ export default function PrayerDetailsScreen() {
       console.error('Error praying for prayer:', error);
       Alert.alert('Error', 'Failed to pray for this request');
     } finally {
-      setInteracting(false);
+      // Clear interacting state after a short delay to prevent visual flickering
+      setTimeout(() => {
+        setInteracting(false);
+      }, 200);
     }
   };
 
@@ -180,13 +191,16 @@ export default function PrayerDetailsScreen() {
 
     try {
       setInteracting(true);
-      await prayerService.savePrayer(prayerId);
-      // Real-time subscription will update the UI
+      // Use the same interaction method as prayer cards for consistency
+      await interactWithPrayer(prayerId, 'SAVE');
     } catch (error) {
       console.error('Error saving prayer:', error);
       Alert.alert('Error', 'Failed to save prayer');
     } finally {
-      setInteracting(false);
+      // Clear interacting state after a short delay to prevent visual flickering
+      setTimeout(() => {
+        setInteracting(false);
+      }, 200);
     }
   };
 
@@ -315,12 +329,15 @@ export default function PrayerDetailsScreen() {
           <TouchableOpacity
             style={[styles.interactionButton, prayer?.user_interaction?.type === 'PRAY' && styles.interactionButtonActive]}
             onPress={handlePray}
-            disabled={interacting}
+            accessibilityRole="button"
+            accessibilityState={{ pressed: prayer?.user_interaction?.type === 'PRAY', disabled: interacting }}
+            accessibilityLabel={`${prayer?.user_interaction?.type === 'PRAY' ? 'Remove prayer' : 'Pray for this request'}`}
+            accessibilityHint={`Double tap to ${prayer?.user_interaction?.type === 'PRAY' ? 'remove your prayer' : 'add your prayer'}`}
           >
             <Ionicons
-              name={prayer?.user_interaction?.type === 'PRAY' ? "heart" : "heart-outline"}
+              name={(prayer?.user_interactions?.isPrayed || prayer?.user_interaction?.type === 'PRAY') ? "heart" : "heart-outline"}
               size={20}
-              color={prayer?.user_interaction?.type === 'PRAY' ? "#FF3B30" : "#666"}
+              color={(prayer?.user_interactions?.isPrayed || prayer?.user_interaction?.type === 'PRAY') ? "#FF3B30" : "#666"}
             />
             <Text style={[styles.interactionText, prayer?.user_interaction?.type === 'PRAY' && styles.interactionTextActive]}>
               {prayer?.pray_count || 0}
@@ -338,14 +355,17 @@ export default function PrayerDetailsScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.interactionButton, interactions.isSaved && styles.interactionButtonActive]}
+            style={[styles.interactionButton, (prayer?.user_interactions?.isSaved || interactions.isSaved) && styles.interactionButtonActive]}
             onPress={handleSave}
-            disabled={interacting}
+            accessibilityRole="button"
+            accessibilityState={{ pressed: prayer?.user_interactions?.isSaved || interactions.isSaved, disabled: interacting }}
+            accessibilityLabel={`${prayer?.user_interactions?.isSaved || interactions.isSaved ? 'Remove from saved prayers' : 'Save prayer for later'}`}
+            accessibilityHint={`Double tap to ${prayer?.user_interactions?.isSaved || interactions.isSaved ? 'remove from' : 'add to'} your saved prayers`}
           >
             <Ionicons
-              name={interactions.isSaved ? "bookmark" : "bookmark-outline"}
+              name={(prayer?.user_interactions?.isSaved || interactions.isSaved) ? "bookmark" : "bookmark-outline"}
               size={20}
-              color={interactions.isSaved ? "#007AFF" : "#666"}
+              color={(prayer?.user_interactions?.isSaved || interactions.isSaved) ? "#007AFF" : "#666"}
             />
           </TouchableOpacity>
         </View>

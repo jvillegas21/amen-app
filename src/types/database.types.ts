@@ -134,7 +134,18 @@ export interface Prayer {
   like_count?: number;
   share_count?: number;
   save_count?: number;
-  user_interaction?: Interaction;
+  user_interaction?: Interaction; // Keep for backwards compatibility
+  // Track multiple user interactions independently
+  user_interactions?: {
+    isPrayed: boolean;
+    isSaved: boolean;
+    isLiked: boolean;
+    isShared: boolean;
+    prayedAt?: string;
+    savedAt?: string;
+    likedAt?: string;
+    sharedAt?: string;
+  };
 }
 
 // Interaction

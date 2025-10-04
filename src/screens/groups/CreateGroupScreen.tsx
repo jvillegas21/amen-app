@@ -13,18 +13,21 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { groupService } from '@/services/api/groupService';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { layout } from '@/theme/spacing';
 
 /**
  * Create Group Screen - Group creation with privacy settings
  * Based on create_group_prayer mockups
  */
 const CreateGroupScreen: React.FC<RootStackScreenProps<'CreateGroup'>> = ({ navigation }) => {
-  const { profile } = useAuthStore();
+  useAuthStore();
+  const insets = useSafeAreaInsets();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -274,7 +277,7 @@ const CreateGroupScreen: React.FC<RootStackScreenProps<'CreateGroup'>> = ({ navi
         </ScrollView>
         
         {/* Floating Create Button */}
-        <View style={styles.floatingButtonContainer}>
+        <View style={[styles.floatingButtonContainer, { paddingBottom: 0 }]}>
           <TouchableOpacity
             style={[
               styles.floatingButton,
@@ -325,6 +328,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 24,
     paddingVertical: 20,
+    paddingBottom: 50,
   },
   floatingButtonContainer: {
     position: 'absolute',
@@ -334,8 +338,7 @@ const styles = StyleSheet.create({
     zIndex: 100,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
-    paddingVertical: 20,
-    paddingBottom: 34, // Safe area for home indicator
+    paddingTop: 20,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     shadowColor: '#000',

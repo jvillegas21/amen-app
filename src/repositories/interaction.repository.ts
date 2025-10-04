@@ -78,7 +78,7 @@ export class InteractionRepository extends BaseRepositoryImpl<Interaction> {
    * Get user's interactions for multiple prayers in a single query
    * Fixes N+1 query problem when loading prayer lists
    */
-  async getUserInteractionsForPrayers(prayerIds: string[], userId: string): Promise<Record<string, Interaction>> {
+  async getUserInteractionsForPrayers(prayerIds: string[], userId: string): Promise<Record<string, Interaction[]>> {
     if (prayerIds.length === 0) return {};
 
     const { data, error } = await supabase
@@ -91,10 +91,13 @@ export class InteractionRepository extends BaseRepositoryImpl<Interaction> {
       this.handleError(error, 'getUserInteractionsForPrayers');
     }
 
-    // Group by prayer_id
-    const interactions: Record<string, Interaction> = {};
+    // Group by prayer_id allowing multiple interaction types per prayer
+    const interactions: Record<string, Interaction[]> = {};
     (data || []).forEach(interaction => {
-      interactions[interaction.prayer_id] = interaction;
+      if (!interactions[interaction.prayer_id]) {
+        interactions[interaction.prayer_id] = [];
+      }
+      interactions[interaction.prayer_id].push(interaction);
     });
 
     return interactions;

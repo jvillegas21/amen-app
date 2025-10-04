@@ -23,6 +23,7 @@ export type RootStackParamList = {
   BibleStudyDetails: { studyId: string; prayerId: string };
   BibleStudyList: undefined;
   BibleStudySuggestions: undefined;
+  CategoryPrayers: { categoryId: string; categoryName: string; categoryIcon: string; categoryColor: string };
   Settings: undefined;
   Privacy: undefined;
   Notifications: undefined;

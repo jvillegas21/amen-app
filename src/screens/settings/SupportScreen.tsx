@@ -143,12 +143,12 @@ const SupportScreen: React.FC<RootStackScreenProps<'Support'>> = ({ navigation }
 
   const handleContactSupport = (method: 'email' | 'chat') => {
     if (method === 'email') {
-      Linking.openURL('mailto:support@amen-prayer-app.com?subject=Support Request');
+      Linking.openURL('mailto:support@Amenity-prayer-app.com?subject=Support Request');
     } else {
       // For chat, we could integrate with a third-party chat service
       Alert.alert(
         'Live Chat',
-        'Live chat will be available soon. For immediate assistance, please email us at support@amen-prayer-app.com'
+        'Live chat will be available soon. For immediate assistance, please email us at support@Amenity-prayer-app.com'
       );
     }
   };
@@ -348,7 +348,7 @@ const SupportScreen: React.FC<RootStackScreenProps<'Support'>> = ({ navigation }
             <Text style={styles.contactDescription}>
               Get help via email. We typically respond within 24 hours.
             </Text>
-            <Text style={styles.contactDetail}>support@amen-prayer-app.com</Text>
+            <Text style={styles.contactDetail}>support@Amenity-prayer-app.com</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.neutral[400]} />
         </TouchableOpacity>

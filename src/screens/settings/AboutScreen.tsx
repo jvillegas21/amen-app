@@ -32,13 +32,13 @@ const AboutScreen: React.FC<RootStackScreenProps<'About'>> = ({ navigation }) =>
   };
 
   const handleOpenWebsite = () => {
-    Linking.openURL('https://amenity.app').catch(() => {
+    Linking.openURL('https://Amenity.app').catch(() => {
       Alert.alert('Error', 'Unable to open website');
     });
   };
 
   const handleOpenEmail = () => {
-    Linking.openURL('mailto:support@amenity.app').catch(() => {
+    Linking.openURL('mailto:support@Amenity.app').catch(() => {
       Alert.alert('Error', 'Unable to open email client');
     });
   };
@@ -122,7 +122,7 @@ const AboutScreen: React.FC<RootStackScreenProps<'About'>> = ({ navigation }) =>
       <TouchableOpacity style={styles.linkItem} onPress={handleOpenEmail}>
         <View style={styles.linkContent}>
           <Ionicons name="mail" size={20} color="#6B7280" />
-          <Text style={styles.linkText}>support@amenity.app</Text>
+          <Text style={styles.linkText}>support@Amenity.app</Text>
         </View>
         <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
       </TouchableOpacity>

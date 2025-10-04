@@ -78,10 +78,16 @@ const DirectMessagesScreen: React.FC<MainTabScreenProps<'Messages'>> = ({ naviga
     >
       <View style={styles.conversationContent}>
         <View style={styles.avatarContainer}>
-          <Image
-            source={{ uri: conversation.user_avatar_url || 'https://via.placeholder.com/40' }}
-            style={styles.avatar}
-          />
+          {conversation.user_avatar_url ? (
+            <Image
+              source={{ uri: conversation.user_avatar_url }}
+              style={styles.avatar}
+            />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <Ionicons name="person" size={24} color="#9CA3AF" />
+            </View>
+          )}
           {/* Online indicator would need to be calculated from profiles.last_active */}
         </View>
         
@@ -240,6 +246,11 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   onlineIndicator: {
     position: 'absolute',

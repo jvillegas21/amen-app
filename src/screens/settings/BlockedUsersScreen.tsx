@@ -16,6 +16,7 @@ import { RootStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
+import { supabase } from '@/config/supabase';
 
 interface BlockedUser {
   id: string;
@@ -44,36 +45,37 @@ const BlockedUsersScreen: React.FC<RootStackScreenProps<'BlockedUsers'>> = ({ na
   const fetchBlockedUsers = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implement blocked users fetch from API
-      // For now, using mock data
-      const mockBlockedUsers: BlockedUser[] = [
-        {
-          id: '1',
-          user_id: 'user1',
-          user_display_name: 'John Smith',
-          user_avatar_url: 'https://via.placeholder.com/40',
-          blocked_at: new Date(Date.now() - 86400000).toISOString(),
-          reason: 'Inappropriate messages',
-        },
-        {
-          id: '2',
-          user_id: 'user2',
-          user_display_name: 'Sarah Johnson',
-          user_avatar_url: 'https://via.placeholder.com/40',
-          blocked_at: new Date(Date.now() - 172800000).toISOString(),
-          reason: 'Spam content',
-        },
-        {
-          id: '3',
-          user_id: 'user3',
-          user_display_name: 'Mike Wilson',
-          user_avatar_url: 'https://via.placeholder.com/40',
-          blocked_at: new Date(Date.now() - 259200000).toISOString(),
-          reason: 'Harassment',
-        },
-      ];
-      setBlockedUsers(mockBlockedUsers);
+
+      // Fetch blocked users from Supabase
+      const { data: blockedData, error: blockedError } = await supabase
+        .from('blocked_users')
+        .select(`
+          id,
+          blocked_user_id,
+          reason,
+          created_at,
+          profiles!blocked_users_blocked_user_id_fkey (
+            display_name,
+            avatar_url
+          )
+        `)
+        .eq('blocker_id', profile?.id)
+        .order('created_at', { ascending: false });
+
+      if (blockedError) throw blockedError;
+
+      const formattedBlockedUsers: BlockedUser[] = (blockedData || []).map((item: any) => ({
+        id: item.id,
+        user_id: item.blocked_user_id,
+        user_display_name: item.profiles?.display_name || 'Unknown User',
+        user_avatar_url: item.profiles?.avatar_url || null,
+        blocked_at: item.created_at,
+        reason: item.reason || undefined,
+      }));
+
+      setBlockedUsers(formattedBlockedUsers);
     } catch (error) {
+      console.error('Failed to load blocked users:', error);
       Alert.alert('Error', 'Failed to load blocked users');
     } finally {
       setIsLoading(false);

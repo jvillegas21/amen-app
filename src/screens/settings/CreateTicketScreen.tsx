@@ -186,7 +186,7 @@ const CreateTicketScreen: React.FC<RootStackScreenProps<'CreateTicket'>> = ({ na
       console.error('Failed to create ticket:', error);
       Alert.alert(
         'Error',
-        'Failed to create support ticket. Please try again or contact us directly at support@amen-prayer-app.com'
+        'Failed to create support ticket. Please try again or contact us directly at support@Amenity-prayer-app.com'
       );
     } finally {
       setIsSubmitting(false);

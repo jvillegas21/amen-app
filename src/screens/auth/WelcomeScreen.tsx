@@ -27,13 +27,13 @@ const WelcomeScreen: React.FC<AuthStackScreenProps<'Welcome'>> = ({ navigation }
       <View style={styles.content}>
         {/* Logo/App Name */}
         <View style={styles.logoContainer}>
-          <Text style={styles.appName}>Amen</Text>
+          <Text style={styles.appName}>Amenity</Text>
           <Text style={styles.tagline}>Connect Through Prayer</Text>
         </View>
 
         {/* Welcome Message */}
         <View style={styles.welcomeContainer}>
-          <Text style={styles.welcomeTitle}>Welcome to Amen</Text>
+          <Text style={styles.welcomeTitle}>Welcome to Amenity</Text>
           <Text style={styles.welcomeText}>
             Join a community of believers sharing prayers,{' '}
             finding support, and growing in faith together.

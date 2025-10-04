@@ -7,7 +7,7 @@ import { Prayer, Profile, Group } from '@/types/database.types';
  * Follows Single Responsibility Principle: Only handles caching operations
  */
 class CacheService {
-  private readonly CACHE_PREFIX = '@amenapp_cache_';
+  private readonly CACHE_PREFIX = '@Amenityapp_cache_';
   private readonly CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
   private isOnline = true;
   private syncQueue: Array<() => Promise<void>> = [];

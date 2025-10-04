@@ -5,7 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  ScrollView,
+  FlatList,
   ActivityIndicator,
 } from 'react-native';
 import { GroupsStackScreenProps } from '@/types/navigation.types';
@@ -15,12 +15,14 @@ import { Group } from '@/types/database.types';
 import { groupService } from '@/services/api/groupService';
 
 /**
- * Groups List Screen - Main groups hub with navigation to MyGroups and DiscoverGroups
+ * Groups List Screen - Main groups hub with My Groups and Discover tabs
  */
 const GroupsListScreen: React.FC<GroupsStackScreenProps<'GroupsList'>> = ({ navigation }) => {
   const { profile } = useAuthStore();
+  const [activeTab, setActiveTab] = useState<'my_groups' | 'discover'>('my_groups');
   const [isLoading, setIsLoading] = useState(true);
-  const [recentGroups, setRecentGroups] = useState<Group[]>([]);
+  const [myGroups, setMyGroups] = useState<Group[]>([]);
+  const [discoverGroups, setDiscoverGroups] = useState<Group[]>([]);
 
   useEffect(() => {
     fetchGroupsData();
@@ -31,38 +33,18 @@ const GroupsListScreen: React.FC<GroupsStackScreenProps<'GroupsList'>> = ({ navi
       setIsLoading(true);
       if (!profile?.id) return;
 
-      // Fetch user's joined groups
+      // Fetch user's joined groups for "My Groups" tab
       const userGroups = await groupService.getUserGroups(profile.id);
-      
-      // Fetch trending groups to show as suggestions
-      const trendingGroups = await groupService.getTrendingGroups(5, profile.id);
-      
-      // Combine user groups with trending groups, removing duplicates
-      const allGroups = [...userGroups];
-      trendingGroups.forEach(trending => {
-        if (!userGroups.find(userGroup => userGroup.id === trending.id)) {
-          allGroups.push(trending);
-        }
-      });
+      setMyGroups(userGroups);
 
-      setRecentGroups(allGroups.slice(0, 6)); // Show up to 6 groups
+      // Fetch trending groups for "Discover" tab
+      const trendingGroups = await groupService.getTrendingGroups(20, profile.id);
+      setDiscoverGroups(trendingGroups);
     } catch (error) {
       console.error('Failed to fetch groups data:', error);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleMyGroups = () => {
-    navigation.navigate('MyGroups');
-  };
-
-  const handleDiscoverGroups = () => {
-    navigation.navigate('DiscoverGroups');
-  };
-
-  const handleCreateGroup = () => {
-    navigation.navigate('CreateGroup');
   };
 
   const handleGroupPress = (groupId: string) => {
@@ -78,121 +60,102 @@ const GroupsListScreen: React.FC<GroupsStackScreenProps<'GroupsList'>> = ({ navi
     </View>
   );
 
-  const renderQuickActions = () => (
-    <View style={styles.quickActionsContainer}>
+  const renderTabBar = () => (
+    <View style={styles.tabBar}>
       <TouchableOpacity
-        style={styles.quickAction}
-        onPress={handleMyGroups}
-        activeOpacity={0.7}
+        style={[styles.tab, activeTab === 'my_groups' && styles.activeTab]}
+        onPress={() => setActiveTab('my_groups')}
       >
-        <View style={styles.quickActionIcon}>
-          <Ionicons name="people" size={24} color="#5B21B6" />
-        </View>
-        <Text style={styles.quickActionText}>My Groups</Text>
-        <Text style={styles.quickActionSubtext}>View joined groups</Text>
+        <Text style={[styles.tabText, activeTab === 'my_groups' && styles.activeTabText]}>
+          My Groups
+        </Text>
       </TouchableOpacity>
-
       <TouchableOpacity
-        style={styles.quickAction}
-        onPress={handleDiscoverGroups}
-        activeOpacity={0.7}
+        style={[styles.tab, activeTab === 'discover' && styles.activeTab]}
+        onPress={() => setActiveTab('discover')}
       >
-        <View style={styles.quickActionIcon}>
-          <Ionicons name="search" size={24} color="theme.colors.success[700]" />
-        </View>
-        <Text style={styles.quickActionText}>Discover</Text>
-        <Text style={styles.quickActionSubtext}>Find new groups</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.quickAction}
-        onPress={handleCreateGroup}
-        activeOpacity={0.7}
-      >
-        <View style={styles.quickActionIcon}>
-          <Ionicons name="add-circle" size={24} color="theme.colors.warning[700]" />
-        </View>
-        <Text style={styles.quickActionText}>Create</Text>
-        <Text style={styles.quickActionSubtext}>Start new group</Text>
+        <Text style={[styles.tabText, activeTab === 'discover' && styles.activeTabText]}>
+          Discover
+        </Text>
       </TouchableOpacity>
     </View>
   );
 
-  const renderRecentGroups = () => (
-    <View style={styles.recentGroupsContainer}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Recent Groups</Text>
-        <TouchableOpacity onPress={handleMyGroups}>
-          <Text style={styles.viewAllText}>View All</Text>
-        </TouchableOpacity>
+  const renderGroupItem = React.useCallback(({ item }: { item: Group }) => (
+    <TouchableOpacity
+      style={styles.groupItem}
+      onPress={() => handleGroupPress(item.id)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.groupAvatar}>
+        <Ionicons name="people" size={24} color="#6B7280" />
       </View>
-      
-      {recentGroups.map((group: Group) => (
-        <TouchableOpacity
-          key={group.id}
-          style={styles.groupItem}
-          onPress={() => handleGroupPress(group.id)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.groupAvatar}>
-            <Ionicons name="people" size={24} color="#6B7280" />
-          </View>
-          
-          <View style={styles.groupContent}>
-            <View style={styles.groupHeader}>
-              <Text style={styles.groupName}>{group.name}</Text>
-              <View style={styles.groupPrivacy}>
-                <Ionicons
-                  name={group.privacy === 'public' ? 'globe' : 'lock-closed'}
-                  size={14}
-                  color="#6B7280"
-                />
-              </View>
-            </View>
-            
-            <Text style={styles.groupDescription} numberOfLines={2}>
-              {group.description || 'No description available'}
-            </Text>
-            
-            <View style={styles.groupMeta}>
-              <View style={styles.groupStats}>
-                <Ionicons name="people" size={14} color="#6B7280" />
-                <Text style={styles.groupStatsText}>{group.member_count} members</Text>
-              </View>
-              {group.isJoined && (
-                <View style={styles.joinedBadge}>
-                  <Text style={styles.joinedBadgeText}>Joined</Text>
-                </View>
-              )}
-            </View>
-          </View>
-          
-          <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyStateContainer}>
-      <Ionicons name="people-outline" size={64} color="#D1D5DB" />
-      <Text style={styles.emptyStateTitle}>No Groups Yet</Text>
-      <Text style={styles.emptyStateText}>
-        Join groups to connect with prayer communities or create your own
-      </Text>
-      <TouchableOpacity
-        style={styles.emptyStateButton}
-        onPress={handleDiscoverGroups}
-      >
-        <Text style={styles.emptyStateButtonText}>Discover Groups</Text>
-      </TouchableOpacity>
-    </View>
-  );
+      <View style={styles.groupContent}>
+        <View style={styles.groupHeader}>
+          <Text style={styles.groupName}>{item.name}</Text>
+          <View style={styles.groupPrivacy}>
+            <Ionicons
+              name={item.privacy === 'public' ? 'globe' : 'lock-closed'}
+              size={14}
+              color="#6B7280"
+            />
+          </View>
+        </View>
+
+        <Text style={styles.groupDescription} numberOfLines={2}>
+          {item.description || 'No description available'}
+        </Text>
+
+        <View style={styles.groupMeta}>
+          <View style={styles.groupStats}>
+            <Ionicons name="people" size={14} color="#6B7280" />
+            <Text style={styles.groupStatsText}>{item.member_count} members</Text>
+          </View>
+          {item.isJoined && (
+            <View style={styles.joinedBadge}>
+              <Text style={styles.joinedBadgeText}>Joined</Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+    </TouchableOpacity>
+  ), []);
+
+  const renderEmptyState = () => {
+    const isMyGroups = activeTab === 'my_groups';
+    return (
+      <View style={styles.emptyStateContainer}>
+        <Ionicons name="people-outline" size={64} color="#D1D5DB" />
+        <Text style={styles.emptyStateTitle}>
+          {isMyGroups ? 'No Groups Yet' : 'No Groups Found'}
+        </Text>
+        <Text style={styles.emptyStateText}>
+          {isMyGroups
+            ? 'Join groups to connect with prayer communities or create your own'
+            : 'Check back later for new groups to discover'}
+        </Text>
+        {isMyGroups && (
+          <TouchableOpacity
+            style={styles.emptyStateButton}
+            onPress={() => setActiveTab('discover')}
+          >
+            <Text style={styles.emptyStateButtonText}>Discover Groups</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+
+  const currentGroups = activeTab === 'my_groups' ? myGroups : discoverGroups;
 
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
         {renderHeader()}
+        {renderTabBar()}
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#5B21B6" />
           <Text style={styles.loadingText}>Loading groups...</Text>
@@ -203,12 +166,20 @@ const GroupsListScreen: React.FC<GroupsStackScreenProps<'GroupsList'>> = ({ navi
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {renderHeader()}
-        {renderQuickActions()}
-        {recentGroups.length > 0 ? renderRecentGroups() : renderEmptyState()}
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
+      {renderHeader()}
+      {renderTabBar()}
+      <FlatList
+        data={currentGroups}
+        keyExtractor={(item) => item.id}
+        renderItem={renderGroupItem}
+        contentContainerStyle={currentGroups.length === 0 ? styles.emptyListContainer : styles.listContainer}
+        ListEmptyComponent={renderEmptyState}
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={10}
+      />
     </SafeAreaView>
   );
 };
@@ -217,9 +188,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
-  },
-  scrollView: {
-    flex: 1,
   },
   header: {
     backgroundColor: '#FFFFFF',
@@ -238,66 +206,46 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B7280',
   },
-  quickActionsContainer: {
+  tabBar: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    marginTop: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
-  quickAction: {
+  tab: {
     flex: 1,
+    paddingVertical: 16,
     alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: '#5B21B6',
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  activeTabText: {
+    color: '#5B21B6',
+    fontWeight: '600',
+  },
+  listContainer: {
+    paddingHorizontal: 20,
     paddingVertical: 16,
   },
-  quickActionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  quickActionText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 2,
-  },
-  quickActionSubtext: {
-    fontSize: 12,
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-  recentGroupsContainer: {
-    backgroundColor: '#FFFFFF',
-    marginTop: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  viewAllText: {
-    fontSize: 14,
-    color: '#5B21B6',
-    fontWeight: '500',
+  emptyListContainer: {
+    flexGrow: 1,
   },
   groupItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 8,
+    borderRadius: 12,
+    paddingHorizontal: 16,
   },
   groupAvatar: {
     width: 48,
@@ -396,9 +344,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: '#6B7280',
-  },
-  bottomSpacing: {
-    height: 20,
   },
 });
 

@@ -48,43 +48,43 @@ const PrayerCard: React.FC<PrayerCardProps> = (
   const handlePressIn = useCallback(() => {
     Animated.parallel([
       Animated.spring(scaleAnim, {
-        toValue: 0.98,
+        toValue: theme.motionDesign?.transforms?.press?.scale || 0.96,
         useNativeDriver: true,
-        tension: 300,
-        friction: 10,
+        ...(theme.motionDesign?.springs?.snappy || { tension: 200, friction: 10, useNativeDriver: true }),
       }),
       Animated.timing(opacityAnim, {
-        toValue: 0.9,
-        duration: 100,
+        toValue: theme.motionDesign?.transforms?.press?.opacity || 0.8,
         useNativeDriver: true,
+        duration: 100, // Reduced from 200ms for instant feel
       }),
     ]).start();
-  }, [scaleAnim, opacityAnim]);
+  }, [scaleAnim, opacityAnim, theme]);
 
   const handlePressOut = useCallback(() => {
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
         useNativeDriver: true,
-        tension: 300,
-        friction: 10,
+        ...(theme.motionDesign?.springs?.gentle || { tension: 120, friction: 14, useNativeDriver: true }),
       }),
       Animated.timing(opacityAnim, {
         toValue: 1,
-        duration: 150,
         useNativeDriver: true,
+        duration: 150, // Reduced from 300ms for quicker response
       }),
     ]).start();
-  }, [scaleAnim, opacityAnim]);
+  }, [scaleAnim, opacityAnim, theme]);
 
   const handlePress = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
   }, [onPress]);
 
-  const handleActionPress = useCallback(async (action: () => void) => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const handleActionPress = useCallback((action: () => void) => {
+    // Remove async haptic feedback delay for instant action response
     action();
+    // Trigger haptic feedback after action for better responsiveness
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
   const styles = createStyles(theme);
@@ -96,20 +96,21 @@ const PrayerCard: React.FC<PrayerCardProps> = (
           transform: [{ scale: scaleAnim }],
           opacity: opacityAnim,
         },
+        styles.animatedContainer,
       ]}
     >
       <Pressable
-        style={styles.container}
-        onPress={handlePress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        accessibilityRole="button"
-        accessibilityLabel={`Prayer by ${displayName}, ${timeAgo}. ${prayer.text}`}
-        accessibilityHint="Double tap to view prayer details"
-        accessibilityState={{
-          selected: prayer.user_interaction?.type === 'PRAY'
-        }}
-      >
+          style={styles.container}
+          onPress={handlePress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          accessibilityRole="button"
+          accessibilityLabel={`Prayer by ${displayName}, ${timeAgo}. ${prayer.text}`}
+          accessibilityHint="Double tap to view prayer details"
+          accessibilityState={{
+            selected: prayer.user_interaction?.type === 'PRAY'
+          }}
+        >
       <View style={styles.header}>
         <View style={styles.userInfo}>
           {avatarUrl ? (
@@ -159,7 +160,7 @@ const PrayerCard: React.FC<PrayerCardProps> = (
           )}
           {onSavePress && (
             <Pressable
-              style={[styles.saveButton, isSaving && styles.actionButtonDisabled]}
+              style={styles.saveButton}
               onPress={() => handleActionPress(onSavePress)}
               disabled={isSaving}
               accessibilityRole="button"
@@ -168,9 +169,9 @@ const PrayerCard: React.FC<PrayerCardProps> = (
               accessibilityState={{ pressed: isSaved, disabled: isSaving }}
             >
               <Ionicons
-                name={isSaved ? "bookmark" : "bookmark-outline"}
+                name={prayer.user_interactions?.isSaved ? "bookmark" : "bookmark-outline"}
                 size={20}
-                color={isSaved ? theme.colors.primary[600] : theme.colors.text.secondary}
+                color={prayer.user_interactions?.isSaved ? '#007AFF' : theme.colors.text.secondary}
               />
             </Pressable>
           )}
@@ -195,7 +196,7 @@ const PrayerCard: React.FC<PrayerCardProps> = (
 
       <View style={styles.actions}>
         <Pressable
-          style={[styles.actionButton, isPraying && styles.actionButtonDisabled]}
+          style={styles.actionButton}
           onPress={() => handleActionPress(onPrayPress)}
           disabled={isPraying}
           accessibilityRole="button"
@@ -204,14 +205,13 @@ const PrayerCard: React.FC<PrayerCardProps> = (
           accessibilityState={{ pressed: prayer.user_interaction?.type === 'PRAY', disabled: isPraying }}
         >
           <Ionicons
-            name={prayer.user_interaction?.type === 'PRAY' ? 'heart' : 'heart-outline'}
+            name={prayer.user_interactions?.isPrayed ? 'heart' : 'heart-outline'}
             size={20}
-            color={prayer.user_interaction?.type === 'PRAY' ? theme.colors.error[500] : theme.colors.text.secondary}
+            color={prayer.user_interactions?.isPrayed ? '#FF3B30' : theme.colors.text.secondary}
           />
           <Text style={[
             styles.actionText,
-            prayer.user_interaction?.type === 'PRAY' && { color: theme.colors.error[500] },
-            isPraying && { opacity: 0.6 }
+            prayer.user_interactions?.isPrayed && { color: '#FF3B30' },
           ]}>
             {prayer.pray_count && prayer.pray_count > 0 ? prayer.pray_count : 'Pray'}
           </Text>
@@ -259,14 +259,22 @@ const PrayerCard: React.FC<PrayerCardProps> = (
 PrayerCard.displayName = 'PrayerCard';
 
 const createStyles = (theme: any) => StyleSheet.create({
+  animatedContainer: {
+    width: '100%',
+    alignSelf: 'stretch',
+    paddingHorizontal: 0,
+    marginTop: 0,
+    marginBottom: theme.spacing[2],
+  },
   container: {
-    backgroundColor: theme.colors.surface.card,
-    marginHorizontal: theme.spacing[4],
-    marginVertical: theme.spacing[2],
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing[4],
-    ...theme.shadows.sm,
-    shadowColor: theme.colors.neutral[1000],
+    width: '100%',
+    backgroundColor: theme.colors.surface?.primary || theme.colors.background.primary,
+    borderRadius: 0,
+    paddingVertical: theme.spacing[4],
+    paddingHorizontal: theme.spacing[4],
+    flex: 1,
+    borderBottomWidth: 1,
+    borderColor: theme.colors.border?.primary || 'rgba(15, 23, 42, 0.08)',
   },
   header: {
     flexDirection: 'row',
@@ -341,7 +349,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   saveButton: {
     padding: 8,
     borderRadius: theme.borderRadius.lg,
-    backgroundColor: theme.colors.background.tertiary,
+    backgroundColor: '#F9FAFB',
   },
   content: {
     marginBottom: 12,
@@ -405,10 +413,12 @@ const createStyles = (theme: any) => StyleSheet.create({
     right: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#D1FAE5',
+    backgroundColor: '#F0FDF4',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#10B981',
   },
   answeredText: {
     marginLeft: 4,

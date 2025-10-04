@@ -100,9 +100,7 @@ class AnalyticsService {
         app_version: this.appVersion,
       };
 
-      const { error } = await supabase
-        .from('user_analytics')
-        .insert(event as any);
+      const error = await this.insertAnalyticsEvent(event);
 
       if (error) {
         console.error('Analytics: Failed to track event:', error);
@@ -110,6 +108,40 @@ class AnalyticsService {
     } catch (error) {
       console.error('Analytics: Error tracking event:', error);
     }
+  }
+
+  /**
+   * Attempts to persist an analytics event, gracefully handling optional columns
+   * that might be missing in older database schemas.
+   */
+  private async insertAnalyticsEvent(event: AnalyticsEvent): Promise<any | null> {
+    const optionalColumns: Array<keyof AnalyticsEvent> = ['app_version', 'platform'];
+    let payload: Partial<AnalyticsEvent> = { ...event };
+
+    for (let i = 0; i <= optionalColumns.length; i += 1) {
+      const { error } = await supabase
+        .from('user_analytics')
+        .insert(payload as any);
+
+      if (!error) {
+        return null;
+      }
+
+      const missingColumn = optionalColumns.find((column) =>
+        typeof error.message === 'string' && error.message.includes(`'${column}'`)
+      );
+
+      if (missingColumn) {
+        const updatedPayload = { ...payload };
+        delete updatedPayload[missingColumn];
+        payload = updatedPayload;
+        continue;
+      }
+
+      return error;
+    }
+
+    return null;
   }
 
   /**

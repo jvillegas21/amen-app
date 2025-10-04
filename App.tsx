@@ -12,6 +12,8 @@ import RootNavigator from '@/navigation/RootNavigator';
 import { useAuthStore } from '@/store/auth/authStore';
 import { notificationManager } from '@/services/notifications/notificationManager';
 import { ThemeProvider } from '@/theme/ThemeContext';
+import { diagnoseNetworkIssue } from '@/utils/networkDebug';
+import Constants from 'expo-constants';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -37,6 +39,12 @@ export default function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
+        // Run network diagnostics on startup (dev mode only)
+        if (__DEV__) {
+          const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl;
+          await diagnoseNetworkIssue(supabaseUrl);
+        }
+
         // Check authentication status
         await checkAuthStatus();
 
@@ -49,12 +57,12 @@ export default function App() {
         await SplashScreen.hideAsync();
       } catch (error) {
         console.error('Failed to initialize app:', error);
-        
+
         // Handle TurboModule errors specifically
         if (error instanceof Error && error.message.includes('PlatformConstants')) {
           console.warn('TurboModule PlatformConstants error detected, continuing with polyfill');
         }
-        
+
         await SplashScreen.hideAsync();
       }
     };
@@ -74,7 +82,7 @@ export default function App() {
       <ThemeProvider>
         <GestureHandlerRootView style={styles.container}>
           <RootNavigator />
-          <StatusBar style="auto" />
+          <StatusBar style="light" />
         </GestureHandlerRootView>
       </ThemeProvider>
     </QueryClientProvider>

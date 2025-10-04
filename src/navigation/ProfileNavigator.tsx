@@ -1,6 +1,11 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
+import { TouchableOpacity, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ProfileStackParamList } from '@/types/navigation.types';
+import { theme } from '@/theme';
+import { createStackScreenOptions } from './headerUtils';
 
 // Profile Screen imports
 import MyProfileScreen from '@/screens/profile/MyProfileScreen';
@@ -16,23 +21,37 @@ const Stack = createStackNavigator<ProfileStackParamList>();
  * Profile Navigator - Manages user profile navigation
  */
 const ProfileNavigator: React.FC = () => {
+  const insets = useSafeAreaInsets();
+
   return (
     <Stack.Navigator
       initialRouteName="MyProfile"
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: '#5B21B6',
-        },
-        headerTintColor: '#FFFFFF',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
-      }}
+      screenOptions={createStackScreenOptions(insets)}
     >
       <Stack.Screen
         name="MyProfile"
         component={MyProfileScreen}
-        options={{ title: 'My Profile' }}
+        options={({ navigation }) => ({
+          title: 'My Profile',
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Statistics')}
+              style={{
+                padding: theme.spacing[2],
+                marginRight: theme.spacing[1],
+              }}
+              accessibilityLabel="Statistics"
+              accessibilityRole="button"
+              accessibilityHint="View prayer statistics"
+            >
+              <Ionicons
+                name="analytics"
+                size={24}
+                color={theme.colors.text.inverse}
+              />
+            </TouchableOpacity>
+          ),
+        })}
       />
       <Stack.Screen
         name="SavedPrayers"

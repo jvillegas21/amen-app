@@ -164,19 +164,6 @@ const BibleStudyListScreen: React.FC<RootStackScreenProps<'BibleStudyList'>> = (
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <View style={styles.headerTop}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Bible Studies</Text>
-        <TouchableOpacity 
-          style={styles.createButton}
-          onPress={() => navigation.navigate('CreateBibleStudy', {})}
-        >
-          <Ionicons name="add" size={24} color="#D97706" />
-        </TouchableOpacity>
-      </View>
-      
       <View style={styles.tabContainer}>
         {renderTabButton('featured', 'Featured')}
         {renderTabButton('recent', 'Recent')}
@@ -230,28 +217,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  createButton: {
-    padding: 8,
-  },
   tabContainer: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingVertical: 16,
   },
   tabButton: {
     paddingHorizontal: 16,

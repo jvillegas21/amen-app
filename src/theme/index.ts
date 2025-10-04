@@ -5,7 +5,7 @@
 
 import { colors } from './colors';
 import { typography } from './typography';
-import { spacing, layout, borderRadius, shadows } from './spacing';
+import { spacing, layout, borderRadius, shadows, glassmorphism, motionDesign } from './spacing';
 
 // Main theme object combining all design tokens
 export const theme = {
@@ -15,6 +15,8 @@ export const theme = {
   layout,
   borderRadius,
   shadows,
+  glassmorphism,
+  motionDesign,
 
   // Component-specific theme tokens
   components: {
@@ -90,7 +92,7 @@ export const accessibility = {
 // Export individual systems for selective imports
 export { colors } from './colors';
 export { typography } from './typography';
-export { spacing, layout, borderRadius, shadows } from './spacing';
+export { spacing, layout, borderRadius, shadows, glassmorphism, motionDesign } from './spacing';
 
 // Type definitions for the complete theme
 export type Theme = typeof theme;

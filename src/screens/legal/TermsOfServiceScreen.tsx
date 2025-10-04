@@ -130,7 +130,7 @@ const TermsOfServiceScreen: React.FC<RootStackScreenProps<'TermsOfService'>> = (
 
         {renderSection('13. Contact Information', [
           'If you have any questions about these Terms of Service, please contact us at:',
-          'Email: legal@amenity.app',
+          'Email: legal@Amenity.app',
           'Address: Amenity Support Team, 123 Prayer Street, Faith City, FC 12345'
         ])}
 

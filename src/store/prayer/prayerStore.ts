@@ -227,9 +227,21 @@ export const usePrayerStore = create<PrayerState>((set: any, get: any) => ({
       set({
         prayers: get().prayers.map((prayer: Prayer) => {
           if (prayer.id === prayerId) {
-            // Note: We need to check if user has this specific interaction type
-            // Since the backend supports multiple interaction types per user per prayer
-            const hasCurrentInteraction = prayer.user_interaction?.type === type;
+            // Initialize user_interactions if it doesn't exist
+            const currentInteractions = prayer.user_interactions || {
+              isPrayed: false,
+              isSaved: false,
+              isLiked: false,
+              isShared: false,
+            };
+
+            // Check if user has this specific interaction type
+            let hasCurrentInteraction = false;
+            if (type === 'PRAY') hasCurrentInteraction = currentInteractions.isPrayed;
+            else if (type === 'SAVE') hasCurrentInteraction = currentInteractions.isSaved;
+            else if (type === 'LIKE') hasCurrentInteraction = currentInteractions.isLiked;
+            else if (type === 'SHARE') hasCurrentInteraction = currentInteractions.isShared;
+
             const increment = hasCurrentInteraction ? -1 : 1;
 
             // Update the appropriate count field
@@ -244,19 +256,42 @@ export const usePrayerStore = create<PrayerState>((set: any, get: any) => ({
               updatedPrayer.save_count = Math.max(0, (prayer.save_count || 0) + increment);
             }
 
-            // For user_interaction, we only track the most recent/primary interaction
-            // The backend will handle multiple interaction types per user
+            // Update user_interactions with independent states
+            const updatedInteractions = { ...currentInteractions };
+            const now = new Date().toISOString();
+
+            if (type === 'PRAY') {
+              updatedInteractions.isPrayed = !hasCurrentInteraction;
+              updatedInteractions.prayedAt = !hasCurrentInteraction ? now : undefined;
+            } else if (type === 'SAVE') {
+              updatedInteractions.isSaved = !hasCurrentInteraction;
+              updatedInteractions.savedAt = !hasCurrentInteraction ? now : undefined;
+            } else if (type === 'LIKE') {
+              updatedInteractions.isLiked = !hasCurrentInteraction;
+              updatedInteractions.likedAt = !hasCurrentInteraction ? now : undefined;
+            } else if (type === 'SHARE') {
+              updatedInteractions.isShared = !hasCurrentInteraction;
+              updatedInteractions.sharedAt = !hasCurrentInteraction ? now : undefined;
+            }
+
+            // Keep user_interaction for backwards compatibility
+            // Only update it if this is the first interaction or if toggling off
+            const shouldUpdateLegacy = !prayer.user_interaction ||
+                                      (prayer.user_interaction.type === type && hasCurrentInteraction);
+
             return {
               ...updatedPrayer,
-              user_interaction: hasCurrentInteraction ? null : {
-                id: 'temp-' + Date.now(),
-                prayer_id: prayerId,
-                user_id: 'current-user',
-                type,
-                created_at: new Date().toISOString(),
-                committed_at: new Date().toISOString(),
-                reminder_frequency: 'none',
-              },
+              user_interactions: updatedInteractions,
+              user_interaction: shouldUpdateLegacy ?
+                (hasCurrentInteraction ? null : {
+                  id: 'temp-' + Date.now(),
+                  prayer_id: prayerId,
+                  user_id: 'current-user',
+                  type,
+                  created_at: now,
+                  committed_at: now,
+                  reminder_frequency: 'none',
+                }) : prayer.user_interaction,
             };
           }
           return prayer;

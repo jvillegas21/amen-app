@@ -3,13 +3,13 @@
 export const APP_CONFIG = {
   name: 'Amenity',
   version: '1.0.0',
-  support_email: 'support@amenity.app',
-  privacy_url: 'https://amenity.app/privacy',
-  terms_url: 'https://amenity.app/terms',
+  support_email: 'support@Amenity.app',
+  privacy_url: 'https://Amenity.app/privacy',
+  terms_url: 'https://Amenity.app/terms',
 };
 
 export const API_CONFIG = {
-  base_url: process.env.EXPO_PUBLIC_API_URL || 'https://api.amenity.app',
+  base_url: process.env.EXPO_PUBLIC_API_URL || 'https://api.Amenity.app',
   timeout: 30000, // 30 seconds
   retry_attempts: 3,
 };

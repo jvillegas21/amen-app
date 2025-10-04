@@ -15,6 +15,7 @@ import { RootStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
+import { supabase } from '@/config/supabase';
 
 interface UserStats {
   prayers_posted: number;
@@ -56,29 +57,83 @@ const UserProfileScreen: React.FC<RootStackScreenProps<'UserProfile'>> = ({ navi
   const fetchUserProfile = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implement user profile fetch from API
-      // For now, using mock data
-      const mockProfile: UserProfile = {
-        id: profile?.id || 'current_user',
-        display_name: profile?.display_name || 'John Doe',
-        bio: 'Believer in Christ, sharing prayers and encouragement with the community. 🙏',
-        avatar_url: profile?.avatar_url || 'https://via.placeholder.com/120',
-        location: 'Chicago, IL',
-        is_verified: true,
-        is_following: false,
+
+      // Fetch the user's profile data from Supabase
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Fetch user stats
+      const [prayersPosted, prayersReceived, groupsJoined, followersCount, followingCount] = await Promise.all([
+        // Count prayers posted by this user
+        supabase
+          .from('prayers')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId),
+        // Count prayers received (interactions on their prayers)
+        supabase
+          .from('interactions')
+          .select('id', { count: 'exact', head: true })
+          .eq('type', 'praying')
+          .in('prayer_id',
+            supabase.from('prayers').select('id').eq('user_id', userId)
+          ),
+        // Count groups joined
+        supabase
+          .from('group_members')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId),
+        // Count followers
+        supabase
+          .from('follows')
+          .select('id', { count: 'exact', head: true })
+          .eq('following_id', userId),
+        // Count following
+        supabase
+          .from('follows')
+          .select('id', { count: 'exact', head: true })
+          .eq('follower_id', userId),
+      ]);
+
+      // Check if current user is following this user
+      let isFollowingUser = false;
+      if (profile?.id && profile.id !== userId) {
+        const { data: followData } = await supabase
+          .from('follows')
+          .select('id')
+          .eq('follower_id', profile.id)
+          .eq('following_id', userId)
+          .single();
+        isFollowingUser = !!followData;
+      }
+
+      const userProfileData: UserProfile = {
+        id: profileData.id,
+        display_name: profileData.display_name,
+        bio: profileData.bio || undefined,
+        avatar_url: profileData.avatar_url || undefined,
+        location: profileData.location_city || undefined,
+        is_verified: profileData.is_verified,
+        is_following: isFollowingUser,
         is_follower: false,
         stats: {
-          prayers_posted: 24,
-          prayers_received: 156,
-          groups_joined: 5,
-          followers_count: 89,
-          following_count: 42,
-          joined_date: '2023-01-15T00:00:00Z',
+          prayers_posted: prayersPosted.count || 0,
+          prayers_received: prayersReceived.count || 0,
+          groups_joined: groupsJoined.count || 0,
+          followers_count: followersCount.count || 0,
+          following_count: followingCount.count || 0,
+          joined_date: profileData.created_at,
         },
       };
-      setUserProfile(mockProfile);
-      setIsFollowing(mockProfile.is_following);
+
+      setUserProfile(userProfileData);
+      setIsFollowing(userProfileData.is_following);
     } catch (error) {
+      console.error('Failed to fetch user profile:', error);
       Alert.alert('Error', 'Failed to load profile');
     } finally {
       setIsLoading(false);

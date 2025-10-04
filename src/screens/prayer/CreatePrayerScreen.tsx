@@ -23,6 +23,18 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 
+// Prayer categories
+const PRAYER_CATEGORIES = [
+  { id: 'health_healing', name: 'Health & Healing', icon: 'medical' as const, color: '#DC2626' },
+  { id: 'family_relationships', name: 'Family & Relationships', icon: 'people' as const, color: '#059669' },
+  { id: 'spiritual_growth', name: 'Spiritual Growth', icon: 'book' as const, color: '#5B21B6' },
+  { id: 'work_career', name: 'Work & Career', icon: 'briefcase' as const, color: '#D97706' },
+  { id: 'peace_comfort', name: 'Peace & Comfort', icon: 'heart' as const, color: '#06B6D4' },
+  { id: 'community_world', name: 'Community & World', icon: 'globe' as const, color: '#8B5CF6' },
+  { id: 'financial_provision', name: 'Financial Provision', icon: 'cash' as const, color: '#10B981' },
+  { id: 'guidance_decisions', name: 'Guidance & Decisions', icon: 'compass' as const, color: '#F59E0B' },
+];
+
 /**
  * Create Prayer Screen - Prayer creation with AI Bible study suggestions
  * Based on post_prayer and post_your_prayer mockups
@@ -42,6 +54,7 @@ const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ na
   const [prayerText, setPrayerText] = useState('');
   const [privacyLevel, setPrivacyLevel] = useState<'public' | 'friends' | 'groups' | 'private'>('public');
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [images, setImages] = useState<ImageUploadResult[]>([]);
   const [location, setLocation] = useState<{ city?: string; lat?: number; lon?: number } | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -154,6 +167,7 @@ const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ na
         privacy_level: privacyLevel,
         group_id: groupId,
         is_anonymous: isAnonymous,
+        category: selectedCategory || undefined, // Prayer category for discovery
         images: images.map(img => img.url),
         location: location ? {
           city: location.city,
@@ -163,7 +177,8 @@ const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ na
         } : undefined,
       });
 
-      navigation.goBack();
+      // Navigate to Feed tab to show the created prayer
+      navigation.navigate('MainTabs', { screen: 'Feed' });
     } catch (error: any) {
       console.error('Prayer creation error:', error);
       
@@ -306,6 +321,40 @@ const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ na
               )}
             </View>
 
+            {/* Category Selection */}
+            <View style={styles.categoryContainer}>
+              <Text style={styles.categoryLabel}>Category (optional)</Text>
+              <Text style={styles.categoryHint}>Help others discover your prayer</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+                {PRAYER_CATEGORIES.map((category) => (
+                  <TouchableOpacity
+                    key={category.id}
+                    style={[
+                      styles.categoryChip,
+                      selectedCategory === category.id && styles.categoryChipSelected,
+                    ]}
+                    onPress={() => setSelectedCategory(selectedCategory === category.id ? null : category.id)}
+                  >
+                    <View style={[styles.categoryChipIcon, { backgroundColor: category.color }]}>
+                      <Ionicons
+                        name={category.icon}
+                        size={16}
+                        color="#FFFFFF"
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        selectedCategory === category.id && styles.categoryChipTextSelected,
+                      ]}
+                    >
+                      {category.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
             {/* Privacy Settings */}
             <View style={styles.privacyContainer}>
               <Text style={styles.privacyLabel}>Who can see this prayer?</Text>
@@ -442,6 +491,55 @@ const styles = StyleSheet.create({
     color: '#5B21B6',
     marginLeft: 6,
     fontWeight: '500',
+  },
+  categoryContainer: {
+    marginBottom: 24,
+  },
+  categoryLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  categoryHint: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 12,
+  },
+  categoryScroll: {
+    marginHorizontal: -4,
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 20,
+    marginHorizontal: 4,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  categoryChipSelected: {
+    backgroundColor: '#EDE9FE',
+    borderColor: '#5B21B6',
+  },
+  categoryChipIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  categoryChipText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  categoryChipTextSelected: {
+    color: '#5B21B6',
+    fontWeight: '600',
   },
   privacyContainer: {
     marginBottom: 20,

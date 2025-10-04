@@ -230,7 +230,8 @@ OptimizedPrayerList.displayName = 'OptimizedPrayerList';
 
 const styles = StyleSheet.create({
   itemContainer: {
-    paddingHorizontal: theme.spacing[4],
+    width: '100%',
+    paddingHorizontal: 0,
     paddingVertical: theme.spacing[2],
   },
   footerContainer: {

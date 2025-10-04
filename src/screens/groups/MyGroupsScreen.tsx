@@ -154,7 +154,7 @@ const MyGroupsScreen: React.FC<GroupsStackScreenProps<'MyGroups'>> = ({ navigati
           style={styles.actionButton}
           onPress={() => handleLeaveGroup(item.id, item.name)}
         >
-          <Ionicons name="exit" size={20} color="theme.colors.error[700]" />
+          <Ionicons name="exit" size={20} color="#DC2626" />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>

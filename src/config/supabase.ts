@@ -1,15 +1,89 @@
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import Constants from 'expo-constants';
 import { Database } from '@/types/database.types';
+import { withRetry } from '@/utils/networkRetry';
+import { queueRequest, queueHighPriority } from '@/utils/networkQueue';
 
-// Supabase configuration
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'YOUR_SUPABASE_URL';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
+// Get Supabase configuration from Expo Constants (loaded from .env via app.config.js)
+const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || '';
+const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase credentials not configured. Please set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY');
+// Validate environment variables
+if (!supabaseUrl || !supabaseAnonKey || supabaseUrl === 'YOUR_SUPABASE_URL' || supabaseAnonKey === 'YOUR_SUPABASE_ANON_KEY') {
+  console.error('❌ Supabase credentials not configured properly!');
+  console.error('EXPO_PUBLIC_SUPABASE_URL:', supabaseUrl ? '✓ Set' : '✗ Missing');
+  console.error('EXPO_PUBLIC_SUPABASE_ANON_KEY:', supabaseAnonKey ? '✓ Set' : '✗ Missing');
+  console.error('\n📝 Make sure your .env file exists with:');
+  console.error('   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co');
+  console.error('   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key');
+  console.error('\n🔄 After updating .env, restart with: npx expo start --clear');
+  throw new Error('Supabase credentials are required. Please check your .env file.');
 }
+
+console.log('✓ Supabase client initializing...');
+console.log('  URL:', supabaseUrl);
+console.log('  Anon Key:', supabaseAnonKey.substring(0, 20) + '...');
+
+// Enhanced fetch with retry logic and request queueing
+const createRobustFetch = () => {
+  return async (url: RequestInfo | URL, options: RequestInit = {}): Promise<Response> => {
+    const urlString = typeof url === 'string' ? url : url.toString();
+
+    // Determine priority based on URL
+    const isAuthRequest = urlString.includes('/auth/');
+    const isUserRequest = urlString.includes('/profiles') || urlString.includes('/user');
+    const priority = isAuthRequest || isUserRequest;
+
+    const queueFn = priority ? queueHighPriority : queueRequest;
+
+    return queueFn(async () => {
+      return withRetry(
+        async () => {
+          console.log('🌐 Network request:', urlString);
+
+          // Properly merge headers (handles both Headers object and plain object)
+          const headers = new Headers(options.headers);
+          headers.set('Connection', 'keep-alive');
+          headers.set('Keep-Alive', 'timeout=30');
+
+          const enhancedOptions: RequestInit = {
+            ...options,
+            headers,
+          };
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+          try {
+            const response = await fetch(url, {
+              ...enhancedOptions,
+              signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+
+            console.log('✓ Response status:', response.status, urlString);
+            return response;
+          } catch (error) {
+            clearTimeout(timeoutId);
+            throw error;
+          }
+        },
+        {
+          maxRetries: 3,
+          initialDelay: 1000,
+          maxDelay: 5000,
+          onRetry: (error, attempt) => {
+            console.warn(`⚠️ Retry ${attempt} for:`, urlString);
+            console.warn(`   Error:`, error instanceof Error ? error.message : String(error));
+          },
+        }
+      );
+    });
+  };
+};
 
 // Create Supabase client with AsyncStorage for React Native
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
@@ -24,7 +98,16 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
       eventsPerSecond: 50,
     },
   },
+  global: {
+    fetch: createRobustFetch(),
+    headers: {
+      'Connection': 'keep-alive',
+      'X-Client-Info': 'amen-app-mobile',
+    },
+  },
 });
+
+console.log('✓ Supabase client created successfully');
 
 // Helper function to get the current user
 export const getCurrentUser = async () => {

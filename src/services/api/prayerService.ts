@@ -1,5 +1,5 @@
 import { supabase } from '@/config/supabase';
-import { Prayer, CreatePrayerRequest, UpdatePrayerRequest, PrayerInteractionRequest, PrayerReminder } from '@/types/database.types';
+import { Prayer, CreatePrayerRequest, UpdatePrayerRequest, PrayerInteractionRequest, PrayerReminder, Interaction } from '@/types/database.types';
 import { PrayerRepository } from '@/repositories/prayer.repository';
 import { InteractionRepository } from '@/repositories/interaction.repository';
 import { ErrorTransformationService } from '@/services/errorTransformationService';
@@ -52,17 +52,82 @@ class PrayerService {
         const userInteractions = await this.interactionRepository.getUserInteractionsForPrayers(prayerIds, userId);
 
         // Merge the data
-        return prayers.map(prayer => ({
-          ...prayer,
-          ...interactionCounts[prayer.id],
-          user_interaction: userInteractions[prayer.id] || null,
-        }));
+        return prayers.map(prayer => {
+          const { interactions, ...rest } = prayer as any;
+          const aggregated = this.buildUserInteractionState(userInteractions[rest.id] || []);
+          const counts = interactionCounts[rest.id] || {};
+
+          return {
+            ...rest,
+            ...counts,
+            ...aggregated,
+          } as Prayer;
+        });
       }
 
       return prayers;
     } catch (error) {
       throw new Error(ErrorTransformationService.transformError(error, 'fetchPrayers'));
     }
+  }
+
+  private buildUserInteractionState(interactions: Interaction[]) {
+    if (!interactions.length) {
+      return {
+        user_interaction: null,
+        user_interactions: {
+          isPrayed: false,
+          isSaved: false,
+          isLiked: false,
+          isShared: false,
+        },
+      };
+    }
+
+    const getInteractionTime = (interaction: Interaction) => {
+      const timestamp = interaction.committed_at || interaction.created_at;
+      return timestamp ? new Date(timestamp).getTime() : 0;
+    };
+
+    const sortedInteractions = [...interactions].sort((a, b) => getInteractionTime(b) - getInteractionTime(a));
+
+    const aggregated = {
+      isPrayed: false,
+      isSaved: false,
+      isLiked: false,
+      isShared: false,
+      prayedAt: undefined as string | undefined,
+      savedAt: undefined as string | undefined,
+      likedAt: undefined as string | undefined,
+      sharedAt: undefined as string | undefined,
+    };
+
+    sortedInteractions.forEach((interaction) => {
+      const interactionTime = interaction.committed_at || interaction.created_at;
+      switch (interaction.type) {
+        case 'PRAY':
+          aggregated.isPrayed = true;
+          aggregated.prayedAt = interactionTime;
+          break;
+        case 'SAVE':
+          aggregated.isSaved = true;
+          aggregated.savedAt = interactionTime;
+          break;
+        case 'LIKE':
+          aggregated.isLiked = true;
+          aggregated.likedAt = interactionTime;
+          break;
+        case 'SHARE':
+          aggregated.isShared = true;
+          aggregated.sharedAt = interactionTime;
+          break;
+      }
+    });
+
+    return {
+      user_interaction: sortedInteractions[0] || null,
+      user_interactions: aggregated,
+    };
   }
 
   /**
@@ -79,7 +144,12 @@ class PrayerService {
         throw new Error('Prayer not found');
       }
 
-      return prayer;
+      const { interactions, ...rest } = prayer as any;
+
+      return {
+        ...rest,
+        ...this.buildUserInteractionState((interactions || []) as Interaction[]),
+      } as Prayer;
     } catch (error) {
       throw new Error(ErrorTransformationService.transformError(error, 'getPrayer'));
     }

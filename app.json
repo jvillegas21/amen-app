@@ -33,8 +33,29 @@
         "NSPhotoLibraryUsageDescription": "This app accesses your photo library to let you share images with your prayers and update your profile picture.",
         "NSMicrophoneUsageDescription": "This app uses the microphone for voice messages in group chats and prayer recordings.",
         "NSUserNotificationsUsageDescription": "This app sends notifications about prayer updates, group activities, and reminders to keep you connected with your prayer community.",
-        "NSFaceIDUsageDescription": "This app uses Face ID for secure authentication to protect your account."
+        "NSFaceIDUsageDescription": "This app uses Face ID for secure authentication to protect your account.",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSExceptionDomains": {
+            "supabase.co": {
+              "NSExceptionAllowsInsecureHTTPLoads": false,
+              "NSIncludesSubdomains": true,
+              "NSExceptionRequiresForwardSecrecy": true,
+              "NSExceptionMinimumTLSVersion": "TLSv1.2",
+              "NSThirdPartyExceptionAllowsInsecureHTTPLoads": false,
+              "NSThirdPartyExceptionRequiresForwardSecrecy": true,
+              "NSExceptionAllowsInsecureHTTPLoads": false
+            },
+            "localhost": {
+              "NSExceptionAllowsInsecureHTTPLoads": true,
+              "NSIncludesSubdomains": true
+            }
+          }
+        },
+        "NSURLSessionAllowsArbitraryLoadsInWebContent": false,
+        "NSURLSessionRequiresTrustValidationForRedirects": true
       },
+      "networkInspector": false,
       "associatedDomains": ["applinks:amen-prayer-app.com"]
     },
     "android": {
@@ -48,6 +69,16 @@
       "jsEngine": "hermes",
       "package": "com.amen.prayer.app",
       "versionCode": 1,
+      "usesCleartextTraffic": false,
+      "networkSecurityConfig": {
+        "cleartextTrafficPermitted": false,
+        "domain": [
+          {
+            "includeSubdomains": true,
+            "domain": "supabase.co"
+          }
+        ]
+      },
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
@@ -58,7 +89,9 @@
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "ACCESS_NETWORK_STATE",
-        "INTERNET"
+        "INTERNET",
+        "ACCESS_WIFI_STATE",
+        "CHANGE_NETWORK_STATE"
       ],
       "intentFilters": [
         {
