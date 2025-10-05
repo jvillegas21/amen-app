@@ -11,6 +11,7 @@ import { offlineService } from '@/services/offline/offlineService';
 interface PrayerState {
   // State
   prayers: Prayer[];
+  deletingPrayerIds: Set<string>;
   isLoading: boolean;
   isRefreshing: boolean;
   hasMore: boolean;
@@ -25,7 +26,12 @@ interface PrayerState {
   loadMorePrayers: (feedType: 'following' | 'discover') => Promise<void>;
   createPrayer: (prayer: any) => Promise<Prayer>;
   updatePrayer: (prayerId: string, updates: UpdatePrayerRequest) => Promise<void>;
+  /**
+   * @deprecated Use deletePrayerOptimistic instead for better UX
+   * This method shows loading states which can cause UI flicker during navigation
+   */
   deletePrayer: (prayerId: string) => Promise<void>;
+  deletePrayerOptimistic: (prayerId: string) => Promise<void>;
   interactWithPrayer: (prayerId: string, type: 'PRAY' | 'LIKE' | 'SHARE' | 'SAVE') => Promise<void>;
   clearError: () => void;
   setLoading: (loading: boolean) => void;
@@ -44,6 +50,7 @@ interface PrayerState {
 export const usePrayerStore = create<PrayerState>((set: any, get: any) => ({
   // Initial State
   prayers: [],
+  deletingPrayerIds: new Set<string>(),
   isLoading: false,
   isRefreshing: false,
   hasMore: true,
@@ -199,22 +206,83 @@ export const usePrayerStore = create<PrayerState>((set: any, get: any) => ({
     }
   },
 
-  // Delete Prayer
+  /**
+   * @deprecated Legacy deletion method - use deletePrayerOptimistic instead
+   *
+   * This method waits for API response before updating UI, which causes:
+   * - Loading states during navigation
+   * - "Prayer not found" flickers
+   * - Delayed UI feedback
+   *
+   * Kept for backward compatibility only
+   */
   deletePrayer: async (prayerId: string) => {
-    set({ isLoading: true, error: null });
-    
+    // Mark prayer as deleting BEFORE removing from store
+    const currentDeletingIds = get().deletingPrayerIds;
+    const newDeletingIds = new Set(currentDeletingIds);
+    newDeletingIds.add(prayerId);
+
+    set({
+      deletingPrayerIds: newDeletingIds,
+      isLoading: true,
+      error: null
+    });
+
     try {
+      // Delete from backend
       await prayerService.deletePrayer(prayerId);
-      
+
+      // Remove from store AND clear deleting flag
+      const updatedDeletingIds = new Set(get().deletingPrayerIds);
+      updatedDeletingIds.delete(prayerId);
+
       set({
         prayers: get().prayers.filter((prayer: Prayer) => prayer.id !== prayerId),
+        deletingPrayerIds: updatedDeletingIds,
         isLoading: false,
       });
     } catch (error) {
+      // Remove deleting flag on error
+      const updatedDeletingIds = new Set(get().deletingPrayerIds);
+      updatedDeletingIds.delete(prayerId);
+
       set({
+        deletingPrayerIds: updatedDeletingIds,
         error: error instanceof Error ? error.message : 'Failed to delete prayer',
-        isLoading: false,
+        isLoading: false
       });
+      throw error;
+    }
+  },
+
+  // Optimistic Delete - Remove from UI immediately, API call in background
+  deletePrayerOptimistic: async (prayerId: string) => {
+    // Store original prayers for rollback
+    const originalPrayers = [...get().prayers];
+    const prayerToDelete = originalPrayers.find((p: Prayer) => p.id === prayerId);
+
+    if (!prayerToDelete) {
+      throw new Error('Prayer not found');
+    }
+
+    // IMMEDIATE: Remove from UI (optimistic update)
+    set({
+      prayers: originalPrayers.filter((p: Prayer) => p.id !== prayerId),
+      isLoading: false,
+      error: null,
+    });
+
+    try {
+      // Background: Call API
+      await prayerService.deletePrayer(prayerId);
+      // Success - prayer stays deleted
+    } catch (error) {
+      // ROLLBACK: Restore prayer on failure
+      set({
+        prayers: originalPrayers,
+        error: error instanceof Error ? error.message : 'Failed to delete prayer'
+      });
+      throw error;
     }
   },
 

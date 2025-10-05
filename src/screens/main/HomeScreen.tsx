@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -37,20 +37,31 @@ const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }: MainTa
   const [feedType, setFeedType] = useState<'following' | 'discover'>('following');
   const [prayingPrayers, setPrayingPrayers] = useState<Set<string>>(new Set());
   const [savingPrayers, setSavingPrayers] = useState<Set<string>>(new Set());
-  
+
   const { sharePrayer, isSharing } = useSharing();
 
+  // Track previous feed type to detect changes
+  const prevFeedTypeRef = useRef<'following' | 'discover' | null>(null);
 
   useEffect(() => {
-    fetchPrayers(feedType);
+    // Fetch if prayers list is empty OR feed type changed
+    // This prevents unnecessary re-fetching when navigating back,
+    // but ensures feed switches work correctly
+    const feedTypeChanged = prevFeedTypeRef.current !== feedType;
+
+    if (prayers.length === 0 || feedTypeChanged) {
+      fetchPrayers(feedType);
+      prevFeedTypeRef.current = feedType;
+    }
+
     // Subscribe to real-time updates
     subscribeToRealtime(feedType);
-    
+
     // Cleanup on unmount or feed type change
     return () => {
       unsubscribeFromRealtime();
     };
-  }, [feedType, fetchPrayers, subscribeToRealtime, unsubscribeFromRealtime]);
+  }, [feedType, fetchPrayers, subscribeToRealtime, unsubscribeFromRealtime, prayers.length]);
 
 
   const handlePrayerPress = (prayerId: string) => {

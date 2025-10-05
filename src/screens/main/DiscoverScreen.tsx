@@ -58,14 +58,14 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
 
       // Categories are hardcoded for now - they represent tags that can be used on prayers
       const predefinedCategories: Category[] = [
-        { id: 'health-healing', name: 'Health & Healing', icon: 'medical', color: '#DC2626', prayerCount: 0 },
-        { id: 'family-relationships', name: 'Family & Relationships', icon: 'people', color: '#059669', prayerCount: 0 },
-        { id: 'spiritual-growth', name: 'Spiritual Growth', icon: 'book', color: '#5B21B6', prayerCount: 0 },
-        { id: 'work-career', name: 'Work & Career', icon: 'briefcase', color: '#D97706', prayerCount: 0 },
-        { id: 'peace-comfort', name: 'Peace & Comfort', icon: 'heart', color: '#06B6D4', prayerCount: 0 },
-        { id: 'community-world', name: 'Community & World', icon: 'globe', color: '#8B5CF6', prayerCount: 0 },
-        { id: 'financial-provision', name: 'Financial Provision', icon: 'cash', color: '#10B981', prayerCount: 0 },
-        { id: 'guidance-decisions', name: 'Guidance & Decisions', icon: 'compass', color: '#F59E0B', prayerCount: 0 },
+        { id: 'health_healing', name: 'Health & Healing', icon: 'medical', color: '#DC2626', prayerCount: 0 },
+        { id: 'family_relationships', name: 'Family & Relationships', icon: 'people', color: '#059669', prayerCount: 0 },
+        { id: 'spiritual_growth', name: 'Spiritual Growth', icon: 'book', color: '#5B21B6', prayerCount: 0 },
+        { id: 'work_career', name: 'Work & Career', icon: 'briefcase', color: '#D97706', prayerCount: 0 },
+        { id: 'peace_comfort', name: 'Peace & Comfort', icon: 'heart', color: '#06B6D4', prayerCount: 0 },
+        { id: 'community_world', name: 'Community & World', icon: 'globe', color: '#8B5CF6', prayerCount: 0 },
+        { id: 'financial_provision', name: 'Financial Provision', icon: 'cash', color: '#10B981', prayerCount: 0 },
+        { id: 'guidance_decisions', name: 'Guidance & Decisions', icon: 'compass', color: '#F59E0B', prayerCount: 0 },
       ];
 
       // TODO: Fetch featured prayers from Supabase

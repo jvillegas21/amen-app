@@ -144,7 +144,7 @@ const CreateEventScreen: React.FC<RootStackScreenProps<'CreateEvent'>> = ({ navi
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Navigate to Feed tab (events will appear in feed when implemented)
-      navigation.navigate('MainTabs', { screen: 'Feed' });
+      navigation.navigate('Main', { screen: 'Home' });
 
       // Show success feedback
       Alert.alert('Success', 'Event created successfully!');

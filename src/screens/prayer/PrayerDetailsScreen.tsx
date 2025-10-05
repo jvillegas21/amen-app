@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, CommonActions } from '@react-navigation/native';
 import { useAuthStore } from '@/store/auth/authStore';
 import { usePrayerStore } from '@/store/prayer/prayerStore';
 import { RootStackScreenProps } from '@/types/navigation.types';
@@ -29,10 +29,13 @@ export default function PrayerDetailsScreen() {
   const navigation = useNavigation<PrayerDetailsScreenProps['navigation']>();
   const { prayerId, createReminder } = route.params;
   const { profile } = useAuthStore();
-  const { interactWithPrayer, prayers } = usePrayerStore();
-  
+  const { interactWithPrayer, prayers, deletingPrayerIds } = usePrayerStore();
+
   // Get the prayer from the store instead of local state
   const prayer = prayers.find(p => p.id === prayerId) || null;
+  const isDeleting = deletingPrayerIds.has(prayerId);
+  const [isUnmounting, setIsUnmounting] = useState(false);
+  const [wasDeleted, setWasDeleted] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [interactions, setInteractions] = useState({
     prayers: 0,
@@ -51,6 +54,15 @@ export default function PrayerDetailsScreen() {
   const commentSubscriptionRef = useRef<any>(null);
   const interactionSubscriptionRef = useRef<any>(null);
 
+  // Detect when prayer disappears from store (optimistic deletion)
+  useEffect(() => {
+    if (!prayer && !loading && !isDeleting) {
+      // Prayer disappeared but we're not in a loading or deleting state
+      // This likely means optimistic deletion happened
+      setWasDeleted(true);
+    }
+  }, [prayer, loading, isDeleting]);
+
   useEffect(() => {
     if (prayerId) {
       fetchPrayerDetails();
@@ -58,6 +70,9 @@ export default function PrayerDetailsScreen() {
     }
 
     return () => {
+      // Mark component as unmounting to prevent error flash
+      setIsUnmounting(true);
+
       // Cleanup subscriptions
       if (commentSubscriptionRef.current) {
         commentService.unsubscribeFromComments(commentSubscriptionRef.current);
@@ -288,17 +303,45 @@ export default function PrayerDetailsScreen() {
     );
   }
 
-  if (!prayer) {
+  // Show loading state if prayer is being deleted
+  if (isDeleting) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Deleting prayer...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Don't show error if:
+  // - Unmounting (navigation in progress)
+  // - Prayer was optimistically deleted (wasDeleted flag)
+  if (!prayer && !isUnmounting && !wasDeleted) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Prayer not found</Text>
-          <TouchableOpacity style={styles.errorButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity
+            style={styles.errorButton}
+            onPress={() => navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'Main', params: { screen: 'Home' } }],
+              })
+            )}
+          >
             <Text style={styles.errorButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
+  }
+
+  // If unmounting, deleted, or prayer missing, show nothing (navigation will handle this)
+  if (!prayer) {
+    return null;
   }
 
   return (

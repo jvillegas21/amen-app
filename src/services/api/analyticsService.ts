@@ -248,54 +248,73 @@ class AnalyticsService {
    */
   async getUserAnalytics(userId: string): Promise<UserAnalytics | null> {
     try {
-      const { data, error } = await supabase
-        .from('user_analytics')
-        .select('event_type, event_data, timestamp')
-        .eq('user_id', userId)
-        .order('timestamp', { ascending: false });
+      console.log('📊 Fetching analytics for user:', userId);
 
-      if (error) throw error;
-      if (!data || data.length === 0) {
-        return null;
+      // Query from actual data tables instead of raw events
+      // This avoids the 400 error from incorrect column names
+      const [prayersResult, interactionsResult, commentsResult, groupsResult] = await Promise.all([
+        // Get total prayers created by user
+        supabase
+          .from('prayers')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId),
+
+        // Get total interactions (prays, likes, shares, saves)
+        supabase
+          .from('prayer_interactions')
+          .select('type', { count: 'exact' })
+          .eq('user_id', userId),
+
+        // Get total comments
+        supabase
+          .from('comments')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId),
+
+        // Get groups user has joined
+        supabase
+          .from('group_members')
+          .select('group_id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .eq('status', 'active'),
+      ]);
+
+      // Check for errors
+      if (prayersResult.error) {
+        console.error('Error fetching prayers:', prayersResult.error);
+        throw prayersResult.error;
+      }
+      if (interactionsResult.error) {
+        console.error('Error fetching interactions:', interactionsResult.error);
+        throw interactionsResult.error;
       }
 
-      const events = data as { event_type: string; event_data: any; timestamp: string }[];
-      const sessionEvents = events.filter(e => e.event_type === 'session_end');
-      const prayerEvents = events.filter(e => e.event_type === 'prayer_created');
-      const interactionEvents = events.filter(e => e.event_type === 'prayer_interaction');
-      const groupEvents = events.filter(e => e.event_type === 'group_activity');
-      const studyEvents = events.filter(e => e.event_type === 'bible_study_engagement');
+      // Aggregate interaction counts by type
+      const interactions = interactionsResult.data || [];
+      const totalPrays = interactions.filter((i: any) => i.type === 'PRAY').length;
+      const totalLikes = interactions.filter((i: any) => i.type === 'LIKE').length;
+      const totalShares = interactions.filter((i: any) => i.type === 'SHARE').length;
+      const totalSaves = interactions.filter((i: any) => i.type === 'SAVE').length;
 
-      const totalSessions = sessionEvents.length;
-      const totalPrayers = prayerEvents.length;
-      const totalComments = interactionEvents.filter(e => e.event_data?.interaction_type === 'comment').length;
-      const totalShares = interactionEvents.filter(e => e.event_data?.interaction_type === 'share').length;
-      const totalLikes = interactionEvents.filter(e => e.event_data?.interaction_type === 'like').length;
-      const totalGroupsJoined = groupEvents.filter(e => e.event_data?.activity_type === 'join').length;
-      const totalBibleStudiesViewed = studyEvents.filter(e => e.event_data?.engagement_type === 'view').length;
-
-      const averageSessionDuration = sessionEvents.length > 0
-        ? sessionEvents.reduce((sum, e) => sum + (e.event_data?.session_duration || 0), 0) / sessionEvents.length
-        : 0;
-
-      const lastActive = events[0]?.timestamp || new Date().toISOString();
-      const createdAt = events[events.length - 1]?.timestamp || new Date().toISOString();
-
-      return {
+      const analytics: UserAnalytics = {
         user_id: userId,
-        total_sessions: totalSessions,
-        total_prayers: totalPrayers,
-        total_comments: totalComments,
+        total_sessions: 0, // Not tracked yet - would need session events
+        total_prayers: prayersResult.count || 0,
+        total_comments: commentsResult.count || 0,
         total_shares: totalShares,
         total_likes: totalLikes,
-        total_groups_joined: totalGroupsJoined,
-        total_bible_studies_viewed: totalBibleStudiesViewed,
-        average_session_duration: averageSessionDuration,
-        last_active: lastActive,
-        created_at: createdAt,
+        total_groups_joined: groupsResult.count || 0,
+        total_bible_studies_viewed: 0, // Not tracked yet - would need study view events
+        average_session_duration: 0, // Not tracked yet - would need session events
+        last_active: new Date().toISOString(), // Approximate - could query latest interaction
+        created_at: new Date().toISOString(), // Would need user creation timestamp
       };
+
+      console.log('✓ Analytics fetched:', analytics);
+      return analytics;
     } catch (error) {
-      console.error('Error getting user analytics:', error);
+      console.error('❌ Error getting user analytics:', error);
+      // Return null instead of throwing to prevent app crashes
       return null;
     }
   }

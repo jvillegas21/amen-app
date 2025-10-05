@@ -383,7 +383,8 @@ export interface CreatePrayerRequest {
   location_granularity?: 'hidden' | 'city' | 'precise';
   group_id?: string;
   is_anonymous?: boolean;
-  tags?: string[];
+  tags?: string[]; // Array of category IDs or custom tags
+  category?: string; // Single category for backward compatibility
   images?: string[];
   scheduled_for?: string;
 }
@@ -397,7 +398,8 @@ export interface UpdatePrayerRequest {
   location_granularity?: 'hidden' | 'city' | 'precise';
   group_id?: string;
   is_anonymous?: boolean;
-  tags?: string[];
+  tags?: string[]; // Array of category IDs or custom tags
+  category?: string; // Single category for backward compatibility
   images?: string[];
   status?: 'open' | 'answered' | 'closed';
 }

@@ -198,6 +198,7 @@ export class PrayerRepository extends BaseRepositoryImpl<Prayer> {
       group_id: prayerData.group_id,
       is_anonymous: prayerData.is_anonymous || false,
       tags: prayerData.tags || [],
+      category: prayerData.category, // Store category for backward compatibility
       images: prayerData.images || [],
       status: 'open' as const,
     };

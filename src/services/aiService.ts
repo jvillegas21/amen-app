@@ -348,7 +348,7 @@ For each verse, provide:
 - The reference (Book Chapter:Verse)
 - A brief explanation of why this verse is relevant
 
-Format the response as JSON with this structure:
+IMPORTANT: Return ONLY valid JSON with this exact structure (no markdown, no code fences, no additional text):
 {
   "verses": [
     {
@@ -357,7 +357,9 @@ Format the response as JSON with this structure:
       "relevance": "Why this verse is relevant"
     }
   ]
-}`;
+}
+
+Return the JSON directly without wrapping it in code blocks or adding any explanatory text.`;
   }
 
   /**
@@ -421,10 +423,38 @@ Format the response as JSON with this structure:
    */
   private parseScriptureVerses(response: string): AIScriptureVerse[] {
     try {
-      const parsed = JSON.parse(response);
-      return parsed.verses || [];
+      // Clean the response - remove markdown code fences and extra whitespace
+      let cleaned = response.trim();
+
+      // Remove markdown code fences if present (```json ... ``` or ``` ... ```)
+      if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+      }
+
+      cleaned = cleaned.trim();
+
+      // Log the actual response for debugging
+      console.log('📖 Scripture response (cleaned):', cleaned.substring(0, 200));
+
+      // Validate it looks like JSON before parsing
+      if (!cleaned.startsWith('{') && !cleaned.startsWith('[')) {
+        console.warn('⚠️ Response does not appear to be JSON:', cleaned.substring(0, 100));
+        throw new Error('Invalid JSON format from AI');
+      }
+
+      const parsed = JSON.parse(cleaned);
+      const verses = parsed.verses || [];
+
+      if (verses.length === 0) {
+        console.warn('⚠️ AI returned empty verses array');
+        throw new Error('No verses returned from AI');
+      }
+
+      return verses;
     } catch (error) {
       console.error('Error parsing scripture verses:', error);
+      console.error('Raw response:', response.substring(0, 500));
+
       // Fallback: return mock verses
       return [
         {

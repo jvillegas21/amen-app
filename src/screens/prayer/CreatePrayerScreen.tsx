@@ -22,18 +22,7 @@ import { imageUploadService, ImageUploadResult } from '@/services/api/imageUploa
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-
-// Prayer categories
-const PRAYER_CATEGORIES = [
-  { id: 'health_healing', name: 'Health & Healing', icon: 'medical' as const, color: '#DC2626' },
-  { id: 'family_relationships', name: 'Family & Relationships', icon: 'people' as const, color: '#059669' },
-  { id: 'spiritual_growth', name: 'Spiritual Growth', icon: 'book' as const, color: '#5B21B6' },
-  { id: 'work_career', name: 'Work & Career', icon: 'briefcase' as const, color: '#D97706' },
-  { id: 'peace_comfort', name: 'Peace & Comfort', icon: 'heart' as const, color: '#06B6D4' },
-  { id: 'community_world', name: 'Community & World', icon: 'globe' as const, color: '#8B5CF6' },
-  { id: 'financial_provision', name: 'Financial Provision', icon: 'cash' as const, color: '#10B981' },
-  { id: 'guidance_decisions', name: 'Guidance & Decisions', icon: 'compass' as const, color: '#F59E0B' },
-];
+import { PRAYER_CATEGORIES } from '@/constants/prayerCategories';
 
 /**
  * Create Prayer Screen - Prayer creation with AI Bible study suggestions
@@ -167,7 +156,7 @@ const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ na
         privacy_level: privacyLevel,
         group_id: groupId,
         is_anonymous: isAnonymous,
-        category: selectedCategory || undefined, // Prayer category for discovery
+        tags: selectedCategory ? [selectedCategory] : [], // Store category in tags array for discovery
         images: images.map(img => img.url),
         location: location ? {
           city: location.city,
@@ -178,7 +167,7 @@ const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ na
       });
 
       // Navigate to Feed tab to show the created prayer
-      navigation.navigate('MainTabs', { screen: 'Feed' });
+      navigation.navigate('Main', { screen: 'Home' });
     } catch (error: any) {
       console.error('Prayer creation error:', error);
       

@@ -73,35 +73,61 @@ const CategoryPrayersScreen: React.FC<RootStackScreenProps<'CategoryPrayers'>> =
             avatar_url
           )
         `)
-        .contains('tags', [categoryName])
+        .contains('tags', [categoryId])
         .eq('privacy_level', 'public')
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (error) throw error;
 
-      // Fetch interaction counts for each prayer
-      const prayersWithCounts = await Promise.all(
-        (data || []).map(async (prayer) => {
-          const [prayingCount, commentCount] = await Promise.all([
-            supabase
-              .from('interactions')
-              .select('id', { count: 'exact', head: true })
-              .eq('prayer_id', prayer.id)
-              .eq('type', 'praying'),
-            supabase
-              .from('comments')
-              .select('id', { count: 'exact', head: true })
-              .eq('prayer_id', prayer.id),
-          ]);
+      const prayerIds = (data || []).map(p => p.id);
 
-          return {
-            ...prayer,
-            prayer_count: prayingCount.count || 0,
-            comment_count: commentCount.count || 0,
-          };
-        })
-      );
+      if (prayerIds.length === 0) {
+        setPrayers([]);
+        return;
+      }
+
+      // Batch query for interaction counts - ONE query for all prayers
+      const [interactionResult, commentResult] = await Promise.all([
+        supabase
+          .from('interactions')
+          .select('prayer_id, type')
+          .in('prayer_id', prayerIds),
+        supabase
+          .from('comments')
+          .select('prayer_id')
+          .in('prayer_id', prayerIds),
+      ]);
+
+      // Aggregate counts in memory (fast operation)
+      const interactionCounts: Record<string, { pray: number; like: number }> = {};
+      prayerIds.forEach(id => {
+        interactionCounts[id] = { pray: 0, like: 0 };
+      });
+
+      (interactionResult.data || []).forEach(interaction => {
+        if (interaction.type === 'PRAY') {
+          interactionCounts[interaction.prayer_id].pray++;
+        } else if (interaction.type === 'LIKE') {
+          interactionCounts[interaction.prayer_id].like++;
+        }
+      });
+
+      const commentCounts: Record<string, number> = {};
+      prayerIds.forEach(id => {
+        commentCounts[id] = 0;
+      });
+
+      (commentResult.data || []).forEach(comment => {
+        commentCounts[comment.prayer_id]++;
+      });
+
+      // Merge data - NO additional queries
+      const prayersWithCounts = (data || []).map(prayer => ({
+        ...prayer,
+        prayer_count: interactionCounts[prayer.id]?.pray || 0,
+        comment_count: commentCounts[prayer.id] || 0,
+      }));
 
       setPrayers(prayersWithCounts);
     } catch (error) {
@@ -110,7 +136,7 @@ const CategoryPrayersScreen: React.FC<RootStackScreenProps<'CategoryPrayers'>> =
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [categoryName]);
+  }, [categoryId]);
 
   useEffect(() => {
     fetchCategoryPrayers();
