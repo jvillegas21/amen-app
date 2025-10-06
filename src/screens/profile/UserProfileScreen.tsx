@@ -49,6 +49,9 @@ const UserProfileScreen: React.FC<MainStackScreenProps<'UserProfile'>> = ({ navi
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
+  
+  // Get userId from route params or use current user's ID as fallback
+  const userId = route.params?.userId || profile?.id;
 
   useEffect(() => {
     fetchUserProfile();
@@ -230,15 +233,17 @@ const UserProfileScreen: React.FC<MainStackScreenProps<'UserProfile'>> = ({ navi
     if (!userProfile) return null;
 
     return (
-      <View style={styles.actionButtons}>
-        <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
-          <Ionicons name="create-outline" size={20} color="#5B21B6" />
-          <Text style={styles.editButtonText}>Edit Profile</Text>
+      <View style={styles.actionButtonsContainer}>
+        <TouchableOpacity style={styles.followButton}>
+          <Ionicons name="person-add-outline" size={20} color="#FFFFFF" />
+          <Text style={styles.followButtonText}>
+            {isFollowing ? 'Following' : 'Follow'}
+          </Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.settingsButton} onPress={() => navigation.navigate('Settings')}>
-          <Ionicons name="settings-outline" size={20} color="#6B7280" />
-          <Text style={styles.settingsButtonText}>Settings</Text>
+        <TouchableOpacity style={styles.messageButton}>
+          <Ionicons name="chatbubble-outline" size={20} color="#5B21B6" />
+          <Text style={styles.messageButtonText}>Message</Text>
         </TouchableOpacity>
       </View>
     );
@@ -547,13 +552,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
   },
-  actionButtons: {
+  actionButtonsContainer: {
     flexDirection: 'row',
-    marginHorizontal: 16,
-    marginBottom: 20,
+    marginHorizontal: 20,
+    marginTop: 20,
     gap: 12,
   },
-  editButton: {
+  followButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -562,13 +567,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
   },
-  editButtonText: {
+  followButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
   },
-  settingsButton: {
+  messageButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -576,16 +581,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     paddingVertical: 12,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  settingsButtonText: {
-    color: '#6B7280',
+  messageButtonText: {
+    color: '#5B21B6',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
   },
   menuContainer: {
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
+    marginHorizontal: 20,
+    marginTop: 20,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },

@@ -8,10 +8,13 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
+  Image,
+  RefreshControl,
 } from 'react-native';
 import { ProfileStackScreenProps } from '@/types/navigation.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth/authStore';
+import { formatDistanceToNow } from 'date-fns';
 
 interface UserStats {
   prayersCreated: number;
@@ -23,12 +26,13 @@ interface UserStats {
 }
 
 /**
- * My Profile Screen - User profile with stats and quick actions
+ * My Profile Screen - Streamlined user profile with clear hierarchy and intuitive actions
  */
 const MyProfileScreen: React.FC<ProfileStackScreenProps<'MyProfile'>> = ({ navigation }) => {
   const { profile, signOut } = useAuthStore();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     fetchProfileData();
@@ -54,8 +58,13 @@ const MyProfileScreen: React.FC<ProfileStackScreenProps<'MyProfile'>> = ({ navig
     }
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchProfileData();
+    setIsRefreshing(false);
+  };
+
   const handleEditProfile = () => {
-    // Navigate to Settings and open Edit Profile modal
     navigation.getParent()?.navigate('Settings');
   };
 
@@ -80,7 +89,6 @@ const MyProfileScreen: React.FC<ProfileStackScreenProps<'MyProfile'>> = ({ navig
   };
 
   const handleSettings = () => {
-    // Navigate to Settings in the root stack
     navigation.getParent()?.navigate('Settings');
   };
 
@@ -101,109 +109,145 @@ const MyProfileScreen: React.FC<ProfileStackScreenProps<'MyProfile'>> = ({ navig
 
   const renderProfileHeader = () => (
     <View style={styles.profileHeader}>
-      <View style={styles.avatarContainer}>
-        <View style={styles.avatar}>
-          <Ionicons name="person" size={40} color="#6B7280" />
+      <View style={styles.avatarSection}>
+        <View style={styles.avatarContainer}>
+          {profile?.avatar_url ? (
+            <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatar}>
+              <Ionicons name="person" size={40} color="#6B7280" />
+            </View>
+          )}
+          <TouchableOpacity style={styles.editAvatarButton} onPress={handleEditProfile}>
+            <Ionicons name="camera" size={16} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
-          <Ionicons name="camera" size={16} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
-      
-      <View style={styles.profileInfo}>
-        <Text style={styles.displayName}>{profile?.display_name || 'User'}</Text>
-        <Text style={styles.bio}>{profile?.bio || 'No bio yet'}</Text>
-        {profile?.location_city && (
-          <View style={styles.locationContainer}>
-            <Ionicons name="location" size={16} color="#6B7280" />
-            <Text style={styles.location} numberOfLines={1} ellipsizeMode="tail">
-              {profile.location_city}
+        
+        <View style={styles.profileInfo}>
+          <Text style={styles.displayName}>{profile?.display_name || 'User'}</Text>
+          {profile?.bio ? (
+            <Text style={styles.bio}>{profile.bio}</Text>
+          ) : (
+            <TouchableOpacity onPress={handleEditProfile} style={styles.addBioButton}>
+              <Ionicons name="add-circle-outline" size={16} color="#5B21B6" />
+              <Text style={styles.addBioText}>Add a bio</Text>
+            </TouchableOpacity>
+          )}
+          
+          <View style={styles.profileMeta}>
+            {profile?.location_city && (
+              <View style={styles.locationContainer}>
+                <Ionicons name="location-outline" size={16} color="#6B7280" />
+                <Text style={styles.location} numberOfLines={1} ellipsizeMode="tail">
+                  {profile.location_city}
+                </Text>
+              </View>
+            )}
+            <Text style={styles.joinedDate}>
+              Joined {formatDistanceToNow(new Date(profile?.created_at || new Date()), { addSuffix: true })}
             </Text>
           </View>
-        )}
+        </View>
       </View>
     </View>
   );
 
   const renderStats = () => (
-    <View style={styles.statsContainer}>
-      <TouchableOpacity style={styles.statItem} onPress={handleViewPrayerHistory}>
-        <Text style={styles.statNumber}>{stats?.prayersCreated || 0}</Text>
-        <Text style={styles.statLabel}>Prayers Created</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.statItem} onPress={handleViewPrayerHistory}>
-        <Text style={styles.statNumber}>{stats?.prayersReceived || 0}</Text>
-        <Text style={styles.statLabel}>Prayers Received</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.statItem}>
-        <Text style={styles.statNumber}>{stats?.groupsJoined || 0}</Text>
-        <Text style={styles.statLabel}>Groups Joined</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderSocialStats = () => (
-    <View style={styles.socialStatsContainer}>
-      <TouchableOpacity style={styles.socialStatItem} onPress={handleViewFollowers}>
-        <Text style={styles.socialStatNumber}>{stats?.followersCount || 0}</Text>
-        <Text style={styles.socialStatLabel}>Followers</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.socialStatItem} onPress={handleViewFollowing}>
-        <Text style={styles.socialStatNumber}>{stats?.followingCount || 0}</Text>
-        <Text style={styles.socialStatLabel}>Following</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.socialStatItem} onPress={handleViewSavedPrayers}>
-        <Text style={styles.socialStatNumber}>{stats?.savedPrayers || 0}</Text>
-        <Text style={styles.socialStatLabel}>Saved Prayers</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderQuickActions = () => (
-    <View style={styles.quickActionsContainer}>
-      <Text style={styles.sectionTitle}>Quick Actions</Text>
-      <View style={styles.quickActionsGrid}>
-        <TouchableOpacity style={styles.quickAction} onPress={handleEditProfile}>
-          <View style={styles.quickActionIcon}>
-            <Ionicons name="create-outline" size={24} color="#5B21B6" />
-          </View>
-          <Text style={styles.quickActionText}>Edit Profile</Text>
+    <View style={styles.statsCard}>
+      <View style={styles.statsRow}>
+        <TouchableOpacity style={styles.statItem} onPress={handleViewPrayerHistory}>
+          <Text style={styles.statNumber}>{stats?.prayersCreated || 0}</Text>
+          <Text style={styles.statLabel}>Prayers</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.quickAction} onPress={handleViewStatistics}>
-          <View style={styles.quickActionIcon}>
-            <Ionicons name="bar-chart-outline" size={24} color="theme.colors.success[700]" />
-          </View>
-          <Text style={styles.quickActionText}>Statistics</Text>
+        
+        <TouchableOpacity style={styles.statItem} onPress={handleViewFollowers}>
+          <Text style={styles.statNumber}>{stats?.followersCount || 0}</Text>
+          <Text style={styles.statLabel}>Followers</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.quickAction} onPress={handleViewSavedPrayers}>
-          <View style={styles.quickActionIcon}>
-            <Ionicons name="bookmark-outline" size={24} color="theme.colors.warning[700]" />
-          </View>
-          <Text style={styles.quickActionText}>Saved Prayers</Text>
+        
+        <TouchableOpacity style={styles.statItem} onPress={handleViewFollowing}>
+          <Text style={styles.statNumber}>{stats?.followingCount || 0}</Text>
+          <Text style={styles.statLabel}>Following</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.quickAction} onPress={handleSettings}>
-          <View style={styles.quickActionIcon}>
-            <Ionicons name="settings-outline" size={24} color="#6B7280" />
-          </View>
-          <Text style={styles.quickActionText}>Settings</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.quickAction} onPress={handleSignOut}>
-          <View style={styles.quickActionIcon}>
-            <Ionicons name="log-out-outline" size={24} color="#EF4444" />
-          </View>
-          <Text style={[styles.quickActionText, { color: '#EF4444' }]}>Sign Out</Text>
+        
+        <TouchableOpacity style={styles.statItem}>
+          <Text style={styles.statNumber}>{stats?.groupsJoined || 0}</Text>
+          <Text style={styles.statLabel}>Groups</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
+
+  const renderActionButtons = () => (
+    <View style={styles.actionButtonsContainer}>
+      <TouchableOpacity style={styles.primaryButton} onPress={handleEditProfile}>
+        <Ionicons name="create-outline" size={20} color="#FFFFFF" />
+        <Text style={styles.primaryButtonText}>Edit Profile</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity style={styles.secondaryButton} onPress={handleSettings}>
+        <Ionicons name="settings-outline" size={20} color="#5B21B6" />
+        <Text style={styles.secondaryButtonText}>Settings</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderMenuItems = () => {
+    const menuItems = [
+      {
+        icon: 'bookmark-outline',
+        title: 'Saved Prayers',
+        subtitle: `${stats?.savedPrayers || 0} prayers saved`,
+        onPress: handleViewSavedPrayers,
+        color: '#F59E0B',
+      },
+      {
+        icon: 'time-outline',
+        title: 'Prayer History',
+        subtitle: 'Your prayer journey',
+        onPress: handleViewPrayerHistory,
+        color: '#10B981',
+      },
+      {
+        icon: 'bar-chart-outline',
+        title: 'Statistics',
+        subtitle: 'Activity insights',
+        onPress: handleViewStatistics,
+        color: '#8B5CF6',
+      },
+      {
+        icon: 'help-circle-outline',
+        title: 'Help & Support',
+        subtitle: 'Get help and contact us',
+        onPress: () => navigation.getParent()?.navigate('Support'),
+        color: '#3B82F6',
+      },
+    ];
+
+    return (
+      <View style={styles.menuContainer}>
+        {menuItems.map((item, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.menuItem}
+            onPress={item.onPress}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.menuIconContainer, { backgroundColor: `${item.color}15` }]}>
+                <Ionicons name={item.icon as any} size={24} color={item.color} />
+              </View>
+              <View style={styles.menuItemText}>
+                <Text style={styles.menuItemTitle}>{item.title}</Text>
+                <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -218,11 +262,29 @@ const MyProfileScreen: React.FC<ProfileStackScreenProps<'MyProfile'>> = ({ navig
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={['#5B21B6']}
+            tintColor="#5B21B6"
+          />
+        }
+      >
         {renderProfileHeader()}
         {renderStats()}
-        {renderSocialStats()}
-        {renderQuickActions()}
+        {renderActionButtons()}
+        {renderMenuItems()}
+        
+        {/* Sign Out Button */}
+        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+          <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+          <Text style={styles.signOutButtonText}>Sign Out</Text>
+        </TouchableOpacity>
+        
         <View style={styles.bottomSpacing} />
       </ScrollView>
     </SafeAreaView>
@@ -243,75 +305,107 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: 16,
     fontSize: 16,
     color: '#6B7280',
   },
+  
+  // Profile Header
   profileHeader: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
     paddingVertical: 24,
-    alignItems: 'center',
+  },
+  avatarSection: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
   avatarContainer: {
     position: 'relative',
-    marginBottom: 16,
+    marginRight: 16,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: '#E5E7EB',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  editButton: {
+  editAvatarButton: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: '#5B21B6',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   profileInfo: {
-    alignItems: 'center',
+    flex: 1,
   },
   displayName: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#111827',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   bio: {
     fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginBottom: 8,
+    color: '#374151',
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  addBioButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  addBioText: {
+    fontSize: 16,
+    color: '#5B21B6',
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  profileMeta: {
+    gap: 4,
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    minWidth: 0,
   },
   location: {
     marginLeft: 4,
     fontSize: 14,
     color: '#6B7280',
-    flex: 1,
-    minWidth: 0,
   },
-  statsContainer: {
-    flexDirection: 'row',
+  joinedDate: {
+    fontSize: 14,
+    color: '#9CA3AF',
+  },
+  
+  // Stats Card
+  statsCard: {
     backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
     marginTop: 16,
+    borderRadius: 12,
     paddingVertical: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
   },
   statItem: {
-    flex: 1,
     alignItems: 'center',
   },
   statNumber: {
@@ -323,65 +417,117 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 14,
     color: '#6B7280',
+    textAlign: 'center',
   },
-  socialStatsContainer: {
+  
+  // Action Buttons
+  actionButtonsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    marginTop: 1,
-    paddingVertical: 20,
+    marginHorizontal: 20,
+    marginTop: 20,
+    gap: 12,
   },
-  socialStatItem: {
+  primaryButton: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#5B21B6',
+    paddingVertical: 12,
+    borderRadius: 8,
   },
-  socialStatNumber: {
-    fontSize: 20,
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '600',
-    color: '#5B21B6',
-    marginBottom: 4,
+    marginLeft: 8,
   },
-  socialStatLabel: {
+  secondaryButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  secondaryButtonText: {
+    color: '#5B21B6',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  
+  // Menu Items
+  menuContainer: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  menuIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  menuItemText: {
+    flex: 1,
+  },
+  menuItemTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  menuItemSubtitle: {
     fontSize: 14,
     color: '#6B7280',
   },
-  quickActionsContainer: {
-    backgroundColor: '#FFFFFF',
-    marginTop: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  quickActionsGrid: {
+  
+  // Sign Out Button
+  signOutButton: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  quickAction: {
-    width: '48%',
     alignItems: 'center',
-    paddingVertical: 16,
-    marginBottom: 16,
-  },
-  quickActionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
+    backgroundColor: '#FEF2F2',
+    marginHorizontal: 20,
+    marginTop: 20,
+    paddingVertical: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FECACA',
   },
-  quickActionText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    textAlign: 'center',
+  signOutButtonText: {
+    color: '#EF4444',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
+  
   bottomSpacing: {
     height: 20,
   },
