@@ -73,7 +73,7 @@ Format as JSON array with fields: title, description, scripture_references, diff
   /**
    * Generate a full Bible study from a suggestion
    */
-  async generateBibleStudy(suggestion: BibleStudySuggestion): Promise<BibleStudy> {
+  async generateBibleStudy(suggestion: BibleStudySuggestion, userId: string): Promise<BibleStudy> {
     try {
       const prompt = `Create a comprehensive Bible study based on this suggestion:
 
@@ -121,8 +121,8 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
       };
 
       // Save to database
-      await this.saveBibleStudy(study);
-      
+      await this.saveBibleStudy(study, userId);
+
       return study;
     } catch (error) {
       console.error('Failed to generate Bible study:', error);
@@ -133,20 +133,28 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
   /**
    * Save Bible study to database
    */
-  async saveBibleStudy(study: BibleStudy): Promise<void> {
+  async saveBibleStudy(study: BibleStudy, userId: string): Promise<void> {
     const { error } = await supabase
       .from('studies')
       .insert({
         id: study.id,
+        user_id: userId,
+        prayer_id: null,
         title: study.title,
-        content: study.content,
+        content_md: study.content,
         scripture_references: study.scripture_references,
-        quality_score: study.quality_score,
-        view_count: study.view_count,
-        save_count: study.save_count,
+        ai_model: 'gpt-4-turbo-preview',
+        ai_prompt_version: '1.0',
+        quality_score: study.quality_score || null,
+        is_featured: false,
+        view_count: study.view_count || 0,
+        save_count: study.save_count || 0,
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Database error:', error);
+      throw new Error('Failed to save Bible study to database');
+    }
   }
 
   /**
@@ -169,15 +177,31 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
    * Update Bible study view count
    */
   async incrementViewCount(studyId: string): Promise<void> {
-    const { error } = await supabase
-      .from('studies')
-      .update({ 
-        view_count: supabase.raw('view_count + 1'),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', studyId);
+    try {
+      const { data, error } = await supabase
+        .from('studies')
+        .select('view_count')
+        .eq('id', studyId)
+        .single();
 
-    if (error) throw error;
+      if (error || !data) {
+        console.warn('Unable to fetch study for view increment:', error);
+        return;
+      }
+
+      const { error: updateError } = await supabase
+        .from('studies')
+        .update({
+          view_count: (data.view_count ?? 0) + 1,
+        })
+        .eq('id', studyId);
+
+      if (updateError) {
+        console.warn('Failed to update study view count:', updateError);
+      }
+    } catch (err) {
+      console.warn('Error incrementing study view count:', err);
+    }
   }
 
   /**
@@ -194,13 +218,31 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
     if (error) throw error;
 
     // Increment save count
-    await supabase
-      .from('studies')
-      .update({ 
-        save_count: supabase.raw('save_count + 1'),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', studyId);
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('studies')
+        .select('save_count')
+        .eq('id', studyId)
+        .single();
+
+      if (fetchError || !data) {
+        console.warn('Unable to fetch study for save increment:', fetchError);
+        return;
+      }
+
+      const { error: updateError } = await supabase
+        .from('studies')
+        .update({
+          save_count: (data.save_count ?? 0) + 1,
+        })
+        .eq('id', studyId);
+
+      if (updateError) {
+        console.warn('Failed to increment save count:', updateError);
+      }
+    } catch (err) {
+      console.warn('Error incrementing save count:', err);
+    }
   }
 
   /**
@@ -216,13 +258,32 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
     if (error) throw error;
 
     // Decrement save count
-    await supabase
-      .from('studies')
-      .update({ 
-        save_count: supabase.raw('save_count - 1'),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', studyId);
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('studies')
+        .select('save_count')
+        .eq('id', studyId)
+        .single();
+
+      if (fetchError || !data) {
+        console.warn('Unable to fetch study for save decrement:', fetchError);
+        return;
+      }
+
+      const nextCount = Math.max(0, (data.save_count ?? 0) - 1);
+      const { error: updateError } = await supabase
+        .from('studies')
+        .update({
+          save_count: nextCount,
+        })
+        .eq('id', studyId);
+
+      if (updateError) {
+        console.warn('Failed to decrement save count:', updateError);
+      }
+    } catch (err) {
+      console.warn('Error decrementing save count:', err);
+    }
   }
 
   /**

@@ -31,8 +31,9 @@ interface PrayerCardProps {
 /**
  * Prayer Card Component
  * Implements Single Responsibility: Only displays prayer information
+ * Optimized with React.memo to prevent unnecessary re-renders
  */
-const PrayerCard: React.FC<PrayerCardProps> = (
+const PrayerCard: React.FC<PrayerCardProps> = React.memo((
   { prayer, onPress, onPrayPress, onCommentPress, onSharePress, onSavePress, isSaved, isPraying, isSharing, isSaving, onReportPress, onBlockUserPress }: PrayerCardProps
 ) => {
   const { theme } = useTheme();
@@ -254,7 +255,20 @@ const PrayerCard: React.FC<PrayerCardProps> = (
       </Pressable>
     </Animated.View>
   );
-};
+}, (prevProps: PrayerCardProps, nextProps: PrayerCardProps) => {
+  // Return true if props are equal (SKIP re-render)
+  // Return false if props are different (DO re-render)
+  return (
+    prevProps.prayer.id === nextProps.prayer.id &&
+    prevProps.prayer.pray_count === nextProps.prayer.pray_count &&
+    prevProps.prayer.comment_count === nextProps.prayer.comment_count &&
+    prevProps.prayer.user_interactions?.isPrayed === nextProps.prayer.user_interactions?.isPrayed &&
+    prevProps.prayer.user_interactions?.isSaved === nextProps.prayer.user_interactions?.isSaved &&
+    prevProps.isPraying === nextProps.isPraying &&
+    prevProps.isSaving === nextProps.isSaving &&
+    prevProps.isSharing === nextProps.isSharing
+  );
+});
 
 PrayerCard.displayName = 'PrayerCard';
 

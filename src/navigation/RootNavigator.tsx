@@ -19,6 +19,7 @@ import PrayerDetailsScreen from '@/screens/prayer/PrayerDetailsScreen';
 import CreatePrayerScreen from '@/screens/prayer/CreatePrayerScreen';
 import EditPrayerScreen from '@/screens/prayer/EditPrayerScreen';
 import CreateBibleStudyScreen from '@/screens/main/CreateBibleStudyScreen';
+import AIStudyAssistantScreen from '@/screens/main/AIStudyAssistantScreen';
 import CreateEventScreen from '@/screens/main/CreateEventScreen';
 import UserProfileScreen from '@/screens/profile/UserProfileScreen';
 import GroupDetailsScreen from '@/screens/groups/GroupDetailsScreen';
@@ -75,14 +76,14 @@ const InnerNavigator: React.FC<{ isAuthenticated: boolean; theme: any }> = ({ is
         <>
           <Stack.Screen name="Main" component={MainNavigator} />
 
-          {/* Modal Screens */}
+          {/* Full Screen Navigation */}
           <Stack.Group
             screenOptions={{
-              presentation: 'modal',
               headerShown: true,
               ...createStackScreenOptions(insets),
             }}
           >
+            {/* Create/Edit Screens - Converted from Modal */}
             <Stack.Screen
               name="CreatePrayer"
               component={CreatePrayerScreen}
@@ -99,6 +100,15 @@ const InnerNavigator: React.FC<{ isAuthenticated: boolean; theme: any }> = ({ is
               options={{
                 title: 'Create Bible Study',
                 ...createColoredHeaderOptions(insets, '#D97706'),
+                headerBackTitle: 'Back',
+              }}
+            />
+            <Stack.Screen
+              name="AIStudyAssistant"
+              component={AIStudyAssistantScreen}
+              options={{
+                title: 'AI Study Assistant',
+                ...createColoredHeaderOptions(insets, '#5B21B6'),
                 headerBackTitle: 'Back',
               }}
             />
@@ -135,15 +145,8 @@ const InnerNavigator: React.FC<{ isAuthenticated: boolean; theme: any }> = ({ is
               component={ReportContentScreen}
               options={{ title: 'Report Content' }}
             />
-          </Stack.Group>
 
-          {/* Full Screen Navigation */}
-          <Stack.Group
-            screenOptions={{
-              headerShown: true,
-              ...createStackScreenOptions(insets),
-            }}
-          >
+            {/* Other Full Screen Screens */}
             <Stack.Screen
               name="Search"
               component={SearchScreen}

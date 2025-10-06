@@ -223,14 +223,43 @@ class AIIntegrationService {
 
   /**
    * Increment study view count
-   */
+  */
   async incrementStudyViews(studyId: string): Promise<void> {
     const { error } = await supabase.rpc('increment_study_views', {
       study_id: studyId,
     });
 
     if (error) {
-      console.error('Failed to increment study views:', error);
+      console.warn('Failed to increment study views via RPC:', error);
+      await this.incrementStudyViewsFallback(studyId);
+    }
+  }
+
+  private async incrementStudyViewsFallback(studyId: string): Promise<void> {
+    try {
+      const { data, error } = await supabase
+        .from('studies')
+        .select('view_count')
+        .eq('id', studyId)
+        .single();
+
+      if (error || !data) {
+        console.warn('Fallback study view lookup failed:', error);
+        return;
+      }
+
+      const { error: updateError } = await supabase
+        .from('studies')
+        .update({
+          view_count: (data.view_count ?? 0) + 1,
+        })
+        .eq('id', studyId);
+
+      if (updateError) {
+        console.warn('Fallback study view increment failed:', updateError);
+      }
+    } catch (fallbackError) {
+      console.warn('Fallback study view increment threw an error:', fallbackError);
     }
   }
 

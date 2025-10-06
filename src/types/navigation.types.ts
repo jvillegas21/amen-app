@@ -5,6 +5,8 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { CompositeScreenProps } from '@react-navigation/native';
 
+import { BibleStudy, AIScriptureVerse } from '@/services/aiService';
+
 // Root Stack Navigator
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
@@ -13,14 +15,27 @@ export type RootStackParamList = {
   PrayerDetails: { prayerId: string; createReminder?: boolean };
   CreatePrayer: { groupId?: string };
   EditPrayer: { prayerId: string };
-  CreateBibleStudy: undefined;
+  CreateBibleStudy:
+    | {
+        aiResult?: {
+          type: 'fullStudy' | 'scriptureSuggestions';
+          study?: BibleStudy;
+          verses?: AIScriptureVerse[];
+        };
+      }
+    | undefined;
+  AIStudyAssistant: {
+    mode?: 'fullStudy' | 'scriptureSuggestions';
+    topic?: string;
+    context?: string;
+  };
   CreateEvent: undefined;
   UserProfile: { userId: string };
   GroupDetails: { groupId: string };
   CreateGroup: undefined;
   EditGroup: { groupId: string };
   BibleStudy: { studyId: string };
-  BibleStudyDetails: { studyId: string; prayerId: string };
+  BibleStudyDetails: { studyId: string; prayerId?: string | null };
   BibleStudyList: undefined;
   BibleStudySuggestions: undefined;
   CategoryPrayers: { categoryId: string; categoryName: string; categoryIcon: string; categoryColor: string };

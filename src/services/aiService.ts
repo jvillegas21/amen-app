@@ -389,17 +389,40 @@ Return the JSON directly without wrapping it in code blocks or adding any explan
    */
   private parseBibleStudy(response: string): BibleStudy {
     try {
-      const parsed = JSON.parse(response);
+      let cleaned = response.trim();
+
+      // Strip common markdown wrappers the model may add
+      if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+      }
+
+      const firstBrace = cleaned.indexOf('{');
+      const lastBrace = cleaned.lastIndexOf('}');
+
+      if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+        throw new Error('Unable to locate JSON object in AI response');
+      }
+
+      if (firstBrace !== 0 || lastBrace !== cleaned.length - 1) {
+        cleaned = cleaned.slice(firstBrace, lastBrace + 1).trim();
+      }
+
+      const parsed = JSON.parse(cleaned);
+      const questions = Array.isArray(parsed.questions)
+        ? parsed.questions.filter((question: unknown): question is string => typeof question === 'string')
+        : [];
+
       return {
         title: parsed.title || 'Bible Study',
         scripture: parsed.scripture || '',
         reflection: parsed.reflection || '',
-        questions: parsed.questions || [],
+        questions,
         prayer_focus: parsed.prayer_focus || '',
         application: parsed.application || '',
       };
     } catch (error) {
       console.error('Error parsing Bible study:', error);
+      console.error('Raw AI Bible study response:', response.substring(0, 500));
       // Fallback: return structured Bible study
       return {
         title: 'Finding Peace in Difficult Times',
