@@ -104,19 +104,19 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
   const renderSearchBar = () => (
     <View style={styles.searchContainer}>
       <View style={styles.searchBar}>
-        <Ionicons name="search" size={20} color="#9CA3AF" />
+        <Ionicons name="search" size={20} color={theme.colors.text.tertiary} />
         <TextInput
           style={styles.searchInput}
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholder="Search prayers, topics, or users..."
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={theme.colors.text.tertiary}
           onSubmitEditing={handleSearch}
           returnKeyType="search"
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+            <Ionicons name="close-circle" size={20} color={theme.colors.text.tertiary} />
           </TouchableOpacity>
         )}
       </View>
@@ -208,7 +208,7 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
           {item.prayerCount > 0 ? `${item.prayerCount} prayers` : 'No prayers yet'}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+      <Ionicons name="chevron-forward" size={20} color={theme.colors.text.tertiary} />
     </TouchableOpacity>
   );
 
@@ -216,7 +216,7 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
     if (isLoading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#5B21B6" />
+          <ActivityIndicator size="large" color={theme.colors.primary[600]} />
           <Text style={styles.loadingText}>Loading discover content...</Text>
         </View>
       );
@@ -233,7 +233,7 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
             contentContainerStyle={styles.listContainer}
             ListEmptyComponent={() => (
               <View style={styles.emptyState}>
-                <Ionicons name="heart-outline" size={64} color="#9CA3AF" />
+                <Ionicons name="heart-outline" size={64} color={theme.colors.text.tertiary} />
                 <Text style={styles.emptyStateTitle}>No featured prayers yet</Text>
                 <Text style={styles.emptyStateSubtitle}>
                   Check back soon for featured prayers from the community
@@ -268,7 +268,7 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
             >
               <View style={styles.bibleStudiesButtonContent}>
                 <View style={styles.bibleStudiesIcon}>
-                  <Ionicons name="library" size={32} color="#FFFFFF" />
+                  <Ionicons name="library" size={32} color={theme.colors.text.inverse} />
                 </View>
                 <View style={styles.bibleStudiesButtonText}>
                   <Text style={styles.bibleStudiesButtonTitle}>Browse All Studies</Text>
@@ -276,7 +276,7 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
                     View featured, recent, and your studies
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+                <Ionicons name="chevron-forward" size={20} color={theme.colors.text.tertiary} />
               </View>
             </TouchableOpacity>
             <TouchableOpacity
@@ -285,8 +285,8 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
               activeOpacity={0.7}
             >
               <View style={styles.bibleStudiesButtonContent}>
-                <View style={[styles.bibleStudiesIcon, { backgroundColor: '#D97706' }]}>
-                  <Ionicons name="add" size={32} color="#FFFFFF" />
+                <View style={[styles.bibleStudiesIcon, { backgroundColor: theme.colors.primary[600] }]}>
+                  <Ionicons name="add" size={32} color={theme.colors.text.inverse} />
                 </View>
                 <View style={styles.bibleStudiesButtonText}>
                   <Text style={styles.bibleStudiesButtonTitle}>Create New Study</Text>
@@ -294,7 +294,7 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
                     Start a new Bible study with AI insights
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+                <Ionicons name="chevron-forward" size={20} color={theme.colors.text.tertiary} />
               </View>
             </TouchableOpacity>
           </View>
@@ -318,53 +318,52 @@ const DiscoverScreen: React.FC<MainTabScreenProps<'Discover'>> = ({ navigation }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.colors.background.secondary,
   },
   searchContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: theme.colors.surface.primary,
+    paddingHorizontal: theme.spacing[4],
+    paddingVertical: theme.spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.colors.border.primary,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    backgroundColor: theme.colors.background.tertiary,
+    borderRadius: theme.borderRadius.lg,
+    paddingHorizontal: theme.spacing[3],
+    paddingVertical: theme.spacing[2],
   },
   searchInput: {
     flex: 1,
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#111827',
+    marginLeft: theme.spacing[2],
+    ...theme.typography.body.medium,
+    color: theme.colors.text.primary,
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.colors.border.primary,
   },
   tab: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: theme.spacing[4],
     alignItems: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
   activeTab: {
-    borderBottomColor: '#5B21B6',
+    borderBottomColor: theme.colors.primary[600],
   },
   tabText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#6B7280',
+    ...theme.typography.label.medium,
+    color: theme.colors.text.secondary,
   },
   activeTabText: {
-    color: '#5B21B6',
-    fontWeight: '600',
+    color: theme.colors.primary[600],
+    ...theme.typography.label.semibold,
   },
   content: {
     flex: 1,
@@ -375,26 +374,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#6B7280',
+    marginTop: theme.spacing[3],
+    ...theme.typography.body.medium,
+    color: theme.colors.text.secondary,
   },
   listContainer: {
     flexGrow: 1,
   },
   featuredItem: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    backgroundColor: theme.colors.surface.primary,
+    paddingVertical: theme.spacing[4],
+    paddingHorizontal: theme.spacing[4],
     borderRadius: 0,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: theme.colors.border.primary,
   },
   featuredHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: theme.spacing[3],
   },
   userInfo: {
     flexDirection: 'row',
@@ -402,38 +401,37 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#E5E7EB',
+    width: theme.spacing[10],
+    height: theme.spacing[10],
+    borderRadius: theme.spacing[5],
+    backgroundColor: theme.colors.background.tertiary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: theme.spacing[3],
   },
   userDetails: {
     flex: 1,
   },
   userName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 2,
+    ...theme.typography.label.medium,
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing[0.5],
   },
   location: {
-    fontSize: 14,
-    color: '#6B7280',
+    ...theme.typography.caption.medium,
+    color: theme.colors.text.secondary,
     flex: 1,
     minWidth: 0,
   },
   timeAgo: {
-    fontSize: 14,
-    color: '#9CA3AF',
+    ...theme.typography.caption.medium,
+    color: theme.colors.text.tertiary,
   },
   prayerText: {
-    fontSize: 16,
-    color: '#374151',
-    lineHeight: 24,
-    marginBottom: 12,
+    fontSize: 15,
+    lineHeight: 22,
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing[3],
   },
   prayerStats: {
     flexDirection: 'row',
@@ -442,124 +440,107 @@ const styles = StyleSheet.create({
   statItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: theme.spacing[4],
   },
   statText: {
-    marginLeft: 4,
-    fontSize: 14,
-    color: '#6B7280',
+    marginLeft: theme.spacing[1],
+    ...theme.typography.caption.medium,
+    color: theme.colors.text.secondary,
   },
   categoryItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: theme.colors.surface.primary,
+    padding: theme.spacing[4],
+    borderRadius: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border.primary,
   },
   categoryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: theme.spacing[12],
+    height: theme.spacing[12],
+    borderRadius: theme.spacing[6],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: theme.spacing[4],
   },
   categoryContent: {
     flex: 1,
   },
   categoryName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 2,
+    ...theme.typography.label.medium,
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing[0.5],
   },
   categoryCount: {
-    fontSize: 14,
-    color: '#6B7280',
+    ...theme.typography.caption.medium,
+    color: theme.colors.text.secondary,
   },
   bibleStudiesContainer: {
-    padding: 16,
+    padding: theme.spacing[4],
   },
   bibleStudiesHeader: {
-    marginBottom: 24,
+    marginBottom: theme.spacing[6],
   },
   bibleStudiesTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
+    ...theme.typography.heading.h1,
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing[2],
   },
   bibleStudiesSubtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-    lineHeight: 24,
+    ...theme.typography.body.medium,
+    color: theme.colors.text.secondary,
   },
   bibleStudiesButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    backgroundColor: theme.colors.surface.primary,
+    borderRadius: 0,
+    padding: theme.spacing[4],
+    marginBottom: theme.spacing[3],
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border.primary,
   },
   bibleStudiesButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   bibleStudiesIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#D97706',
+    width: theme.spacing[14],
+    height: theme.spacing[14],
+    borderRadius: theme.spacing[7],
+    backgroundColor: theme.colors.primary[600],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: theme.spacing[4],
   },
   bibleStudiesButtonText: {
     flex: 1,
   },
   bibleStudiesButtonTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
+    ...theme.typography.heading.h3,
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing[1],
   },
   bibleStudiesButtonSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
+    ...theme.typography.caption.medium,
+    color: theme.colors.text.secondary,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 80,
-    paddingHorizontal: 32,
+    paddingVertical: theme.spacing[20],
+    paddingHorizontal: theme.spacing[8],
   },
   emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#111827',
-    marginTop: 16,
-    marginBottom: 8,
+    ...theme.typography.heading.h2,
+    color: theme.colors.text.primary,
+    marginTop: theme.spacing[4],
+    marginBottom: theme.spacing[2],
   },
   emptyStateSubtitle: {
-    fontSize: 16,
-    color: '#6B7280',
+    ...theme.typography.body.medium,
+    color: theme.colors.text.secondary,
     textAlign: 'center',
-    lineHeight: 24,
   },
 });
 
