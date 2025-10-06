@@ -211,6 +211,11 @@ export const createHeaderRightActions = (actions: Array<{
       style: {
         padding: theme.spacing[2],
         marginLeft: index > 0 ? theme.spacing[1] : 0,
+        borderRadius: theme.borderRadius.lg,
+        minHeight: theme.layout.minTouchTarget,
+        minWidth: theme.layout.minTouchTarget,
+        alignItems: 'center',
+        justifyContent: 'center',
       },
       accessibilityLabel: action.accessibilityLabel,
       accessibilityRole: 'button',
@@ -221,4 +226,73 @@ export const createHeaderRightActions = (actions: Array<{
       color: theme.colors.text.inverse,
     }))
   ));
+};
+
+/**
+ * Creates a standardized header action button with consistent styling
+ * @param onPress - Function to call when button is pressed
+ * @param iconName - Ionicon name
+ * @param accessibilityLabel - Accessibility label for the button
+ * @param accessibilityHint - Accessibility hint for the button
+ * @param variant - Button variant (primary, secondary, danger)
+ * @returns TouchableOpacity component with consistent styling
+ */
+export const createHeaderAction = (
+  onPress: () => void,
+  iconName: string,
+  accessibilityLabel: string,
+  accessibilityHint?: string,
+  variant: 'primary' | 'secondary' | 'danger' = 'primary'
+) => {
+  const React = require('react');
+  const { TouchableOpacity } = require('react-native');
+  const { Ionicons } = require('@expo/vector-icons');
+
+  const getVariantStyles = () => {
+    switch (variant) {
+      case 'primary':
+        return {
+          backgroundColor: theme.colors.primary[600],
+          iconColor: theme.colors.text.inverse,
+        };
+      case 'secondary':
+        return {
+          backgroundColor: theme.colors.background.tertiary,
+          iconColor: theme.colors.primary[600],
+        };
+      case 'danger':
+        return {
+          backgroundColor: theme.colors.error[50],
+          iconColor: theme.colors.error[700],
+        };
+      default:
+        return {
+          backgroundColor: theme.colors.primary[600],
+          iconColor: theme.colors.text.inverse,
+        };
+    }
+  };
+
+  const variantStyles = getVariantStyles();
+
+  return React.createElement(TouchableOpacity, {
+    onPress,
+    style: {
+      padding: theme.spacing[2],
+      marginRight: theme.spacing[1],
+      borderRadius: theme.borderRadius.lg,
+      backgroundColor: variantStyles.backgroundColor,
+      minHeight: theme.layout.minTouchTarget,
+      minWidth: theme.layout.minTouchTarget,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    accessibilityLabel,
+    accessibilityRole: 'button',
+    accessibilityHint,
+  }, React.createElement(Ionicons, {
+    name: iconName,
+    size: 24,
+    color: variantStyles.iconColor,
+  }));
 };

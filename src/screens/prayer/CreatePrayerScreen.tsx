@@ -417,7 +417,7 @@ const CreatePrayerScreen: React.FC<MainStackScreenProps<'CreatePrayer'>> = ({ na
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface.primary,
   },
   keyboardAvoid: {
     flex: 1,
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 16,
+    padding: theme.spacing[4],
   },
   textInputContainer: {
     marginBottom: 16,

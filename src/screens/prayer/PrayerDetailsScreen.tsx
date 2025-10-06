@@ -480,7 +480,7 @@ export default function PrayerDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface.primary,
   },
   loadingContainer: {
     flex: 1,
@@ -488,9 +488,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
+    marginTop: theme.spacing[4],
+    ...theme.typography.body.medium,
+    color: theme.colors.text.secondary,
   },
   errorContainer: {
     flex: 1,

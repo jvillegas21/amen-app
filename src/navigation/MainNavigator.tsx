@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MainStackParamList, MainTabParamList } from '@/types/navigation.types';
 import { theme } from '@/theme';
 import CustomTabBar from '@/components/navigation/CustomTabBar';
-import { createTabScreenOptions, createStackScreenOptions, createColoredHeaderOptions } from './headerUtils';
+import { createTabScreenOptions, createStackScreenOptions, createColoredHeaderOptions, createHeaderAction } from './headerUtils';
 
 // Tab Screen imports
 import HomeScreen from '@/screens/main/HomeScreen';
@@ -86,23 +86,11 @@ const MainTabNavigator: React.FC = () => {
           headerShown: true,
           tabBarLabel: 'Home',
           tabBarAccessibilityLabel: 'Home, tab 1 of 4',
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Search' as any)}
-              style={{
-                padding: theme.spacing[2],
-                marginRight: theme.spacing[1],
-              }}
-              accessibilityLabel="Search"
-              accessibilityRole="button"
-              accessibilityHint="Search prayers, people, and groups"
-            >
-              <Ionicons
-                name="search"
-                size={24}
-                color={theme.colors.text.inverse}
-              />
-            </TouchableOpacity>
+          headerRight: () => createHeaderAction(
+            () => navigation.navigate('Search' as any),
+            'search',
+            'Search',
+            'Search prayers, people, and groups'
           ),
         })}
       />
@@ -114,23 +102,11 @@ const MainTabNavigator: React.FC = () => {
           headerShown: true,
           tabBarLabel: 'Discover',
           tabBarAccessibilityLabel: 'Discover, tab 2 of 4',
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Search' as any)}
-              style={{
-                padding: theme.spacing[2],
-                marginRight: theme.spacing[1],
-              }}
-              accessibilityLabel="Search"
-              accessibilityRole="button"
-              accessibilityHint="Search content and users"
-            >
-              <Ionicons
-                name="search"
-                size={24}
-                color={theme.colors.text.inverse}
-              />
-            </TouchableOpacity>
+          headerRight: () => createHeaderAction(
+            () => navigation.navigate('Search' as any),
+            'search',
+            'Search',
+            'Search content and users'
           ),
         })}
       />
@@ -141,23 +117,12 @@ const MainTabNavigator: React.FC = () => {
           title: 'Create',
           headerShown: true,
           tabBarButton: () => null, // Hide the default tab button since we use floating button
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={{
-                padding: theme.spacing[2],
-                marginRight: theme.spacing[1],
-              }}
-              accessibilityLabel="Close"
-              accessibilityRole="button"
-              accessibilityHint="Close create screen"
-            >
-              <Ionicons
-                name="close"
-                size={24}
-                color={theme.colors.text.inverse}
-              />
-            </TouchableOpacity>
+          headerRight: () => createHeaderAction(
+            () => navigation.goBack(),
+            'close',
+            'Close',
+            'Close create screen',
+            'secondary'
           ),
         })}
       />
