@@ -96,22 +96,11 @@ const AIStudyAssistantScreen: React.FC<MainStackScreenProps<'AIStudyAssistant'>>
     });
 
     if (result) {
-      const state = navigation.getState();
-      const previousRoute = state.routes[state.routes.length - 2];
-
-      if (previousRoute) {
-        navigation.dispatch(
-          CommonActions.setParams({
-            params: {
-              ...(previousRoute.params || {}),
-              aiResult: result,
-            },
-            source: previousRoute.key,
-          })
-        );
-      }
-
-      navigation.goBack();
+      // Instead of using CommonActions.setParams, navigate back with the result
+      // This ensures the parameters are properly passed
+      navigation.navigate('CreateBibleStudy', {
+        aiResult: result,
+      });
       return;
     }
 
