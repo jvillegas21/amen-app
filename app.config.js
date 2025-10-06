@@ -1,4 +1,9 @@
-require('dotenv').config();
+try {
+  require('dotenv').config();
+} catch (error) {
+  // dotenv not available in runtime, continue without it
+  console.warn('dotenv not available, using environment variables directly');
+}
 
 module.exports = {
   expo: {

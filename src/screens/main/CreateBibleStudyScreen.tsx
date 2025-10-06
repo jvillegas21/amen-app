@@ -138,6 +138,7 @@ const CreateBibleStudyScreen: React.FC<MainStackScreenProps<'CreateBibleStudy'>>
 
   useEffect(() => {
     const aiResult = route.params?.aiResult;
+    
     if (!aiResult) {
       return;
     }
