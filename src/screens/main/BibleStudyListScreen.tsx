@@ -10,16 +10,18 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth/authStore';
 import { bibleStudyService } from '@/services/api/bibleStudyService';
 import { BibleStudy } from '@/types/database.types';
+import { formatScriptureReference, RawScriptureReference } from '@/utils/scripture';
+import { formatDistanceToNow } from 'date-fns';
 
 /**
  * Bible Study List Screen - Browse and discover Bible studies
  */
-const BibleStudyListScreen: React.FC<RootStackScreenProps<'BibleStudyList'>> = ({ 
+const BibleStudyListScreen: React.FC<MainStackScreenProps<'BibleStudyList'>> = ({ 
   navigation 
 }) => {
   const { profile } = useAuthStore();
@@ -92,24 +94,37 @@ const BibleStudyListScreen: React.FC<RootStackScreenProps<'BibleStudyList'>> = (
       activeOpacity={0.7}
     >
       <View style={styles.studyHeader}>
-        <Text style={styles.studyTitle} numberOfLines={2}>
-          {item.title}
-        </Text>
-        <View style={styles.studyMeta}>
-          <View style={styles.metaItem}>
-            <Ionicons name="eye-outline" size={14} color="#6B7280" />
-            <Text style={styles.metaText}>{item.view_count}</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Ionicons name="bookmark-outline" size={14} color="#6B7280" />
-            <Text style={styles.metaText}>{item.save_count}</Text>
-          </View>
-          {item.quality_score && (
+        <View style={styles.studyHeaderLeft}>
+          <Text style={styles.studyTitle} numberOfLines={2}>
+            {item.title}
+          </Text>
+          <View style={styles.studyMeta}>
             <View style={styles.metaItem}>
-              <Ionicons name="star-outline" size={14} color="#F59E0B" />
-              <Text style={styles.metaText}>{item.quality_score}/5</Text>
+              <Ionicons name="eye-outline" size={14} color="#6B7280" />
+              <Text style={styles.metaText}>{item.view_count}</Text>
             </View>
-          )}
+            {item.quality_score && (
+              <View style={styles.metaItem}>
+                <Ionicons name="star-outline" size={14} color="#F59E0B" />
+                <Text style={styles.metaText}>{item.quality_score}/5</Text>
+              </View>
+            )}
+          </View>
+        </View>
+        <View style={styles.studyHeaderRight}>
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              // TODO: Implement save functionality
+            }}
+          >
+            <Ionicons
+              name="bookmark-outline"
+              size={20}
+              color="#6B7280"
+            />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -121,18 +136,20 @@ const BibleStudyListScreen: React.FC<RootStackScreenProps<'BibleStudyList'>> = (
         <View style={styles.scriptureContainer}>
           <Text style={styles.scriptureLabel}>Scripture:</Text>
           <Text style={styles.scriptureText}>
-            {item.scripture_references[0]?.reference || 'Scripture reference'}
+            {formatScriptureReference(
+              item.scripture_references[0] as RawScriptureReference
+            ) || 'Scripture reference'}
           </Text>
         </View>
       )}
 
       <View style={styles.studyFooter}>
         <Text style={styles.studyDate}>
-          {new Date(item.created_at).toLocaleDateString()}
+          {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
         </Text>
         {item.is_featured && (
           <View style={styles.featuredBadge}>
-            <Ionicons name="star" size={12} color="#F59E0B" />
+            <Ionicons name="star" size={12} color="#D97706" />
             <Text style={styles.featuredText}>Featured</Text>
           </View>
         )}
@@ -219,46 +236,52 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   tabButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
+    flex: 1,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
   activeTabButton: {
-    backgroundColor: '#D97706',
+    borderBottomColor: '#D97706',
   },
   tabButtonText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '500',
     color: '#6B7280',
   },
   activeTabButtonText: {
-    color: '#FFFFFF',
+    color: '#D97706',
+    fontWeight: '600',
   },
   listContainer: {
-    padding: 16,
     flexGrow: 1,
   },
   studyCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 0,
     padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   studyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 12,
+  },
+  studyHeaderLeft: {
+    flex: 1,
+    marginRight: 12,
+  },
+  studyHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   studyTitle: {
     fontSize: 18,
@@ -279,6 +302,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
   },
+  saveButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+  },
   studyContent: {
     fontSize: 14,
     color: '#374151',
@@ -286,20 +314,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   scriptureContainer: {
-    backgroundColor: '#FEF3C7',
-    padding: 8,
-    borderRadius: 6,
     marginBottom: 12,
   },
   scriptureLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#92400E',
-    marginBottom: 2,
+    color: '#6B7280',
+    marginBottom: 4,
   },
   scriptureText: {
-    fontSize: 12,
-    color: '#92400E',
+    fontSize: 14,
+    color: '#374151',
   },
   studyFooter: {
     flexDirection: 'row',
@@ -313,16 +338,13 @@ const styles = StyleSheet.create({
   featuredBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: 'transparent',
     gap: 4,
   },
   featuredText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#92400E',
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#D97706',
   },
   loadingContainer: {
     flex: 1,

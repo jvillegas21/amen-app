@@ -12,7 +12,7 @@ import {
   RefreshControl,
   TextInput,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
@@ -36,7 +36,7 @@ interface GroupMember {
  * Group Member Management Screen - Manage group members and roles
  * Based on manage_group_members mockups
  */
-const GroupMemberManagementScreen: React.FC<RootStackScreenProps<'GroupMemberManagement'>> = ({ navigation, route }) => {
+const GroupMemberManagementScreen: React.FC<MainStackScreenProps<'GroupMemberManagement'>> = ({ navigation, route }) => {
   const { groupId } = route.params;
   const { profile } = useAuthStore();
   const [members, setMembers] = useState<GroupMember[]>([]);

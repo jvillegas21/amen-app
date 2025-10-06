@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/config/supabase';
 import { useAuthStore } from '@/store/auth/authStore';
@@ -32,7 +32,7 @@ interface Prayer {
 /**
  * Category Prayers Screen - Shows prayers filtered by category tag
  */
-const CategoryPrayersScreen: React.FC<RootStackScreenProps<'CategoryPrayers'>> = ({
+const CategoryPrayersScreen: React.FC<MainStackScreenProps<'CategoryPrayers'>> = ({
   route,
   navigation
 }) => {

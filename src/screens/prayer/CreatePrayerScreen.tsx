@@ -14,7 +14,7 @@ import {
   Image,
   Modal,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { usePrayerStore } from '@/store/prayer/prayerStore';
 import { useAuthStore } from '@/store/auth/authStore';
 import { useAIIntegration } from '@/hooks/useAIIntegration';
@@ -28,7 +28,7 @@ import { PRAYER_CATEGORIES } from '@/constants/prayerCategories';
  * Create Prayer Screen - Prayer creation with AI Bible study suggestions
  * Based on post_prayer and post_your_prayer mockups
  */
-const CreatePrayerScreen: React.FC<RootStackScreenProps<'CreatePrayer'>> = ({ navigation, route }) => {
+const CreatePrayerScreen: React.FC<MainStackScreenProps<'CreatePrayer'>> = ({ navigation, route }) => {
   const { createPrayer, isLoading } = usePrayerStore();
   const { profile } = useAuthStore();
   const { 

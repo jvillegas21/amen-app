@@ -15,7 +15,7 @@ import {
   Modal,
 } from 'react-native';
 import { CommonActions } from '@react-navigation/native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { usePrayerStore } from '@/store/prayer/prayerStore';
 import { useAuthStore } from '@/store/auth/authStore';
 import { useAIIntegration } from '@/hooks/useAIIntegration';
@@ -30,7 +30,7 @@ import { PRAYER_CATEGORIES } from '@/constants/prayerCategories';
 /**
  * Edit Prayer Screen - Edit existing prayer with AI Bible study suggestions
  */
-const EditPrayerScreen: React.FC<RootStackScreenProps<'EditPrayer'>> = ({ navigation, route }) => {
+const EditPrayerScreen: React.FC<MainStackScreenProps<'EditPrayer'>> = ({ navigation, route }) => {
   const { prayerId } = route.params;
   const { updatePrayer, deletePrayerOptimistic, prayers } = usePrayerStore();
   const { profile } = useAuthStore();

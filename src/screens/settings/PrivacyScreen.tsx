@@ -10,7 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { privacyService, PrivacySettings } from '@/services/api/privacyService';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
  * Privacy Settings Screen - Manage privacy and visibility settings
  * Based on settings mockups
  */
-const PrivacyScreen: React.FC<RootStackScreenProps<'Privacy'>> = ({ navigation }) => {
+const PrivacyScreen: React.FC<MainStackScreenProps<'Privacy'>> = ({ navigation }) => {
   const { profile } = useAuthStore();
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);

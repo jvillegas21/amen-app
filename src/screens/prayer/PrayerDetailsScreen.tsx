@@ -16,13 +16,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation, CommonActions } from '@react-navigation/native';
 import { useAuthStore } from '@/store/auth/authStore';
 import { usePrayerStore } from '@/store/prayer/prayerStore';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { prayerService } from '@/services/api/prayerService';
 import { commentService } from '@/services/api/commentService';
 import { Comment } from '@/types/database.types';
 import { formatDistanceToNow } from 'date-fns';
 
-type PrayerDetailsScreenProps = RootStackScreenProps<'PrayerDetails'>;
+type PrayerDetailsScreenProps = MainStackScreenProps<'PrayerDetails'>;
 
 export default function PrayerDetailsScreen() {
   const route = useRoute<PrayerDetailsScreenProps['route']>();

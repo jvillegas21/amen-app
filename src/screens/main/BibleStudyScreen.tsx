@@ -9,15 +9,16 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth/authStore';
 import { bibleStudyService, BibleStudy } from '@/services/api/bibleStudyService';
+import { normalizeScriptureReferences, RawScriptureReference } from '@/utils/scripture';
 
 /**
  * Bible Study Screen - AI-powered Bible study viewer
  */
-const BibleStudyScreen: React.FC<RootStackScreenProps<'BibleStudy'>> = ({ 
+const BibleStudyScreen: React.FC<MainStackScreenProps<'BibleStudy'>> = ({ 
   navigation, 
   route 
 }) => {
@@ -104,16 +105,31 @@ const BibleStudyScreen: React.FC<RootStackScreenProps<'BibleStudy'>> = ({
     </View>
   );
 
-  const renderScriptureReferences = () => (
-    <View style={styles.scriptureSection}>
-      <Text style={styles.sectionTitle}>Scripture References</Text>
-      {study?.scripture_references.map((reference, index) => (
-        <View key={index} style={styles.scriptureItem}>
-          <Text style={styles.scriptureReference}>{reference}</Text>
-        </View>
-      ))}
-    </View>
-  );
+  const renderScriptureReferences = () => {
+    const references = normalizeScriptureReferences(
+      study?.scripture_references as RawScriptureReference[] | undefined
+    );
+
+    if (references.length === 0) {
+      return null;
+    }
+
+    return (
+      <View style={styles.scriptureSection}>
+        <Text style={styles.sectionTitle}>Scripture References</Text>
+        {references.map(({ referenceLabel, referenceText }, index) => (
+          <View key={index} style={styles.scriptureItem}>
+            {referenceText ? (
+              <Text style={styles.scriptureText}>{referenceText}</Text>
+            ) : null}
+            {referenceLabel ? (
+              <Text style={styles.scriptureReference}>{referenceLabel}</Text>
+            ) : null}
+          </View>
+        ))}
+      </View>
+    );
+  };
 
   const renderStudyContent = () => (
     <View style={styles.contentSection}>
@@ -235,6 +251,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderLeftWidth: 4,
     borderLeftColor: '#5B21B6',
+  },
+  scriptureText: {
+    fontSize: 15,
+    color: '#374151',
+    fontStyle: 'italic',
+    marginBottom: 8,
   },
   scriptureReference: {
     fontSize: 16,

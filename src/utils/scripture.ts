@@ -13,7 +13,7 @@ type RawScriptureReference =
     }
   | Record<string, unknown>;
 
-const toStringSafe = (value: unknown): string => {
+export const toStringSafe = (value: unknown): string => {
   if (value === null || value === undefined) return '';
   return String(value).trim();
 };
@@ -109,6 +109,47 @@ export const normalizeScriptureReferences = (references?: RawScriptureReference[
       return { referenceLabel, referenceText };
     })
     .filter((item): item is { referenceLabel: string; referenceText: string | null } => Boolean(item));
+};
+
+export const extractStudySections = (contentMd?: string) => {
+  if (!contentMd) return [] as Array<{ heading: string; body: string }>;
+
+  const normalizedContent = contentMd.replace(/\r\n/g, '\n');
+  const withoutTitle = normalizedContent.replace(/^#\s+.*$/m, '').trim();
+  const rawSections = withoutTitle ? withoutTitle.split(/\n##\s+/g) : [];
+  const contentSections = rawSections.length > 0 ? rawSections : [withoutTitle];
+
+  return contentSections
+    .map((section, index) => {
+      const lines = section.split('\n');
+      let [rawHeading, ...rawBodyLines] = lines;
+
+      let sectionHeading = toStringSafe(rawHeading).replace(/^#+\s*/, '').trim();
+      let bodyLines = rawBodyLines;
+
+      if (!bodyLines.length) {
+        bodyLines = sectionHeading ? [sectionHeading] : [];
+        sectionHeading = '';
+      }
+
+      const sectionBody = bodyLines
+        .map(line => toStringSafe(line))
+        .join('\n')
+        .trim()
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/^\s*[-*+]\s+/gm, '• ');
+
+      if (!sectionHeading && !sectionBody) {
+        return null;
+      }
+
+      return {
+        heading: sectionHeading,
+        body: sectionBody,
+        index,
+      };
+    })
+    .filter((section): section is { heading: string; body: string; index: number } => Boolean(section?.body));
 };
 
 export type { RawScriptureReference };

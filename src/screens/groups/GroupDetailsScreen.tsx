@@ -12,7 +12,7 @@ import {
   Image,
   Modal,
 } from 'react-native';
-import { GroupsStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { usePrayerStore } from '@/store/prayer/prayerStore';
 import { groupService } from '@/services/api/groupService';
@@ -26,8 +26,9 @@ import UserAvatar from '@/components/common/UserAvatar';
  * Group Details Screen - Group information and prayer list
  * Based on group_prayer_list mockups
  */
-const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ navigation, route }) => {
-  const { groupId, refresh } = route.params;
+const GroupDetailsScreen: React.FC<MainStackScreenProps<'GroupDetails'>> = ({ navigation, route }) => {
+  const { groupId } = route.params;
+  const refresh = (route.params as any).refresh; // Optional refresh parameter for reloading data
   const { profile } = useAuthStore();
   const { prayers, isLoading } = usePrayerStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -150,14 +151,32 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
   };
 
   const handleGroupChatPress = () => {
-    // Navigate to group chat - chat works independently of prayers
-    // Use a placeholder prayerId for general group discussion
+    // Navigate to group chat within Groups tab
     const generalChatId = 'general-chat';
-    navigation.navigate('GroupChat', { prayerId: generalChatId, groupId });
+    // Navigate to Groups tab first, then to GroupChat
+    const parent = navigation.getParent();
+    if (parent) {
+      parent.navigate('MainTabs', {
+        screen: 'Groups',
+        params: {
+          screen: 'GroupChat',
+          params: { prayerId: generalChatId, groupId }
+        }
+      });
+    }
   };
 
   const handleMembersPress = () => {
-    navigation.navigate('GroupMembers', { groupId });
+    const parent = navigation.getParent();
+    if (parent) {
+      parent.navigate('MainTabs', {
+        screen: 'Groups',
+        params: {
+          screen: 'GroupMembers',
+          params: { groupId }
+        }
+      });
+    }
   };
 
   const handleEditGroup = () => {
@@ -168,7 +187,16 @@ const GroupDetailsScreen: React.FC<GroupsStackScreenProps<'GroupDetails'>> = ({ 
     if (userRole === 'admin' || userRole === 'moderator') {
       setShowSettingsModal(true);
     } else {
-      navigation.navigate('GroupSettings', { groupId });
+      const parent = navigation.getParent();
+      if (parent) {
+        parent.navigate('MainTabs', {
+          screen: 'Groups',
+          params: {
+            screen: 'GroupSettings',
+            params: { groupId }
+          }
+        });
+      }
     }
   };
 

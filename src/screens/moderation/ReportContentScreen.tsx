@@ -14,12 +14,12 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { contentModerationService, ContentReport } from '@/services/api/contentModerationService';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/theme';
 
-interface ReportContentScreenProps extends RootStackScreenProps<'ReportContent'> {}
+interface ReportContentScreenProps extends MainStackScreenProps<'ReportContent'> {}
 
 const REPORT_REASONS = [
   { value: 'spam', label: 'Spam', icon: 'ban' },

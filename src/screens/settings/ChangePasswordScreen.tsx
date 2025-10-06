@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { authService } from '@/services/auth/authService';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 /**
  * Change Password Screen - Update user password
  */
-const ChangePasswordScreen: React.FC<RootStackScreenProps<'ChangePassword'>> = ({ navigation }) => {
+const ChangePasswordScreen: React.FC<MainStackScreenProps<'ChangePassword'>> = ({ navigation }) => {
   const { user } = useAuthStore();
   
   const [formData, setFormData] = useState({

@@ -10,7 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -26,7 +26,7 @@ interface SecuritySettings {
 /**
  * Account Security Screen - Manage account security settings
  */
-const AccountSecurityScreen: React.FC<RootStackScreenProps<'AccountSecurity'>> = ({ navigation }) => {
+const AccountSecurityScreen: React.FC<MainStackScreenProps<'AccountSecurity'>> = ({ navigation }) => {
   const { profile } = useAuthStore();
   const [securitySettings, setSecuritySettings] = useState<SecuritySettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);

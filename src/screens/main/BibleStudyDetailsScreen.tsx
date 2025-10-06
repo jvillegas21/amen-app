@@ -14,49 +14,45 @@ import {
   Alert,
   Share,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAIIntegration } from '@/hooks/useAIIntegration';
 import { BibleStudy } from '@/types/database.types';
 import { bibleStudyService } from '@/services/api/bibleStudyService';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { createHeaderStyle } from '@/navigation/headerUtils';
 import {
   normalizeScriptureReferences,
   summarizeScriptureReferences,
-  formatScriptureReference,
-  extractScriptureText,
+  toStringSafe,
   RawScriptureReference,
+  extractStudySections,
 } from '@/utils/scripture';
 
-interface BibleStudyDetailsScreenProps extends RootStackScreenProps<'BibleStudyDetails'> {}
+interface BibleStudyDetailsScreenProps extends MainStackScreenProps<'BibleStudyDetails'> {}
 
-const BibleStudyDetailsScreen: React.FC<BibleStudyDetailsScreenProps> = ({ 
-  navigation, 
-  route 
+const BibleStudyDetailsScreen: React.FC<BibleStudyDetailsScreenProps> = ({
+  navigation,
+  route
 }) => {
-  const { studyId, prayerId } = route.params;
-  const { 
-    generateFullStudy, 
-    isGeneratingStudy, 
-    incrementStudyViews, 
-    saveStudy, 
+  const { studyId, prayerId, study: passedStudy } = route.params;
+  const insets = useSafeAreaInsets();
+  const {
+    generateFullStudy,
+    isGeneratingStudy,
+    incrementStudyViews,
+    saveStudy,
     removeSavedStudy,
-    savedStudies 
+    savedStudies
   } = useAIIntegration();
-  
-  const [study, setStudy] = useState<BibleStudy | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+
+  const [study, setStudy] = useState<BibleStudy | null>(passedStudy || null);
+  const [isLoading, setIsLoading] = useState(!passedStudy);
   const [isSaved, setIsSaved] = useState(false);
 
   const scriptureSummary = useMemo(() => {
-    if (!study?.scripture_references || study.scripture_references.length === 0) {
-      return '';
-    }
-
-    return study.scripture_references
-      .map(reference => formatScriptureReference(reference as ScriptureReferenceValue))
-      .filter(Boolean)
-      .join(' • ');
+    return summarizeScriptureReferences(study?.scripture_references as RawScriptureReference[] | undefined);
   }, [study?.scripture_references]);
 
   useEffect(() => {
@@ -72,15 +68,26 @@ const BibleStudyDetailsScreen: React.FC<BibleStudyDetailsScreenProps> = ({
 
   const loadStudy = async () => {
     try {
+      // If study was passed via navigation params, skip loading
+      if (passedStudy) {
+        setStudy(passedStudy);
+        setIsLoading(false);
+        // Still increment view count for the passed study
+        if (passedStudy.id) {
+          await incrementStudyViews(passedStudy.id);
+        }
+        return;
+      }
+
       setIsLoading(true);
-      
+
       if (studyId && prayerId) {
         // Generate full study from suggestion
         const generatedStudy = await generateFullStudy({
           prayerId,
           suggestionId: studyId,
         });
-        
+
         if (generatedStudy) {
           setStudy(generatedStudy);
           await incrementStudyViews(generatedStudy.id);
@@ -140,6 +147,11 @@ const BibleStudyDetailsScreen: React.FC<BibleStudyDetailsScreenProps> = ({
 
   useLayoutEffect(() => {
     navigation.setOptions({
+      headerStyle: createHeaderStyle(insets, '#D97706'),
+      headerTintColor: '#FFFFFF',
+      headerTitleStyle: {
+        color: '#FFFFFF',
+      },
       headerRight: study
         ? () => (
             <View style={styles.headerActions}>
@@ -153,7 +165,7 @@ const BibleStudyDetailsScreen: React.FC<BibleStudyDetailsScreenProps> = ({
                 <Ionicons
                   name={isSaved ? 'bookmark' : 'bookmark-outline'}
                   size={22}
-                  color={theme.colors.text.inverse}
+                  color="#FFFFFF"
                 />
               </TouchableOpacity>
               <TouchableOpacity
@@ -163,31 +175,20 @@ const BibleStudyDetailsScreen: React.FC<BibleStudyDetailsScreenProps> = ({
                 accessibilityLabel="Share Bible study"
                 accessibilityHint="Share this study using your device options"
               >
-                <Ionicons name="share-outline" size={22} color={theme.colors.text.inverse} />
+                <Ionicons name="share-outline" size={22} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           )
         : undefined,
     });
-  }, [navigation, study, isSaved, handleSaveStudy, handleShareStudy]);
+  }, [navigation, study, isSaved, handleSaveStudy, handleShareStudy, insets]);
 
   const renderScriptureReferences = () => {
     if (!study?.scripture_references || study.scripture_references.length === 0) {
       return null;
     }
 
-    const references = study.scripture_references
-      .map(reference => {
-        const referenceLabel = formatScriptureReference(reference as ScriptureReferenceValue);
-        const referenceText = extractScriptureText(reference as ScriptureReferenceValue);
-
-        if (!referenceLabel && !referenceText) {
-          return null;
-        }
-
-        return { referenceLabel, referenceText };
-      })
-      .filter((item): item is { referenceLabel: string; referenceText: string | null } => Boolean(item));
+    const references = normalizeScriptureReferences(study?.scripture_references as RawScriptureReference[] | undefined);
 
     if (references.length === 0) {
       return null;
@@ -213,68 +214,56 @@ const BibleStudyDetailsScreen: React.FC<BibleStudyDetailsScreenProps> = ({
   const renderStudyContent = () => {
     if (!study) return null;
 
-    const rawContent = typeof study.content_md === 'string' ? study.content_md : '';
-    const normalizedContent = rawContent.replace(/\r\n/g, '\n');
-    const rawSections = normalizedContent ? normalizedContent.split('\n## ') : [];
-    const [, ...sectionChunks] = rawSections;
-
-    const fallbackContent = normalizedContent
-      ? normalizedContent.replace(/^#\s+.*$/m, '').trim()
-      : '';
-
-    const contentSections = sectionChunks.length > 0
-      ? sectionChunks
-      : (fallbackContent ? [fallbackContent] : []);
+    const contentSections = extractStudySections(study.content_md)
+      .map(section => section.body);
 
     return (
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {(typeof study.quality_score === 'number' || typeof study.view_count === 'number') && (
-          <View style={styles.metaRow}>
-            {typeof study.quality_score === 'number' ? (
-              <Text style={styles.metaValue}>Quality Score: {study.quality_score}/5</Text>
-            ) : null}
-            {typeof study.view_count === 'number' ? (
-              <Text style={styles.metaValue}>{study.view_count} views</Text>
-            ) : null}
-          </View>
-        )}
+        {/* Study Title */}
+        <View style={styles.studyTitleContainer}>
+          <Text style={styles.studyTitleText}>{study.title}</Text>
+        </View>
 
-        {contentSections.map((section, index) => {
-          const lines = section.split('\n');
-          let [rawHeading, ...rawBodyLines] = lines;
-
-          let sectionHeading = toStringSafe(rawHeading).replace(/^#+\s*/, '').trim();
-          let bodyLines = rawBodyLines;
-
-          if (!bodyLines.length) {
-            bodyLines = sectionHeading ? [sectionHeading] : [];
-            sectionHeading = sectionHeading || (index === 0 ? 'Study Overview' : `Study Insight ${index + 1}`);
-          }
-
-          const sectionBody = bodyLines
-            .map(line => toStringSafe(line))
-            .join('\n')
-            .trim()
-            .replace(/\n{3,}/g, '\n\n')
-            .replace(/^\s*[-*+]\s+/gm, '• ');
-
-          if (!sectionHeading && !sectionBody) {
-            return null;
-          }
-
-          return (
-            <View key={index} style={styles.section}>
-              {sectionHeading ? (
-                <Text style={styles.sectionTitle}>{sectionHeading}</Text>
-              ) : null}
-              {sectionBody ? (
-                <Text style={styles.sectionContent}>{sectionBody}</Text>
-              ) : null}
+        {/* Study Metadata */}
+        <View style={styles.studyMetadata}>
+          {typeof study.view_count === 'number' && (
+            <View style={styles.metaItem}>
+              <Ionicons name="eye-outline" size={16} color="#6B7280" />
+              <Text style={styles.metaText}>{study.view_count} views</Text>
             </View>
-          );
-        })}
+          )}
+          {typeof study.save_count === 'number' && study.save_count > 0 && (
+            <View style={styles.metaItem}>
+              <Ionicons name="bookmark-outline" size={16} color="#6B7280" />
+              <Text style={styles.metaText}>{study.save_count} saved</Text>
+            </View>
+          )}
+          {study.quality_score && (
+            <View style={styles.metaItem}>
+              <Ionicons name="star" size={16} color="#F59E0B" />
+              <Text style={styles.metaText}>{study.quality_score}/5</Text>
+            </View>
+          )}
+        </View>
 
+        {/* Scripture References */}
         {renderScriptureReferences()}
+
+        {/* Study Sections */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Study Content</Text>
+          {contentSections.map((section, index) => {
+            const sectionBody = toStringSafe(section);
+
+            if (!sectionBody) {
+              return null;
+            }
+
+            return (
+              <Text key={index} style={styles.sectionContent}>{sectionBody}</Text>
+            );
+          })}
+        </View>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
@@ -320,19 +309,6 @@ const BibleStudyDetailsScreen: React.FC<BibleStudyDetailsScreenProps> = ({
 
   return (
     <SafeAreaView style={styles.container}>
-      {study ? (
-        <View style={styles.secondaryAppBar}>
-          <Text style={styles.secondaryTitle} numberOfLines={2}>
-            {study.title}
-          </Text>
-          {scriptureSummary ? (
-            <Text style={styles.secondarySubtitle} numberOfLines={2}>
-              {scriptureSummary}
-            </Text>
-          ) : null}
-        </View>
-      ) : null}
-
       {renderStudyContent()}
     </SafeAreaView>
   );
@@ -352,39 +328,56 @@ const styles = StyleSheet.create({
     marginLeft: theme.spacing[2],
   },
   secondaryAppBar: {
-    backgroundColor: theme.colors.warning[700],
+    backgroundColor: '#D97706',
     paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[5],
+    paddingVertical: theme.spacing[4],
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0, 0, 0, 0.15)',
-    gap: theme.spacing[2],
+    borderBottomColor: 'rgba(0, 0, 0, 0.2)',
+    alignItems: 'center',
   },
   secondaryTitle: {
     ...theme.typography.heading.h2,
     color: theme.colors.text.inverse,
-    letterSpacing: 0.2,
+    textAlign: 'center',
   },
   secondarySubtitle: {
     ...theme.typography.caption.medium,
     color: theme.colors.text.inverse,
-    opacity: 0.85,
+    opacity: 0.9,
+    marginTop: theme.spacing[1],
+    textAlign: 'center',
   },
   content: {
     flex: 1,
     paddingHorizontal: theme.spacing[4],
-    paddingTop: theme.spacing[5],
+    paddingTop: theme.spacing[4],
   },
-  metaRow: {
+  studyTitleContainer: {
+    marginBottom: theme.spacing[3],
+  },
+  studyTitleText: {
+    ...theme.typography.heading.h1,
+    color: theme.colors.text.primary,
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  studyMetadata: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
+    gap: 16,
     marginBottom: theme.spacing[4],
+    paddingBottom: theme.spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border.primary,
   },
-  metaValue: {
-    ...theme.typography.caption.medium,
-    color: theme.colors.text.secondary,
-    marginRight: theme.spacing[4],
-    marginBottom: theme.spacing[1],
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaText: {
+    fontSize: 14,
+    color: '#6B7280',
   },
   section: {
     marginBottom: theme.spacing[6],
@@ -393,16 +386,16 @@ const styles = StyleSheet.create({
     ...theme.typography.heading.h3,
     color: theme.colors.text.primary,
     marginBottom: theme.spacing[3],
+    fontSize: 18,
+    fontWeight: '600',
   },
   sectionContent: {
     ...theme.typography.body.medium,
     color: theme.colors.text.primary,
     lineHeight: 24,
+    marginBottom: theme.spacing[3],
   },
   scriptureRef: {
-    backgroundColor: theme.colors.background.secondary,
-    padding: theme.spacing[4],
-    borderRadius: theme.borderRadius.lg,
     marginBottom: theme.spacing[3],
   },
   scriptureText: {
@@ -413,7 +406,7 @@ const styles = StyleSheet.create({
   },
   scriptureReference: {
     ...theme.typography.caption.medium,
-    color: theme.colors.primary[600],
+    color: '#D97706',
     fontWeight: '600',
   },
   footer: {

@@ -12,7 +12,7 @@ import {
   TextInput,
   Modal,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import ImagePicker from '@/components/common/ImagePicker';
@@ -80,7 +80,7 @@ interface ProfileData {
  * Settings Screen - Main settings hub with categories
  * Based on settings mockups
  */
-const SettingsScreen: React.FC<RootStackScreenProps<'Settings'>> = ({ navigation }) => {
+const SettingsScreen: React.FC<MainStackScreenProps<'Settings'>> = ({ navigation }) => {
   const { profile, signOut, updateProfile } = useAuthStore();
   const [settings, setSettings] = useState<SettingsData | null>(null);
   const [profileData, setProfileData] = useState<ProfileData>({

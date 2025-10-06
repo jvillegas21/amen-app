@@ -12,7 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -45,7 +45,7 @@ const PRIORITIES = [
  * Create Ticket Screen - Submit new support ticket
  * Based on submit_support_ticket mockups
  */
-const CreateTicketScreen: React.FC<RootStackScreenProps<'CreateTicket'>> = ({ navigation }) => {
+const CreateTicketScreen: React.FC<MainStackScreenProps<'CreateTicket'>> = ({ navigation }) => {
   const { profile } = useAuthStore();
   const [formData, setFormData] = useState<TicketFormData>({
     title: '',

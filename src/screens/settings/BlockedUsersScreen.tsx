@@ -12,7 +12,7 @@ import {
   RefreshControl,
   TextInput,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
@@ -31,7 +31,7 @@ interface BlockedUser {
  * Blocked Users Management Screen - Manage blocked users
  * Based on manage_blocked_users mockups
  */
-const BlockedUsersScreen: React.FC<RootStackScreenProps<'BlockedUsers'>> = ({ navigation }) => {
+const BlockedUsersScreen: React.FC<MainStackScreenProps<'BlockedUsers'>> = ({ navigation }) => {
   const { profile } = useAuthStore();
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);

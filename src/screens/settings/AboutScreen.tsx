@@ -9,14 +9,14 @@ import {
   Linking,
   Alert,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth/authStore';
 
 /**
  * About Screen - App information, version, legal links, and contact
  */
-const AboutScreen: React.FC<RootStackScreenProps<'About'>> = ({ navigation }) => {
+const AboutScreen: React.FC<MainStackScreenProps<'About'>> = ({ navigation }) => {
   const { profile } = useAuthStore();
 
   const handlePrivacyPolicy = () => {

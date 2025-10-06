@@ -12,7 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
@@ -45,7 +45,7 @@ interface SupportTicket {
  * Ticket Details Screen - View and manage support ticket
  * Based on ticket_details mockups
  */
-const TicketDetailsScreen: React.FC<RootStackScreenProps<'TicketDetails'>> = ({ navigation, route }) => {
+const TicketDetailsScreen: React.FC<MainStackScreenProps<'TicketDetails'>> = ({ navigation, route }) => {
   const { ticketId } = route.params;
   const { profile } = useAuthStore();
   const [ticket, setTicket] = useState<SupportTicket | null>(null);

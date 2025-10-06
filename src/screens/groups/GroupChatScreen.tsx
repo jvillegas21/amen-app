@@ -11,7 +11,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { GroupsStackScreenProps } from '@/types/navigation.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth/authStore';
 
@@ -24,7 +24,7 @@ interface Message {
   isOwn: boolean;
 }
 
-interface GroupChatScreenProps extends RootStackScreenProps<'GroupChat'> {}
+interface GroupChatScreenProps extends GroupsStackScreenProps<'GroupChat'> {}
 
 /**
  * Group Chat Screen - Group messaging functionality

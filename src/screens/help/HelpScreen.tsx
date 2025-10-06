@@ -10,7 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { helpService } from '@/services/api/helpService';
@@ -81,7 +81,7 @@ const HELP_CATEGORIES: HelpCategory[] = [
  * Help & FAQ Screen - Comprehensive help center with search and categories
  * Based on help_&_faq mockups
  */
-const HelpScreen: React.FC<RootStackScreenProps<'Help'>> = ({ navigation }) => {
+const HelpScreen: React.FC<MainStackScreenProps<'Help'>> = ({ navigation }) => {
   const { profile } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [faqItems, setFaqItems] = useState<FAQItem[]>([]);

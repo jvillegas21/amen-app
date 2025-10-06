@@ -11,9 +11,6 @@ import { createStackScreenOptions } from './headerUtils';
 import GroupsListScreen from '@/screens/groups/GroupsListScreen';
 import MyGroupsScreen from '@/screens/groups/MyGroupsScreen';
 import DiscoverGroupsScreen from '@/screens/groups/DiscoverGroupsScreen';
-import CreateGroupScreen from '@/screens/groups/CreateGroupScreen';
-import GroupDetailsScreen from '@/screens/groups/GroupDetailsScreen';
-import EditGroupScreen from '@/screens/groups/EditGroupScreen';
 import GroupChatScreen from '@/screens/groups/GroupChatScreen';
 import GroupMembersScreen from '@/screens/groups/GroupMembersScreen';
 import GroupSettingsScreen from '@/screens/groups/GroupSettingsScreen';
@@ -77,21 +74,6 @@ const GroupsNavigator: React.FC = () => {
         name="DiscoverGroups"
         component={DiscoverGroupsScreen}
         options={{ title: 'Discover Groups' }}
-      />
-      <Stack.Screen
-        name="CreateGroup"
-        component={CreateGroupScreen}
-        options={{ title: 'Create Group' }}
-      />
-      <Stack.Screen
-        name="GroupDetails"
-        component={GroupDetailsScreen}
-        options={{ title: 'Group Details' }}
-      />
-      <Stack.Screen
-        name="EditGroup"
-        component={EditGroupScreen}
-        options={{ title: 'Edit Group' }}
       />
       <Stack.Screen
         name="GroupChat"

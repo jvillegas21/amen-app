@@ -12,7 +12,7 @@ import {
   Linking,
 } from 'react-native';
 import { theme } from '@/theme';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
@@ -40,7 +40,7 @@ interface FAQItem {
  * Support Screen - Main support hub with tickets, FAQ, and contact options
  * Replaces the stub implementation with full functionality
  */
-const SupportScreen: React.FC<RootStackScreenProps<'Support'>> = ({ navigation }) => {
+const SupportScreen: React.FC<MainStackScreenProps<'Support'>> = ({ navigation }) => {
   const { profile } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'tickets' | 'faq' | 'contact'>('tickets');
   const [tickets, setTickets] = useState<SupportTicket[]>([]);

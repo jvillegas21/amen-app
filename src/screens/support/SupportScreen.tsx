@@ -9,7 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
@@ -30,7 +30,7 @@ interface SupportTicket {
  * Support Screen - Main support hub with ticket management
  * Based on support ticket mockups
  */
-const SupportScreen: React.FC<RootStackScreenProps<'Support'>> = ({ navigation }) => {
+const SupportScreen: React.FC<MainStackScreenProps<'Support'>> = ({ navigation }) => {
   const { profile } = useAuthStore();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [isLoading, setIsLoading] = useState(true);

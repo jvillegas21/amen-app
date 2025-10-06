@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
@@ -43,7 +43,7 @@ interface UserProfile {
  * User Profile Screen - View user profile with statistics and management
  * Based on user_profile mockups
  */
-const UserProfileScreen: React.FC<RootStackScreenProps<'UserProfile'>> = ({ navigation, route }) => {
+const UserProfileScreen: React.FC<MainStackScreenProps<'UserProfile'>> = ({ navigation, route }) => {
   const { profile, signOut } = useAuthStore();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);

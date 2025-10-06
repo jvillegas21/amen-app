@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth/authStore';
 import { bibleStudyService, BibleStudySuggestion } from '@/services/api/bibleStudyService';
@@ -17,7 +17,7 @@ import { bibleStudyService, BibleStudySuggestion } from '@/services/api/bibleStu
 /**
  * Bible Study Suggestions Screen - AI-generated Bible study suggestions
  */
-const BibleStudySuggestionsScreen: React.FC<RootStackScreenProps<'BibleStudySuggestions'>> = ({ 
+const BibleStudySuggestionsScreen: React.FC<MainStackScreenProps<'BibleStudySuggestions'>> = ({ 
   navigation 
 }) => {
   const { profile } = useAuthStore();

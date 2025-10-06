@@ -7,10 +7,15 @@ import { CompositeScreenProps } from '@react-navigation/native';
 
 import { BibleStudy, AIScriptureVerse } from '@/services/aiService';
 
-// Root Stack Navigator
+// Root Stack Navigator (simplified - only Auth/Main split)
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabParamList>;
+};
+
+// Main Stack Navigator (all authenticated screens with persistent tab bar)
+export type MainStackParamList = {
+  MainTabs: NavigatorScreenParams<MainTabParamList>;
   Search: { query?: string };
   PrayerDetails: { prayerId: string; createReminder?: boolean };
   CreatePrayer: { groupId?: string };
@@ -34,8 +39,18 @@ export type RootStackParamList = {
   GroupDetails: { groupId: string };
   CreateGroup: undefined;
   EditGroup: { groupId: string };
+  MyGroups: undefined;
+  DiscoverGroups: undefined;
+  GroupChat: { prayerId: string; groupId: string };
+  GroupMembers: { groupId: string };
+  GroupSettings: { groupId: string };
+  SavedPrayers: undefined;
+  PrayerHistory: undefined;
+  Following: undefined;
+  Followers: undefined;
+  Statistics: undefined;
   BibleStudy: { studyId: string };
-  BibleStudyDetails: { studyId: string; prayerId?: string | null };
+  BibleStudyDetails: { studyId: string; prayerId?: string | null; study?: BibleStudy };
   BibleStudyList: undefined;
   BibleStudySuggestions: undefined;
   CategoryPrayers: { categoryId: string; categoryName: string; categoryIcon: string; categoryColor: string };
@@ -86,32 +101,25 @@ export type MainTabParamList = {
   Profile: undefined;
 };
 
-// Groups Stack Navigator
+// Groups Stack Navigator (just the main Groups list screen now)
 export type GroupsStackParamList = {
   GroupsList: undefined;
-  MyGroups: undefined;
-  DiscoverGroups: undefined;
-  CreateGroup: undefined;
-  GroupDetails: { groupId: string; refresh?: number };
-  EditGroup: { groupId: string };
-  GroupChat: { prayerId: string; groupId: string };
-  GroupMembers: { groupId: string };
-  GroupSettings: { groupId: string };
 };
 
-// Profile Stack Navigator
+// Profile Stack Navigator (just the main Profile screen now)
 export type ProfileStackParamList = {
   MyProfile: undefined;
-  SavedPrayers: undefined;
-  PrayerHistory: undefined;
-  Following: undefined;
-  Followers: undefined;
-  Statistics: undefined;
 };
 
 // Type helpers for navigation props
 export type RootStackScreenProps<T extends keyof RootStackParamList> =
   StackScreenProps<RootStackParamList, T>;
+
+export type MainStackScreenProps<T extends keyof MainStackParamList> =
+  CompositeScreenProps<
+    StackScreenProps<MainStackParamList, T>,
+    RootStackScreenProps<'Main'>
+  >;
 
 export type AuthStackScreenProps<T extends keyof AuthStackParamList> =
   CompositeScreenProps<
@@ -122,7 +130,7 @@ export type AuthStackScreenProps<T extends keyof AuthStackParamList> =
 export type MainTabScreenProps<T extends keyof MainTabParamList> =
   CompositeScreenProps<
     BottomTabScreenProps<MainTabParamList, T>,
-    RootStackScreenProps<'Main'>
+    MainStackScreenProps<'MainTabs'>
   >;
 
 export type GroupsStackScreenProps<T extends keyof GroupsStackParamList> =

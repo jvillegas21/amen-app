@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -24,7 +24,7 @@ import { layout } from '@/theme/spacing';
 /**
  * Create Event Screen - Create a new prayer event
  */
-const CreateEventScreen: React.FC<RootStackScreenProps<'CreateEvent'>> = ({ navigation }) => {
+const CreateEventScreen: React.FC<MainStackScreenProps<'CreateEvent'>> = ({ navigation }) => {
   useAuthStore();
   const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(false);

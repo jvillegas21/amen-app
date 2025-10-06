@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -27,7 +27,7 @@ import { analyticsService } from '@/services/api/analyticsService';
 /**
  * Create Bible Study Screen - Create a new Bible study with AI insights
  */
-const CreateBibleStudyScreen: React.FC<RootStackScreenProps<'CreateBibleStudy'>> = ({ navigation, route }) => {
+const CreateBibleStudyScreen: React.FC<MainStackScreenProps<'CreateBibleStudy'>> = ({ navigation, route }) => {
   const user = useAuthStore(state => state.user);
   const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(false);
@@ -336,8 +336,12 @@ const CreateBibleStudyScreen: React.FC<RootStackScreenProps<'CreateBibleStudy'>>
 
       console.log('✅ Bible study created successfully:', data);
 
-      // Navigate to the created Bible study details
-      navigation.replace('BibleStudyDetails', { studyId: data.id });
+      // Navigate to the created Bible study details with the study data
+      // This avoids a refetch and ensures the study is immediately available
+      navigation.replace('BibleStudyDetails', {
+        studyId: data.id,
+        study: data
+      });
     } catch (error) {
       console.error('Error creating Bible study:', error);
       Alert.alert('Error', 'Failed to create Bible study. Please try again.');

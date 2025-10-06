@@ -5,13 +5,12 @@ export interface BibleStudy {
   id: string;
   title: string;
   content: string;
-  scripture_references: string[];
+  scripture_references: Array<string | Record<string, unknown>>;
   quality_score: number;
   view_count: number;
   save_count: number;
   is_saved?: boolean;
   created_at: string;
-  updated_at: string;
 }
 
 export interface BibleStudySuggestion {
@@ -117,7 +116,6 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
         save_count: 0,
         is_saved: false,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       };
 
       // Save to database

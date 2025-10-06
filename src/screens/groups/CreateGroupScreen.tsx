@@ -14,7 +14,7 @@ import {
   Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { groupService } from '@/services/api/groupService';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,7 +25,7 @@ import { layout } from '@/theme/spacing';
  * Create Group Screen - Group creation with privacy settings
  * Based on create_group_prayer mockups
  */
-const CreateGroupScreen: React.FC<RootStackScreenProps<'CreateGroup'>> = ({ navigation }) => {
+const CreateGroupScreen: React.FC<MainStackScreenProps<'CreateGroup'>> = ({ navigation }) => {
   useAuthStore();
   const insets = useSafeAreaInsets();
   

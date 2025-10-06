@@ -7,14 +7,14 @@ import {
   SafeAreaView,
   ScrollView,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { Ionicons } from '@expo/vector-icons';
 
 /**
  * Privacy Policy Screen - Privacy policy and data protection information
  * Based on privacy_policy mockups
  */
-const PrivacyPolicyScreen: React.FC<RootStackScreenProps<'PrivacyPolicy'>> = ({ navigation }) => {
+const PrivacyPolicyScreen: React.FC<MainStackScreenProps<'PrivacyPolicy'>> = ({ navigation }) => {
   const renderHeader = () => (
     <View style={styles.header}>
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>

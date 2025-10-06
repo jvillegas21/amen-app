@@ -14,13 +14,13 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationSettings } from '@/services/notifications/notificationService';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/theme';
 
-interface NotificationSettingsScreenProps extends RootStackScreenProps<'NotificationSettings'> {}
+interface NotificationSettingsScreenProps extends MainStackScreenProps<'NotificationSettings'> {}
 
 const NotificationSettingsScreen: React.FC<NotificationSettingsScreenProps> = ({ navigation }) => {
   const {

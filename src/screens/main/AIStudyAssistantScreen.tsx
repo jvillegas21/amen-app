@@ -14,7 +14,7 @@ import { CommonActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import aiService, { BibleStudy, AIScriptureVerse } from '@/services/aiService';
 import { analyticsService } from '@/services/api/analyticsService';
@@ -22,7 +22,7 @@ import { analyticsService } from '@/services/api/analyticsService';
 /**
  * Dedicated AI Study Assistant screen for generating Bible study content
  */
-const AIStudyAssistantScreen: React.FC<RootStackScreenProps<'AIStudyAssistant'>> = ({ navigation, route }) => {
+const AIStudyAssistantScreen: React.FC<MainStackScreenProps<'AIStudyAssistant'>> = ({ navigation, route }) => {
   const initialMode: 'fullStudy' | 'scriptureSuggestions' = route.params?.mode ?? 'fullStudy';
   const initialTopic = route.params?.topic ?? '';
   const initialContext = route.params?.context ?? '';

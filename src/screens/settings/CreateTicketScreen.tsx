@@ -13,7 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import { theme } from '@/theme';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -35,7 +35,7 @@ interface TicketPriority {
  * Create Ticket Screen - Create new support tickets
  * Replaces the stub implementation with full functionality
  */
-const CreateTicketScreen: React.FC<RootStackScreenProps<'CreateTicket'>> = ({ navigation }) => {
+const CreateTicketScreen: React.FC<MainStackScreenProps<'CreateTicket'>> = ({ navigation }) => {
   const { profile } = useAuthStore();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');

@@ -10,7 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -35,7 +35,7 @@ interface NotificationSettings {
  * Notifications Screen - Manage notification preferences
  * Based on notifications mockups
  */
-const NotificationsScreen: React.FC<RootStackScreenProps<'Notifications'>> = ({ navigation }) => {
+const NotificationsScreen: React.FC<MainStackScreenProps<'Notifications'>> = ({ navigation }) => {
   const { profile } = useAuthStore();
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);

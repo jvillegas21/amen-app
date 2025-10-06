@@ -13,7 +13,7 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import { GroupsStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { groupService } from '@/services/api/groupService';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,7 +24,7 @@ import GroupAvatar from '@/components/common/GroupAvatar';
 /**
  * Edit Group Screen - Edit group settings and properties
  */
-const EditGroupScreen: React.FC<GroupsStackScreenProps<'EditGroup'>> = ({ navigation, route }) => {
+const EditGroupScreen: React.FC<MainStackScreenProps<'EditGroup'>> = ({ navigation, route }) => {
   const { groupId } = route.params;
   const { profile } = useAuthStore();
   

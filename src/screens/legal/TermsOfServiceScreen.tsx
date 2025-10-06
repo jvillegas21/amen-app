@@ -7,14 +7,14 @@ import {
   SafeAreaView,
   ScrollView,
 } from 'react-native';
-import { RootStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { Ionicons } from '@expo/vector-icons';
 
 /**
  * Terms of Service Screen - Legal terms and conditions
  * Based on terms_of_service mockups
  */
-const TermsOfServiceScreen: React.FC<RootStackScreenProps<'TermsOfService'>> = ({ navigation }) => {
+const TermsOfServiceScreen: React.FC<MainStackScreenProps<'TermsOfService'>> = ({ navigation }) => {
   const renderHeader = () => (
     <View style={styles.header}>
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
