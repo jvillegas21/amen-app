@@ -17,6 +17,8 @@ import { bibleStudyService } from '@/services/api/bibleStudyService';
 import { BibleStudy } from '@/types/database.types';
 import { formatScriptureReference, RawScriptureReference } from '@/utils/scripture';
 import { formatDistanceToNow } from 'date-fns';
+import PersistentFooterNav from '@/components/navigation/PersistentFooterNav';
+import { theme } from '@/theme';
 
 /**
  * Bible Study List Screen - Browse and discover Bible studies
@@ -189,37 +191,43 @@ const BibleStudyListScreen: React.FC<MainStackScreenProps<'BibleStudyList'>> = (
     </View>
   );
 
-  if (isLoading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        {renderHeader()}
+  const renderBody = () => {
+    if (isLoading) {
+      return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#D97706" />
           <Text style={styles.loadingText}>Loading Bible studies...</Text>
         </View>
-      </SafeAreaView>
-    );
-  }
+      );
+    }
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {renderHeader()}
+    return (
       <FlatList
         data={studies}
         renderItem={renderStudyCard}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}
-        refreshControl={
+        refreshControl={(
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
             colors={['#D97706']}
             tintColor="#D97706"
           />
-        }
+        )}
         ListEmptyComponent={renderEmptyState}
       />
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.contentContainer}>
+        {renderHeader()}
+        {renderBody()}
+      </View>
+      <PersistentFooterNav activeTab="Discover" navigation={navigation} />
     </SafeAreaView>
   );
 };
@@ -228,6 +236,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+  },
+  contentContainer: {
+    flex: 1,
   },
   header: {
     backgroundColor: '#FFFFFF',
@@ -261,6 +272,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     flexGrow: 1,
+    paddingBottom: theme.layout.tabBarHeight + theme.spacing[8],
   },
   studyCard: {
     backgroundColor: '#FFFFFF',

@@ -7,12 +7,15 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { MainStackScreenProps } from '@/types/navigation.types';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/config/supabase';
 import { useAuthStore } from '@/store/auth/authStore';
 import { theme } from '@/theme';
+import PrayerCard from '@/components/prayer/PrayerCard';
+import { useSharing } from '@/hooks/useSharing';
 
 interface Prayer {
   id: string;
@@ -41,6 +44,9 @@ const CategoryPrayersScreen: React.FC<MainStackScreenProps<'CategoryPrayers'>> =
   const [prayers, setPrayers] = useState<Prayer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [prayingPrayers, setPrayingPrayers] = useState<Set<string>>(new Set());
+  const [savingPrayers, setSavingPrayers] = useState<Set<string>>(new Set());
+  const { sharePrayer, isSharing } = useSharing();
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -147,8 +153,68 @@ const CategoryPrayersScreen: React.FC<MainStackScreenProps<'CategoryPrayers'>> =
     fetchCategoryPrayers();
   };
 
-  const handlePrayerPress = (prayer: Prayer) => {
-    navigation.navigate('PrayerDetails', { prayerId: prayer.id });
+  const handlePrayerPress = (prayerId: string) => {
+    navigation.navigate('PrayerDetails', { prayerId });
+  };
+
+  const handlePrayPress = async (prayerId: string) => {
+    if (prayingPrayers.has(prayerId)) return;
+    setPrayingPrayers(prev => new Set(prev).add(prayerId));
+    try {
+      // TODO: Implement prayer interaction
+      console.log('Praying for:', prayerId);
+    } catch (error) {
+      console.error('Failed to interact with prayer:', error);
+      Alert.alert('Error', 'Failed to pray for this request. Please try again.');
+    } finally {
+      setTimeout(() => {
+        setPrayingPrayers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(prayerId);
+          return newSet;
+        });
+      }, 200);
+    }
+  };
+
+  const handleCommentPress = (prayerId: string) => {
+    navigation.navigate('PrayerDetails', { prayerId });
+  };
+
+  const handleSharePress = async (prayerId: string) => {
+    try {
+      const prayer = prayers.find(p => p.id === prayerId);
+      if (prayer) {
+        await sharePrayer(prayer as any, {
+          showAlert: true,
+          alertTitle: 'Prayer Shared',
+          alertMessage: 'Thank you for sharing this prayer request.',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to share prayer:', error);
+      Alert.alert('Error', 'Failed to share prayer. Please try again.');
+    }
+  };
+
+  const handleSavePress = async (prayerId: string) => {
+    if (savingPrayers.has(prayerId)) return;
+    setSavingPrayers(prev => new Set(prev).add(prayerId));
+    try {
+      // TODO: Implement save functionality
+      console.log('Saving prayer:', prayerId);
+    } catch (error) {
+      console.error('Failed to save prayer:', error);
+      Alert.alert('Error', 'Failed to save prayer. Please try again.');
+    } finally {
+      setTimeout(() => {
+        setSavingPrayers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(prayerId);
+          return newSet;
+        });
+      }, 200);
+    }
   };
 
   const getTimeAgo = (dateString: string) => {
@@ -170,43 +236,17 @@ const CategoryPrayersScreen: React.FC<MainStackScreenProps<'CategoryPrayers'>> =
   };
 
   const renderPrayer = ({ item }: { item: Prayer }) => (
-    <TouchableOpacity
-      style={styles.prayerCard}
-      onPress={() => handlePrayerPress(item)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.prayerHeader}>
-        <View style={styles.userInfo}>
-          <View style={styles.avatar}>
-            <Ionicons name="person" size={20} color={theme.colors.text.tertiary} />
-          </View>
-          <View style={styles.userDetails}>
-            <Text style={styles.userName}>{item.profiles?.display_name || 'Anonymous'}</Text>
-            {item.location_city && (
-              <Text style={styles.location} numberOfLines={1}>
-                {item.location_city}
-              </Text>
-            )}
-          </View>
-        </View>
-        <Text style={styles.timeAgo}>{getTimeAgo(item.created_at)}</Text>
-      </View>
-
-      <Text style={styles.prayerText} numberOfLines={3}>
-        {item.text}
-      </Text>
-
-      <View style={styles.prayerStats}>
-        <View style={styles.statItem}>
-          <Ionicons name="heart" size={16} color={theme.colors.error[700]} />
-          <Text style={styles.statText}>{item.prayer_count || 0} praying</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Ionicons name="chatbubble" size={16} color={theme.colors.text.tertiary} />
-          <Text style={styles.statText}>{item.comment_count || 0} comments</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
+    <PrayerCard
+      prayer={item as any}
+      onPress={() => handlePrayerPress(item.id)}
+      onPrayPress={() => handlePrayPress(item.id)}
+      onCommentPress={() => handleCommentPress(item.id)}
+      onSharePress={() => handleSharePress(item.id)}
+      onSavePress={() => handleSavePress(item.id)}
+      isPraying={prayingPrayers.has(item.id)}
+      isSharing={isSharing}
+      isSaving={savingPrayers.has(item.id)}
+    />
   );
 
   const renderEmptyState = () => (
@@ -308,74 +348,10 @@ const styles = StyleSheet.create({
     color: theme.colors.text.secondary,
   },
   listContainer: {
-    padding: theme.spacing[4],
+    paddingBottom: theme.spacing[4],
   },
   emptyListContainer: {
     flexGrow: 1,
-  },
-  prayerCard: {
-    backgroundColor: theme.colors.background.primary,
-    padding: theme.spacing[4],
-    borderRadius: 12,
-    marginBottom: theme.spacing[4],
-    ...theme.shadows.sm,
-  },
-  prayerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: theme.spacing[3],
-  },
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.colors.background.tertiary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: theme.spacing[3],
-  },
-  userDetails: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.text.primary,
-    marginBottom: 2,
-  },
-  location: {
-    fontSize: 14,
-    color: theme.colors.text.secondary,
-  },
-  timeAgo: {
-    fontSize: 14,
-    color: theme.colors.text.tertiary,
-  },
-  prayerText: {
-    fontSize: 16,
-    color: theme.colors.text.secondary,
-    lineHeight: 24,
-    marginBottom: theme.spacing[3],
-  },
-  prayerStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: theme.spacing[4],
-  },
-  statText: {
-    marginLeft: theme.spacing[1],
-    fontSize: 14,
-    color: theme.colors.text.secondary,
   },
   emptyContainer: {
     flex: 1,
