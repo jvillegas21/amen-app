@@ -232,7 +232,7 @@ const MyProfileScreen: React.FC<ProfileStackScreenProps<'MyProfile'>> = ({ navig
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.colors.background.secondary,
   },
   scrollView: {
     flex: 1,
@@ -243,25 +243,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#6B7280',
+    marginTop: theme.spacing[3],
+    ...theme.typography.body.medium,
+    color: theme.colors.text.secondary,
   },
   profileHeader: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 24,
+    backgroundColor: theme.colors.surface.primary,
+    paddingHorizontal: theme.spacing[5],
+    paddingVertical: theme.spacing[6],
     alignItems: 'center',
   },
   avatarContainer: {
     position: 'relative',
-    marginBottom: 16,
+    marginBottom: theme.spacing[4],
   },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: theme.colors.background.tertiary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#5B21B6',
+    backgroundColor: theme.colors.primary[600],
     justifyContent: 'center',
     alignItems: 'center',
   },

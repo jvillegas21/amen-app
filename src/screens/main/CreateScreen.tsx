@@ -179,27 +179,26 @@ const CreateScreen: React.FC<MainTabScreenProps<'Create'>> = ({ navigation }) =>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.colors.background.secondary,
   },
   scrollView: {
     flex: 1,
   },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: theme.spacing[5],
+    paddingVertical: theme.spacing[6],
+    backgroundColor: theme.colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.colors.border.primary,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 4,
+    ...theme.typography.display.small,
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing[1],
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: '#6B7280',
+    ...theme.typography.body.medium,
+    color: theme.colors.text.secondary,
   },
   sectionTitle: {
     fontSize: 18,

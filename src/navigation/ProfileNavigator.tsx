@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ProfileStackParamList } from '@/types/navigation.types';
 import { theme } from '@/theme';
-import { createStackScreenOptions } from './headerUtils';
+import { createStackScreenOptions, createHeaderAction } from './headerUtils';
 
 // Profile Screen imports
 import MyProfileScreen from '@/screens/profile/MyProfileScreen';
@@ -33,23 +33,11 @@ const ProfileNavigator: React.FC = () => {
         component={MyProfileScreen}
         options={({ navigation }) => ({
           title: 'My Profile',
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Statistics')}
-              style={{
-                padding: theme.spacing[2],
-                marginRight: theme.spacing[1],
-              }}
-              accessibilityLabel="Statistics"
-              accessibilityRole="button"
-              accessibilityHint="View prayer statistics"
-            >
-              <Ionicons
-                name="analytics"
-                size={24}
-                color={theme.colors.text.inverse}
-              />
-            </TouchableOpacity>
+          headerRight: () => createHeaderAction(
+            () => navigation.navigate('Statistics'),
+            'analytics',
+            'Statistics',
+            'View prayer statistics'
           ),
         })}
       />

@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GroupsStackParamList } from '@/types/navigation.types';
 import { theme } from '@/theme';
-import { createStackScreenOptions } from './headerUtils';
+import { createStackScreenOptions, createHeaderAction } from './headerUtils';
 
 // Groups Screen imports
 import GroupsListScreen from '@/screens/groups/GroupsListScreen';
@@ -33,35 +33,11 @@ const GroupsNavigator: React.FC = () => {
         component={GroupsListScreen}
         options={({ navigation }) => ({
           title: 'Groups',
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={() => navigation.navigate('CreateGroup')}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: '#5B21B6',
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginRight: 16,
-                ...Platform.select({
-                  ios: {
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.25,
-                    shadowRadius: 3.84,
-                  },
-                  android: {
-                    elevation: 4,
-                  },
-                }),
-              }}
-              accessibilityLabel="Create Group"
-              accessibilityRole="button"
-              accessibilityHint="Create a new group"
-            >
-              <Ionicons name="add" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
+          headerRight: () => createHeaderAction(
+            () => navigation.navigate('CreateGroup'),
+            'add',
+            'Create Group',
+            'Create a new group'
           ),
         })}
       />

@@ -393,16 +393,16 @@ const GroupDetailsScreen: React.FC<MainStackScreenProps<'GroupDetails'>> = ({ na
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.colors.background.secondary,
   },
   listContainer: {
-    paddingBottom: 20,
+    paddingBottom: theme.spacing[5],
   },
   header: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
+    backgroundColor: theme.colors.surface.primary,
+    padding: theme.spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.colors.border.primary,
   },
   groupInfo: {
     flexDirection: 'row',

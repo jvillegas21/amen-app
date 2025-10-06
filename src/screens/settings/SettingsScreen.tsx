@@ -678,7 +678,7 @@ const SettingsScreen: React.FC<MainStackScreenProps<'Settings'>> = ({ navigation
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.colors.background.secondary,
   },
   scrollView: {
     flex: 1,
@@ -689,9 +689,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#6B7280',
+    marginTop: theme.spacing[4],
+    ...theme.typography.body.medium,
+    color: theme.colors.text.secondary,
   },
   accountInfo: {
     backgroundColor: '#FFFFFF',
