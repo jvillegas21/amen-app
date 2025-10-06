@@ -3,10 +3,8 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  RefreshControl,
   Alert,
 } from 'react-native';
 import { MainStackScreenProps } from '@/types/navigation.types';
@@ -16,8 +14,10 @@ import { useAuthStore } from '@/store/auth/authStore';
 import { theme } from '@/theme';
 import PrayerCard from '@/components/prayer/PrayerCard';
 import { useSharing } from '@/hooks/useSharing';
+import { OptimizedPrayerList } from '@/components/performance/OptimizedPrayerList';
+import { Prayer } from '@/types/database.types';
 
-interface Prayer {
+interface CategoryPrayer {
   id: string;
   text: string;
   user_id: string;
@@ -131,11 +131,20 @@ const CategoryPrayersScreen: React.FC<MainStackScreenProps<'CategoryPrayers'>> =
       // Merge data - NO additional queries
       const prayersWithCounts = (data || []).map(prayer => ({
         ...prayer,
-        prayer_count: interactionCounts[prayer.id]?.pray || 0,
+        pray_count: interactionCounts[prayer.id]?.pray || 0,
         comment_count: commentCounts[prayer.id] || 0,
+        user: prayer.profiles,
+        user_interactions: {
+          isPrayed: false,
+          isSaved: false,
+        },
+        tags: [categoryId],
+        privacy_level: 'public' as const,
+        is_anonymous: false,
+        status: 'active' as const,
       }));
 
-      setPrayers(prayersWithCounts);
+      setPrayers(prayersWithCounts as Prayer[]);
     } catch (error) {
       console.error('Failed to fetch category prayers:', error);
     } finally {
@@ -235,18 +244,29 @@ const CategoryPrayersScreen: React.FC<MainStackScreenProps<'CategoryPrayers'>> =
     return `${months}mo ago`;
   };
 
-  const renderPrayer = ({ item }: { item: Prayer }) => (
+  const renderPrayerCard = (prayer: Prayer) => (
     <PrayerCard
-      prayer={item as any}
-      onPress={() => handlePrayerPress(item.id)}
-      onPrayPress={() => handlePrayPress(item.id)}
-      onCommentPress={() => handleCommentPress(item.id)}
-      onSharePress={() => handleSharePress(item.id)}
-      onSavePress={() => handleSavePress(item.id)}
-      isPraying={prayingPrayers.has(item.id)}
+      prayer={prayer}
+      onPress={() => handlePrayerPress(prayer.id)}
+      onPrayPress={() => handlePrayPress(prayer.id)}
+      onCommentPress={() => handleCommentPress(prayer.id)}
+      onSharePress={() => handleSharePress(prayer.id)}
+      onSavePress={() => handleSavePress(prayer.id)}
+      isPraying={prayingPrayers.has(prayer.id)}
       isSharing={isSharing}
-      isSaving={savingPrayers.has(item.id)}
+      isSaving={savingPrayers.has(prayer.id)}
     />
+  );
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <View style={[styles.headerIcon, { backgroundColor: categoryColor }]}>
+        <Ionicons name={categoryIcon as any} size={24} color="#FFFFFF" />
+      </View>
+      <Text style={styles.headerSubtitle}>
+        {prayers.length} {prayers.length === 1 ? 'prayer' : 'prayers'} in this category
+      </Text>
+    </View>
   );
 
   const renderEmptyState = () => (
@@ -278,35 +298,28 @@ const CategoryPrayersScreen: React.FC<MainStackScreenProps<'CategoryPrayers'>> =
     );
   }
 
+  const handleLoadMore = useCallback(async () => {
+    // TODO: Implement pagination for category prayers
+    console.log('Load more category prayers');
+  }, []);
+
+  const handleRefreshOptimized = useCallback(async () => {
+    await handleRefresh();
+  }, [handleRefresh]);
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={[styles.headerIcon, { backgroundColor: categoryColor }]}>
-          <Ionicons name={categoryIcon as any} size={24} color="#FFFFFF" />
-        </View>
-        <Text style={styles.headerSubtitle}>
-          {prayers.length} {prayers.length === 1 ? 'prayer' : 'prayers'} in this category
-        </Text>
-      </View>
-
-      <FlatList
-        data={prayers}
-        renderItem={renderPrayer}
-        keyExtractor={(item) => item.id}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.listContainer,
-          prayers.length === 0 && styles.emptyListContainer,
-        ]}
+      <OptimizedPrayerList
+        prayers={prayers}
+        onLoadMore={handleLoadMore}
+        onRefresh={handleRefreshOptimized}
+        renderPrayerCard={renderPrayerCard}
+        ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmptyState}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            tintColor={categoryColor}
-            colors={[categoryColor]}
-          />
-        }
+        isLoading={isLoading}
+        hasMore={false} // TODO: Implement pagination
+        refreshing={isRefreshing}
+        testID="category-prayer-list"
       />
     </View>
   );
@@ -318,8 +331,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background.secondary,
   },
   header: {
-    backgroundColor: theme.colors.background.primary,
-    padding: theme.spacing[4],
+    backgroundColor: theme.colors.surface.primary,
+    paddingHorizontal: theme.spacing[4],
+    paddingVertical: theme.spacing[3],
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border.primary,
     alignItems: 'center',
@@ -333,7 +347,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[2],
   },
   headerSubtitle: {
-    fontSize: 16,
+    ...theme.typography.body.medium,
     color: theme.colors.text.secondary,
   },
   loadingContainer: {
@@ -344,20 +358,15 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: theme.spacing[3],
-    fontSize: 16,
+    ...theme.typography.body.medium,
     color: theme.colors.text.secondary,
-  },
-  listContainer: {
-    paddingBottom: theme.spacing[4],
-  },
-  emptyListContainer: {
-    flexGrow: 1,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing[6],
+    paddingHorizontal: theme.spacing[8],
+    paddingVertical: theme.spacing[24],
   },
   emptyIcon: {
     width: 96,
@@ -368,29 +377,29 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[4],
   },
   emptyTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    ...theme.typography.heading.h2,
     color: theme.colors.text.primary,
     marginBottom: theme.spacing[2],
+    textAlign: 'center',
   },
   emptySubtitle: {
-    fontSize: 16,
+    ...theme.typography.body.medium,
     color: theme.colors.text.secondary,
     textAlign: 'center',
     marginBottom: theme.spacing[6],
-    lineHeight: 24,
   },
   createButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: theme.spacing[6],
     paddingVertical: theme.spacing[3],
-    borderRadius: 24,
+    borderRadius: theme.borderRadius.lg,
+    minHeight: theme.layout.minTouchTarget,
+    justifyContent: 'center',
   },
   createButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    ...theme.typography.button.medium,
+    color: theme.colors.text.inverse,
     marginLeft: theme.spacing[2],
   },
 });

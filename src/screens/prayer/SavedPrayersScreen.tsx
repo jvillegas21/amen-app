@@ -3,10 +3,8 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  RefreshControl,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,16 +14,23 @@ import { useAuthStore } from '@/store/auth/authStore';
 import { prayerService } from '@/services/api/prayerService';
 import { Prayer } from '@/types/database.types';
 import { formatDistanceToNow } from 'date-fns';
+import { theme } from '@/theme';
+import PrayerCard from '@/components/prayer/PrayerCard';
+import { OptimizedPrayerList } from '@/components/performance/OptimizedPrayerList';
+import { useSharing } from '@/hooks/useSharing';
 
 export default function SavedPrayersScreen() {
   const router = useRouter();
   const { profile } = useAuthStore();
+  const { sharePrayer, isSharing } = useSharing();
   
   const [savedPrayers, setSavedPrayers] = useState<Prayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [prayingPrayers, setPrayingPrayers] = useState<Set<string>>(new Set());
+  const [savingPrayers, setSavingPrayers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (profile?.id) {
@@ -78,51 +83,94 @@ export default function SavedPrayersScreen() {
     router.push(`/prayer/${prayer.id}`);
   };
 
-  const handleUnsave = async (prayerId: string) => {
+  const handlePrayPress = async (prayerId: string) => {
+    if (prayingPrayers.has(prayerId)) return;
+    setPrayingPrayers(prev => new Set(prev).add(prayerId));
+    try {
+      // TODO: Implement prayer interaction
+      console.log('Praying for:', prayerId);
+    } catch (error) {
+      console.error('Failed to interact with prayer:', error);
+      Alert.alert('Error', 'Failed to pray for this request. Please try again.');
+    } finally {
+      setTimeout(() => {
+        setPrayingPrayers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(prayerId);
+          return newSet;
+        });
+      }, 200);
+    }
+  };
+
+  const handleCommentPress = (prayerId: string) => {
+    router.push(`/prayer/${prayerId}`);
+  };
+
+  const handleSharePress = async (prayerId: string) => {
+    try {
+      const prayer = savedPrayers.find(p => p.id === prayerId);
+      if (prayer) {
+        await sharePrayer(prayer, {
+          showAlert: true,
+          alertTitle: 'Prayer Shared',
+          alertMessage: 'Thank you for sharing this prayer request.',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to share prayer:', error);
+      Alert.alert('Error', 'Failed to share prayer. Please try again.');
+    }
+  };
+
+  const handleSavePress = async (prayerId: string) => {
+    if (savingPrayers.has(prayerId)) return;
+    setSavingPrayers(prev => new Set(prev).add(prayerId));
     try {
       await prayerService.savePrayer(prayerId); // This toggles save/unsave
       setSavedPrayers(prev => prev.filter(prayer => prayer.id !== prayerId));
     } catch (error) {
       console.error('Error unsaving prayer:', error);
       Alert.alert('Error', 'Failed to unsave prayer');
+    } finally {
+      setTimeout(() => {
+        setSavingPrayers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(prayerId);
+          return newSet;
+        });
+      }, 200);
     }
   };
 
-  const renderPrayerItem = ({ item: prayer }: { item: Prayer }) => (
-    <TouchableOpacity
-      style={styles.prayerItem}
+  const renderPrayerCard = (prayer: Prayer) => (
+    <PrayerCard
+      prayer={prayer}
       onPress={() => handlePrayerPress(prayer)}
-    >
-      <View style={styles.prayerContent}>
-        <Text style={styles.prayerTitle} numberOfLines={2}>
-          Prayer Request
-        </Text>
-        <Text style={styles.prayerText} numberOfLines={3}>
-          {prayer.text}
-        </Text>
-        
-        <View style={styles.prayerMeta}>
-          <Text style={styles.prayerAuthor}>
-            by {prayer.user?.display_name || 'Anonymous'}
-          </Text>
-          <Text style={styles.prayerDate}>
-            {formatDistanceToNow(new Date(prayer.created_at), { addSuffix: true })}
-          </Text>
-        </View>
-      </View>
-      
-      <TouchableOpacity
-        style={styles.unsaveButton}
-        onPress={() => handleUnsave(prayer.id)}
-      >
-        <Ionicons name="bookmark" size={20} color="#007AFF" />
+      onPrayPress={() => handlePrayPress(prayer.id)}
+      onCommentPress={() => handleCommentPress(prayer.id)}
+      onSharePress={() => handleSharePress(prayer.id)}
+      onSavePress={() => handleSavePress(prayer.id)}
+      isSaved={true} // All prayers in this screen are saved
+      isPraying={prayingPrayers.has(prayer.id)}
+      isSharing={isSharing}
+      isSaving={savingPrayers.has(prayer.id)}
+    />
+  );
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <Ionicons name="arrow-back" size={24} color={theme.colors.primary[600]} />
       </TouchableOpacity>
-    </TouchableOpacity>
+      <Text style={styles.headerTitle}>Saved Prayers</Text>
+      <View style={styles.placeholder} />
+    </View>
   );
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="bookmark-outline" size={64} color="#C7C7CC" />
+      <Ionicons name="bookmark-outline" size={64} color={theme.colors.text.tertiary} />
       <Text style={styles.emptyStateTitle}>No Saved Prayers</Text>
       <Text style={styles.emptyStateText}>
         Save prayers you want to revisit later by tapping the bookmark icon
@@ -130,29 +178,22 @@ export default function SavedPrayersScreen() {
     </View>
   );
 
-  const renderFooter = () => {
-    if (!loading || page === 1) return null;
-    
-    return (
-      <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color="#007AFF" />
-      </View>
-    );
+  const handleLoadMoreOptimized = async () => {
+    if (hasMore && !loading) {
+      await fetchSavedPrayers(page + 1);
+    }
+  };
+
+  const handleRefreshOptimized = async () => {
+    await handleRefresh();
   };
 
   if (loading && page === 1) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#007AFF" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Saved Prayers</Text>
-          <View style={styles.placeholder} />
-        </View>
-        
+        {renderHeader()}
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={theme.colors.primary[600]} />
           <Text style={styles.loadingText}>Loading saved prayers...</Text>
         </View>
       </SafeAreaView>
@@ -161,30 +202,17 @@ export default function SavedPrayersScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#007AFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Saved Prayers</Text>
-        <View style={styles.placeholder} />
-      </View>
-
-      <FlatList
-        data={savedPrayers}
-        renderItem={renderPrayerItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={[
-          styles.listContainer,
-          savedPrayers.length === 0 && styles.emptyListContainer,
-        ]}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.1}
+      <OptimizedPrayerList
+        prayers={savedPrayers}
+        onLoadMore={handleLoadMoreOptimized}
+        onRefresh={handleRefreshOptimized}
+        renderPrayerCard={renderPrayerCard}
+        ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmptyState}
-        ListFooterComponent={renderFooter}
-        showsVerticalScrollIndicator={false}
+        isLoading={loading}
+        hasMore={hasMore}
+        refreshing={refreshing}
+        testID="saved-prayer-list"
       />
     </SafeAreaView>
   );
@@ -193,27 +221,27 @@ export default function SavedPrayersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.background.secondary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: theme.spacing[4],
+    paddingVertical: theme.spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E7',
+    borderBottomColor: theme.colors.border.primary,
+    backgroundColor: theme.colors.surface.primary,
   },
   backButton: {
-    padding: 8,
+    padding: theme.spacing[2],
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
+    ...theme.typography.heading.h3,
+    color: theme.colors.text.primary,
   },
   placeholder: {
-    width: 40,
+    width: theme.spacing[10],
   },
   loadingContainer: {
     flex: 1,
@@ -221,81 +249,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-  },
-  listContainer: {
-    padding: 16,
-  },
-  emptyListContainer: {
-    flex: 1,
-  },
-  prayerItem: {
-    flexDirection: 'row',
-    backgroundColor: '#F9F9F9',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5E7',
-  },
-  prayerContent: {
-    flex: 1,
-    marginRight: 12,
-  },
-  prayerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 8,
-  },
-  prayerText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#333',
-    marginBottom: 12,
-  },
-  prayerMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  prayerAuthor: {
-    fontSize: 12,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  prayerDate: {
-    fontSize: 12,
-    color: '#666',
-  },
-  unsaveButton: {
-    padding: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginTop: theme.spacing[4],
+    ...theme.typography.body.medium,
+    color: theme.colors.text.secondary,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: theme.spacing[8],
+    paddingVertical: theme.spacing[24],
   },
   emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#000',
-    marginTop: 16,
-    marginBottom: 8,
+    ...theme.typography.heading.h2,
+    color: theme.colors.text.primary,
+    marginTop: theme.spacing[4],
+    marginBottom: theme.spacing[2],
   },
   emptyStateText: {
-    fontSize: 16,
-    color: '#666',
+    ...theme.typography.body.medium,
+    color: theme.colors.text.secondary,
     textAlign: 'center',
-    lineHeight: 24,
-  },
-  footerLoader: {
-    paddingVertical: 20,
-    alignItems: 'center',
   },
 });
