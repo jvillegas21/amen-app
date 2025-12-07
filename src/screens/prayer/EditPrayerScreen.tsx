@@ -34,7 +34,7 @@ const EditPrayerScreen: React.FC<MainStackScreenProps<'EditPrayer'>> = ({ naviga
   const { prayerId } = route.params;
   const { updatePrayer, deletePrayerOptimistic, prayers } = usePrayerStore();
   const { profile } = useAuthStore();
-  
+
   const [prayerText, setPrayerText] = useState('');
   const [privacyLevel, setPrivacyLevel] = useState<'public' | 'friends' | 'groups' | 'private'>('public');
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -96,7 +96,7 @@ const EditPrayerScreen: React.FC<MainStackScreenProps<'EditPrayer'>> = ({ naviga
     try {
       setLoading(true);
       const prayerData = await prayerRepository.getPrayerWithDetails(prayerId, profile?.id);
-      
+
       if (!prayerData) {
         Alert.alert('Error', 'Prayer not found');
         if (navigation.canGoBack()) {
@@ -239,7 +239,7 @@ const EditPrayerScreen: React.FC<MainStackScreenProps<'EditPrayer'>> = ({ naviga
 
     try {
       setSaving(true);
-      
+
       const updateData: UpdatePrayerRequest = {
         text: prayerText.trim(),
         privacy_level: privacyLevel,
@@ -272,15 +272,15 @@ const EditPrayerScreen: React.FC<MainStackScreenProps<'EditPrayer'>> = ({ naviga
       ]);
     } catch (error: any) {
       console.error('Prayer update error:', error);
-      
+
       let errorMessage = 'Failed to update prayer request';
-      
+
       if (error.message) {
         errorMessage = error.message;
       } else if (error.code) {
         errorMessage = `Database error (${error.code}): ${error.message || 'Unknown error'}`;
       }
-      
+
       Alert.alert('Error', errorMessage);
     } finally {
       setSaving(false);
@@ -300,7 +300,7 @@ const EditPrayerScreen: React.FC<MainStackScreenProps<'EditPrayer'>> = ({ naviga
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.keyboardAvoid}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
@@ -326,7 +326,11 @@ const EditPrayerScreen: React.FC<MainStackScreenProps<'EditPrayer'>> = ({ naviga
             {/* Images */}
             {images.length > 0 && (
               <View style={styles.imagesContainer}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingTop: 12, paddingRight: 12, paddingLeft: 4 }}
+                >
                   {images.map((image, index) => (
                     <View key={index} style={styles.imageWrapper}>
                       <Image source={{ uri: image.url }} style={styles.image} />

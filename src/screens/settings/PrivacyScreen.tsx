@@ -14,16 +14,31 @@ import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { privacyService, PrivacySettings } from '@/services/api/privacyService';
 import { Ionicons } from '@expo/vector-icons';
+import SelectionSheet from '@/components/common/SelectionSheet';
 
 /**
  * Privacy Settings Screen - Manage privacy and visibility settings
  * Based on settings mockups
  */
-const PrivacyScreen: React.FC<MainStackScreenProps<'Privacy'>> = ({ navigation }) => {
+const PrivacyScreen: React.FC<MainStackScreenProps<'Privacy'>> = () => {
   const { profile } = useAuthStore();
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  const [sheetConfig, setSheetConfig] = useState<{
+    visible: boolean;
+    title: string;
+    options: Array<{ label: string; value: string }>;
+    onSelect: (value: string) => void;
+    selectedValue: string;
+  }>({
+    visible: false,
+    title: '',
+    options: [],
+    onSelect: () => { },
+    selectedValue: '',
+  });
 
   useEffect(() => {
     fetchPrivacySettings();
@@ -35,7 +50,7 @@ const PrivacyScreen: React.FC<MainStackScreenProps<'Privacy'>> = ({ navigation }
       if (!profile?.id) {
         throw new Error('User not authenticated');
       }
-      
+
       const settings = await privacyService.getPrivacySettings(profile.id);
       setPrivacySettings(settings);
     } catch (error) {
@@ -52,7 +67,7 @@ const PrivacyScreen: React.FC<MainStackScreenProps<'Privacy'>> = ({ navigation }
       if (!profile?.id) {
         throw new Error('User not authenticated');
       }
-      
+
       await privacyService.updatePrivacySettings(profile.id, { [setting]: value });
       setPrivacySettings(prev => prev ? {
         ...prev,
@@ -72,7 +87,7 @@ const PrivacyScreen: React.FC<MainStackScreenProps<'Privacy'>> = ({ navigation }
       if (!profile?.id || !privacySettings) {
         throw new Error('User not authenticated or settings not loaded');
       }
-      
+
       await privacyService.updatePrivacySettings(profile.id, privacySettings);
       Alert.alert('Success', 'Privacy settings updated successfully');
     } catch (error) {
@@ -81,6 +96,25 @@ const PrivacyScreen: React.FC<MainStackScreenProps<'Privacy'>> = ({ navigation }
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const openSelectionSheet = (
+    title: string,
+    options: Array<{ label: string; value: string }>,
+    onSelect: (value: string) => void,
+    selectedValue: string
+  ) => {
+    setSheetConfig({
+      visible: true,
+      title,
+      options,
+      onSelect,
+      selectedValue,
+    });
+  };
+
+  const closeSelectionSheet = () => {
+    setSheetConfig(prev => ({ ...prev, visible: false }));
   };
 
   const renderToggleSetting = (
@@ -129,16 +163,7 @@ const PrivacyScreen: React.FC<MainStackScreenProps<'Privacy'>> = ({ navigation }
       </View>
       <TouchableOpacity
         style={styles.selectionButton}
-        onPress={() => {
-          Alert.alert(
-            title,
-            'Select an option:',
-            options.map(option => ({
-              text: option.label,
-              onPress: () => onSelect(option.value),
-            }))
-          );
-        }}
+        onPress={() => openSelectionSheet(title, options, onSelect, value)}
       >
         <Text style={styles.selectionButtonText}>
           {options.find(opt => opt.value === value)?.label || value}
@@ -253,10 +278,10 @@ const PrivacyScreen: React.FC<MainStackScreenProps<'Privacy'>> = ({ navigation }
   const renderPrivacyInfo = () => (
     <View style={styles.privacyInfo}>
       <View style={styles.privacyInfoContent}>
-        <Ionicons name="shield-checkmark" size={24} color="theme.colors.success[700]" />
+        <Ionicons name="shield-checkmark" size={24} color="#15803d" />
         <Text style={styles.privacyInfoTitle}>Your Privacy Matters</Text>
         <Text style={styles.privacyInfoText}>
-          We respect your privacy and give you control over your data. 
+          We respect your privacy and give you control over your data.
           These settings help you manage who can see your information and how it's used.
         </Text>
       </View>
@@ -293,15 +318,23 @@ const PrivacyScreen: React.FC<MainStackScreenProps<'Privacy'>> = ({ navigation }
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {renderPrivacyInfo()}
         {renderProfileVisibilitySection()}
         {renderCommunicationSection()}
         {renderContentSection()}
         {renderSaveButton()}
-        
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      <SelectionSheet
+        visible={sheetConfig.visible}
+        onClose={closeSelectionSheet}
+        title={sheetConfig.title}
+        options={sheetConfig.options}
+        onSelect={sheetConfig.onSelect}
+        selectedValue={sheetConfig.selectedValue}
+      />
     </SafeAreaView>
   );
 };
@@ -311,7 +344,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
-  scrollView: {
+  content: {
     flex: 1,
   },
   loadingContainer: {
@@ -328,19 +361,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FDF4',
     margin: 16,
     borderRadius: 12,
-    padding: 16,
     borderWidth: 1,
     borderColor: '#BBF7D0',
+    overflow: 'hidden',
   },
   privacyInfoContent: {
+    padding: 16,
     alignItems: 'center',
   },
   privacyInfoTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#166534',
+    color: '#15803d',
     marginTop: 8,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   privacyInfoText: {
     fontSize: 14,
@@ -355,25 +389,20 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#111827',
-    marginHorizontal: 16,
+    marginLeft: 16,
     marginBottom: 12,
   },
   sectionContent: {
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#E5E7EB',
   },
   toggleItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
@@ -381,6 +410,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginRight: 16,
   },
   settingsIconContainer: {
     width: 40,
@@ -397,19 +427,18 @@ const styles = StyleSheet.create({
   toggleItemTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#111827',
+    color: '#1F2937',
     marginBottom: 2,
   },
   toggleItemSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6B7280',
   },
   selectionItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
@@ -417,19 +446,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginRight: 16,
   },
   selectionItemText: {
     flex: 1,
-    marginLeft: 12,
   },
   selectionItemTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#111827',
+    color: '#1F2937',
     marginBottom: 2,
   },
   selectionItemSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6B7280',
   },
   selectionButton: {
@@ -437,26 +466,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F3F4F6',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderRadius: 6,
   },
   selectionButtonText: {
     fontSize: 14,
-    color: '#111827',
+    color: '#374151',
     marginRight: 4,
+    fontWeight: '500',
   },
   saveButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#5B21B6',
-    marginHorizontal: 16,
-    marginTop: 20,
-    paddingVertical: 16,
-    borderRadius: 8,
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#5B21B6',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
   saveButtonDisabled: {
-    backgroundColor: '#D1D5DB',
+    opacity: 0.7,
   },
   saveButtonText: {
     color: '#FFFFFF',
@@ -465,7 +502,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   bottomSpacing: {
-    height: 20,
+    height: 40,
   },
 });
 

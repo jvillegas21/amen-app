@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { GroupsStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth/authStore';
 
@@ -24,12 +24,10 @@ interface Message {
   isOwn: boolean;
 }
 
-interface GroupChatScreenProps extends GroupsStackScreenProps<'GroupChat'> {}
-
 /**
  * Group Chat Screen - Group messaging functionality
  */
-const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route, navigation }) => {
+const GroupChatScreen: React.FC<MainStackScreenProps<'GroupChat'>> = ({ route, navigation }) => {
   const { prayerId, groupId } = route.params;
   const { profile } = useAuthStore();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -39,6 +37,18 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route, navigation }) 
   useEffect(() => {
     fetchMessages();
   }, []);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: 'Group Chat',
+      headerBackTitle: 'Back',
+      headerTitleAlign: 'center',
+      headerStyle: {
+        backgroundColor: '#5B21B6',
+      },
+      headerTintColor: '#FFFFFF',
+    });
+  }, [navigation]);
 
   const fetchMessages = async () => {
     try {
@@ -120,20 +130,6 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route, navigation }) 
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Group Chat</Text>
-            <Text style={styles.headerSubtitle}>
-              {prayerId === 'general-chat' ? 'Group Discussion' : 'Prayer Discussion'}
-            </Text>
-          </View>
-        </View>
 
         <FlatList
           data={messages}
@@ -182,30 +178,6 @@ const styles = StyleSheet.create({
   },
   keyboardAvoidingView: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#5B21B6',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  backButton: {
-    marginRight: 12,
-  },
-  headerContent: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#E5E7EB',
   },
   messagesList: {
     flex: 1,

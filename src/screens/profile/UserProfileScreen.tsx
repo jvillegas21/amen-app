@@ -44,7 +44,7 @@ interface UserProfile {
  * Based on user_profile mockups
  */
 const UserProfileScreen: React.FC<MainStackScreenProps<'UserProfile'>> = ({ navigation, route }) => {
-  const { profile, signOut } = useAuthStore();
+  const { user, profile, signOut } = useAuthStore();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -52,20 +52,25 @@ const UserProfileScreen: React.FC<MainStackScreenProps<'UserProfile'>> = ({ navi
 
   useEffect(() => {
     fetchUserProfile();
-  }, []);
+  }, [user]);
 
   const fetchUserProfile = async () => {
     try {
+      if (!user?.id) return;
       setIsLoading(true);
 
+      const userId = user.id;
+
       // Fetch the user's profile data from Supabase
-      const { data: profileData, error: profileError } = await supabase
+      const { data, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
       if (profileError) throw profileError;
+
+      const profileData = data as any;
 
       // Fetch user stats
       const [prayersPosted, prayersReceived, groupsJoined, followersCount, followingCount] = await Promise.all([
@@ -80,7 +85,7 @@ const UserProfileScreen: React.FC<MainStackScreenProps<'UserProfile'>> = ({ navi
           .select('id', { count: 'exact', head: true })
           .eq('type', 'praying')
           .in('prayer_id',
-            supabase.from('prayers').select('id').eq('user_id', userId)
+            ((await supabase.from('prayers').select('id').eq('user_id', userId)).data as any[])?.map(p => p.id) || []
           ),
         // Count groups joined
         supabase
@@ -117,6 +122,7 @@ const UserProfileScreen: React.FC<MainStackScreenProps<'UserProfile'>> = ({ navi
         bio: profileData.bio || undefined,
         avatar_url: profileData.avatar_url || undefined,
         location: profileData.location_city || undefined,
+        location_city: profileData.location_city || undefined,
         is_verified: profileData.is_verified,
         is_following: isFollowingUser,
         is_follower: false,
@@ -147,8 +153,8 @@ const UserProfileScreen: React.FC<MainStackScreenProps<'UserProfile'>> = ({ navi
   };
 
   const handleEditProfile = () => {
-    // Navigate to Settings for profile editing
-    navigation.getParent()?.navigate('Settings');
+    // Navigate to Edit Profile screen
+    navigation.navigate('EditProfile');
   };
 
 
@@ -211,7 +217,7 @@ const UserProfileScreen: React.FC<MainStackScreenProps<'UserProfile'>> = ({ navi
             <Text style={styles.statLabel}>Groups</Text>
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.followStatsRow}>
           <TouchableOpacity style={styles.followStatItem} onPress={handleViewFollowers}>
             <Text style={styles.followStatNumber}>{userProfile.stats.followers_count}</Text>
@@ -235,7 +241,7 @@ const UserProfileScreen: React.FC<MainStackScreenProps<'UserProfile'>> = ({ navi
           <Ionicons name="create-outline" size={20} color="#5B21B6" />
           <Text style={styles.editButtonText}>Edit Profile</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.settingsButton} onPress={() => navigation.navigate('Settings')}>
           <Ionicons name="settings-outline" size={20} color="#6B7280" />
           <Text style={styles.settingsButtonText}>Settings</Text>

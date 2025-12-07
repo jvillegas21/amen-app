@@ -51,10 +51,10 @@ class GroupService {
 
     if (error) throw error;
     if (!data) throw new Error('Group not found');
-    
+
     // Get actual member count by counting the members array
     const memberCount = data.members ? data.members.length : 0;
-    
+
     // Fix count aggregations - Supabase returns {count: number} objects
     return {
       ...data,
@@ -121,10 +121,10 @@ class GroupService {
 
     if (error) throw error;
     if (!data) throw new Error('Failed to update group');
-    
+
     // Get actual member count by counting the members array
     const memberCount = data.members ? data.members.length : 0;
-    
+
     // Fix count aggregations - Supabase returns {count: number} objects
     return {
       ...data,
@@ -161,6 +161,50 @@ class GroupService {
       });
 
     if (error) throw error;
+  }
+
+  /**
+   * Join group by invite code
+   */
+  async joinGroupByCode(inviteCode: string): Promise<Group> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    // 1. Find group by invite code
+    const { data: group, error: groupError } = await supabase
+      .from('groups')
+      .select('*')
+      .eq('invite_code', inviteCode)
+      .single();
+
+    if (groupError || !group) {
+      throw new Error('Invalid invite code');
+    }
+
+    // 2. Check if already a member
+    const { data: existingMember } = await supabase
+      .from('group_members')
+      .select('id')
+      .eq('group_id', group.id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (existingMember) {
+      throw new Error('You are already a member of this group');
+    }
+
+    // 3. Join group
+    const { error: joinError } = await supabase
+      .from('group_members')
+      .insert({
+        group_id: group.id,
+        user_id: user.id,
+        role: 'member',
+      });
+
+    if (joinError) throw joinError;
+
+    return group;
   }
 
   /**

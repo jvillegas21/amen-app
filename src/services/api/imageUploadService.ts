@@ -1,4 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import { Image } from 'react-native';
 import { supabase } from '@/config/supabase';
 
 export interface ImageUploadResult {
@@ -18,6 +20,19 @@ export interface ImageUploadOptions {
 }
 
 /**
+ * Helper to convert Base64 to ArrayBuffer
+ */
+const base64ToArrayBuffer = (base64: string) => {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes.buffer;
+};
+
+/**
  * Image Upload Service - Manages image uploads to Supabase Storage
  */
 class ImageUploadService {
@@ -27,7 +42,7 @@ class ImageUploadService {
   async requestPermissions(): Promise<boolean> {
     const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
     const { status: mediaLibraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
+
     return cameraStatus === 'granted' && mediaLibraryStatus === 'granted';
   }
 
@@ -41,7 +56,7 @@ class ImageUploadService {
     }
 
     return await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: options.allowsEditing ?? true,
       aspect: options.aspect ?? [1, 1],
       quality: options.quality ?? 0.8,
@@ -59,7 +74,7 @@ class ImageUploadService {
     }
 
     return await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: options.allowsEditing ?? true,
       aspect: options.aspect ?? [1, 1],
       quality: options.quality ?? 0.8,
@@ -89,14 +104,18 @@ class ImageUploadService {
     const fileName = `${timestamp}_${randomString}.${fileExtension}`;
     const fullPath = `${path}/${fileName}`;
 
-    // Convert image to blob
-    const response = await fetch(imageUri);
-    const blob = await response.blob();
+    // Read file as Base64 using Expo FileSystem
+    const base64 = await FileSystem.readAsStringAsync(imageUri, {
+      encoding: 'base64',
+    });
+
+    // Convert to ArrayBuffer
+    const arrayBuffer = base64ToArrayBuffer(base64);
 
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
       .from(bucket)
-      .upload(fullPath, blob, {
+      .upload(fullPath, arrayBuffer, {
         contentType: options.contentType || 'image/jpeg',
         upsert: options.upsert || false,
       });
@@ -117,7 +136,7 @@ class ImageUploadService {
     return {
       url: urlData.publicUrl,
       path: fullPath,
-      size: blob.size,
+      size: arrayBuffer.byteLength,
       width: dimensions.width,
       height: dimensions.height,
     };
@@ -128,12 +147,11 @@ class ImageUploadService {
    */
   private async getImageDimensions(imageUri: string): Promise<{ width: number; height: number }> {
     return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        resolve({ width: img.width, height: img.height });
-      };
-      img.onerror = reject;
-      img.src = imageUri;
+      Image.getSize(
+        imageUri,
+        (width, height) => resolve({ width, height }),
+        (error) => reject(error)
+      );
     });
   }
 

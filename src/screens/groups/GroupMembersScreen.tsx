@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,12 @@ import {
   TouchableOpacity,
   SafeAreaView,
   FlatList,
-  Image,
   Alert,
   ActivityIndicator,
   RefreshControl,
   TextInput,
 } from 'react-native';
-import { GroupsStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { groupService } from '@/services/api/groupService';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,7 +22,7 @@ import GroupAvatar from '@/components/common/GroupAvatar';
 /**
  * Group Members Screen - Display group members
  */
-const GroupMembersScreen: React.FC<GroupsStackScreenProps<'GroupMembers'>> = ({ navigation, route }) => {
+const GroupMembersScreen: React.FC<MainStackScreenProps<'GroupMembers'>> = ({ navigation, route }) => {
   const { groupId } = route.params;
   const { profile } = useAuthStore();
   const [members, setMembers] = useState<GroupMember[]>([]);
@@ -56,8 +55,8 @@ const GroupMembersScreen: React.FC<GroupsStackScreenProps<'GroupMembers'>> = ({ 
 
   const getFilteredMembers = () => {
     if (!searchQuery.trim()) return members;
-    
-    return members.filter(member => 
+
+    return members.filter(member =>
       member.user?.display_name?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   };
@@ -95,7 +94,7 @@ const GroupMembersScreen: React.FC<GroupsStackScreenProps<'GroupMembers'>> = ({ 
         size={48}
         style={styles.memberAvatar}
       />
-      
+
       <View style={styles.memberInfo}>
         <View style={styles.memberHeader}>
           <Text style={styles.memberName}>
@@ -106,12 +105,12 @@ const GroupMembersScreen: React.FC<GroupsStackScreenProps<'GroupMembers'>> = ({ 
             <Text style={styles.roleText}>{item.role}</Text>
           </View>
         </View>
-        
+
         <Text style={styles.memberJoined}>
           Joined {formatDistanceToNow(new Date(item.joined_at), { addSuffix: true })}
         </Text>
       </View>
-      
+
       {item.user_id === profile?.id && (
         <View style={styles.currentUserBadge}>
           <Text style={styles.currentUserText}>You</Text>
@@ -140,18 +139,23 @@ const GroupMembersScreen: React.FC<GroupsStackScreenProps<'GroupMembers'>> = ({ 
     </View>
   );
 
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-      </TouchableOpacity>
-      <View style={styles.headerContent}>
-        <Text style={styles.headerTitle}>Group Members</Text>
-        <Text style={styles.headerSubtitle}>{members.length} members</Text>
-      </View>
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: 'Members',
+      headerBackTitle: 'Back',
+      headerTitleAlign: 'center',
+      headerStyle: {
+        backgroundColor: '#5B21B6',
+      },
+      headerTintColor: '#FFFFFF',
+    });
+  }, [navigation]);
+
+  const renderMemberCount = () => (
+    <View style={styles.memberCountContainer}>
+      <Text style={styles.memberCountText}>
+        {members.length} {members.length === 1 ? 'member' : 'members'}
+      </Text>
     </View>
   );
 
@@ -160,7 +164,7 @@ const GroupMembersScreen: React.FC<GroupsStackScreenProps<'GroupMembers'>> = ({ 
       <Ionicons name="people-outline" size={64} color="#D1D5DB" />
       <Text style={styles.emptyStateTitle}>No Members Found</Text>
       <Text style={styles.emptyStateText}>
-        {searchQuery 
+        {searchQuery
           ? 'No members match your search criteria.'
           : 'This group doesn\'t have any members yet.'
         }
@@ -171,7 +175,7 @@ const GroupMembersScreen: React.FC<GroupsStackScreenProps<'GroupMembers'>> = ({ 
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
-        {renderHeader()}
+        {renderMemberCount()}
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#5B21B6" />
           <Text style={styles.loadingText}>Loading group members...</Text>
@@ -184,9 +188,9 @@ const GroupMembersScreen: React.FC<GroupsStackScreenProps<'GroupMembers'>> = ({ 
 
   return (
     <SafeAreaView style={styles.container}>
-      {renderHeader()}
+      {renderMemberCount()}
       {renderSearchBar()}
-      
+
       <FlatList
         data={filteredMembers}
         renderItem={renderMemberItem}
@@ -213,29 +217,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
-  header: {
-    flexDirection: 'row',
+  memberCountContainer: {
     alignItems: 'center',
+    paddingVertical: 8,
     backgroundColor: '#5B21B6',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
-  backButton: {
-    marginRight: 12,
-  },
-  headerContent: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  headerSubtitle: {
+  memberCountText: {
     fontSize: 14,
-    color: '#E5E7EB',
+    color: '#FFFFFF',
+    fontWeight: '500',
   },
   searchContainer: {
     backgroundColor: '#FFFFFF',

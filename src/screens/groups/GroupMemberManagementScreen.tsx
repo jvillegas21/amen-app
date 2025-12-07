@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   TextInput,
+  Share,
 } from 'react-native';
 import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
@@ -18,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import UserAvatar from '@/components/common/UserAvatar';
 import { supabase } from '@/config/supabase';
+import { groupService } from '@/services/api/groupService';
 
 interface GroupMember {
   id: string;
@@ -136,14 +138,31 @@ const GroupMemberManagementScreen: React.FC<MainStackScreenProps<'GroupMemberMan
     );
   };
 
-  const handleInviteMembers = () => {
-    // TODO: Implement invite members functionality
-    Alert.alert('Coming Soon', 'Invite members feature will be available soon');
+  const handleInviteMembers = async () => {
+    try {
+      // Fetch group details to get the invite code
+      const group = await groupService.getGroup(groupId);
+
+      if (!group.invite_code) {
+        Alert.alert('Error', 'This group does not have an invite code.');
+        return;
+      }
+
+      const message = `Join my prayer group "${group.name}" on Amen! Use code: ${group.invite_code}`;
+
+      await Share.share({
+        message,
+        title: 'Join my Prayer Group',
+      });
+    } catch (error) {
+      console.error('Error sharing invite:', error);
+      Alert.alert('Error', 'Failed to share invite');
+    }
   };
 
   const getFilteredMembers = () => {
     if (!searchQuery.trim()) return members;
-    
+
     const query = searchQuery.toLowerCase();
     return members.filter(member =>
       member.user_display_name.toLowerCase().includes(query)
@@ -190,7 +209,7 @@ const GroupMemberManagementScreen: React.FC<MainStackScreenProps<'GroupMemberMan
           />
           {/* Online indicator would need to be calculated from profiles.last_active */}
         </View>
-        
+
         <View style={styles.memberInfo}>
           <View style={styles.memberHeader}>
             <Text style={styles.memberName}>{member.user_display_name}</Text>
@@ -200,14 +219,14 @@ const GroupMemberManagementScreen: React.FC<MainStackScreenProps<'GroupMemberMan
               </Text>
             </View>
           </View>
-          
+
           <Text style={styles.memberJoined}>
             Joined {formatDistanceToNow(new Date(member.joined_at), { addSuffix: true })}
           </Text>
-          
+
           {/* Last seen would need to be calculated from profiles.last_active */}
         </View>
-        
+
         {userRole === 'admin' && member.role !== 'admin' && (
           <TouchableOpacity
             style={styles.moreButton}
@@ -259,7 +278,7 @@ const GroupMemberManagementScreen: React.FC<MainStackScreenProps<'GroupMemberMan
       <Ionicons name="people-outline" size={64} color="#D1D5DB" />
       <Text style={styles.emptyStateTitle}>No Members Found</Text>
       <Text style={styles.emptyStateText}>
-        {searchQuery 
+        {searchQuery
           ? 'No members match your search criteria.'
           : 'This group doesn\'t have any members yet.'
         }
@@ -284,7 +303,7 @@ const GroupMemberManagementScreen: React.FC<MainStackScreenProps<'GroupMemberMan
     <SafeAreaView style={styles.container}>
       {renderHeader()}
       {renderSearchBar()}
-      
+
       <ScrollView
         style={styles.scrollView}
         refreshControl={
@@ -304,7 +323,7 @@ const GroupMemberManagementScreen: React.FC<MainStackScreenProps<'GroupMemberMan
             {filteredMembers.map(renderMemberItem)}
           </View>
         )}
-        
+
         <View style={styles.bottomSpacing} />
       </ScrollView>
     </SafeAreaView>

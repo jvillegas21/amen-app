@@ -17,11 +17,11 @@ import { bibleStudyService, BibleStudySuggestion } from '@/services/api/bibleStu
 /**
  * Bible Study Suggestions Screen - AI-generated Bible study suggestions
  */
-const BibleStudySuggestionsScreen: React.FC<MainStackScreenProps<'BibleStudySuggestions'>> = ({ 
-  navigation 
+const BibleStudySuggestionsScreen: React.FC<MainStackScreenProps<'BibleStudySuggestions'>> = ({
+  navigation
 }) => {
   const { profile } = useAuthStore();
-  
+
   const [suggestions, setSuggestions] = useState<BibleStudySuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSuggestion, setSelectedSuggestion] = useState<BibleStudySuggestion | null>(null);
@@ -52,11 +52,11 @@ const BibleStudySuggestionsScreen: React.FC<MainStackScreenProps<'BibleStudySugg
     try {
       setIsGenerating(true);
       setSelectedSuggestion(suggestion);
-      
+
       const study = await bibleStudyService.generateBibleStudy(suggestion);
-      
+
       // Navigate to the generated study
-      navigation.navigate('BibleStudy', { studyId: study.id });
+      navigation.navigate('BibleStudyDetails', { studyId: study.id });
     } catch (error) {
       console.error('Failed to generate Bible study:', error);
       Alert.alert('Error', 'Failed to generate Bible study. Please try again.');
@@ -94,9 +94,9 @@ const BibleStudySuggestionsScreen: React.FC<MainStackScreenProps<'BibleStudySugg
           </View>
         </View>
       </View>
-      
+
       <Text style={styles.suggestionDescription}>{suggestion.description}</Text>
-      
+
       <View style={styles.scriptureReferences}>
         <Text style={styles.scriptureLabel}>Scripture References:</Text>
         <View style={styles.scriptureList}>
@@ -107,7 +107,7 @@ const BibleStudySuggestionsScreen: React.FC<MainStackScreenProps<'BibleStudySugg
           ))}
         </View>
       </View>
-      
+
       <View style={styles.topicsContainer}>
         <Text style={styles.topicsLabel}>Topics:</Text>
         <View style={styles.topicsList}>
@@ -118,7 +118,7 @@ const BibleStudySuggestionsScreen: React.FC<MainStackScreenProps<'BibleStudySugg
           ))}
         </View>
       </View>
-      
+
       <View style={styles.generateButton}>
         <Ionicons name="create-outline" size={20} color="#5B21B6" />
         <Text style={styles.generateButtonText}>Generate Study</Text>
@@ -128,7 +128,7 @@ const BibleStudySuggestionsScreen: React.FC<MainStackScreenProps<'BibleStudySugg
 
   const renderLoadingOverlay = () => {
     if (!isGenerating || !selectedSuggestion) return null;
-    
+
     return (
       <View style={styles.loadingOverlay}>
         <View style={styles.loadingContent}>
@@ -166,7 +166,7 @@ const BibleStudySuggestionsScreen: React.FC<MainStackScreenProps<'BibleStudySugg
         <View style={styles.introSection}>
           <Text style={styles.introTitle}>AI-Powered Bible Studies</Text>
           <Text style={styles.introText}>
-            Choose from these personalized Bible study suggestions. Each study is generated 
+            Choose from these personalized Bible study suggestions. Each study is generated
             using AI to provide deep, meaningful insights into God's Word.
           </Text>
         </View>

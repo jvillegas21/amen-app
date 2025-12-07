@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,27 +14,37 @@ import {
   Switch,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { supabase } from '@/config/supabase';
-import { layout } from '@/theme/spacing';
-import aiService, { BibleStudy, AIScriptureVerse } from '@/services/aiService';
+
+import aiService, { BibleStudy } from '@/services/aiService';
 import { analyticsService } from '@/services/api/analyticsService';
+import { extractStudySections, toStringSafe } from '@/utils/scripture';
+
+type CreateMode = 'selection' | 'ai-input' | 'manual' | 'preview';
 
 /**
- * Create Bible Study Screen - Create a new Bible study with AI insights
+ * Create Bible Study Screen - Redesigned with distinct AI and Manual workflows
  */
 const CreateBibleStudyScreen: React.FC<MainStackScreenProps<'CreateBibleStudy'>> = ({ navigation, route }) => {
   const user = useAuthStore(state => state.user);
-  const insets = useSafeAreaInsets();
+
+  const [mode, setMode] = useState<CreateMode>('selection');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isEditingContent, setIsEditingContent] = useState(false);
+
+  // Date/Time Picker State
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState(new Date());
+
+  // Form Data
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -45,20 +55,44 @@ const CreateBibleStudyScreen: React.FC<MainStackScreenProps<'CreateBibleStudy'>>
     scheduledDate: '',
     scheduledTime: '',
     duration: 60, // minutes
+    aiTopic: '', // For AI input
   });
 
-  const textInputRef = useRef<TextInput>(null);
-
-  const trackAIEvent = useCallback((eventType: string, eventData: Record<string, any> = {}) => {
-    if (!user?.id) {
-      return;
+  // Handle initial data from navigation (e.g. "Copy Study")
+  useEffect(() => {
+    if (route.params?.initialData) {
+      const { title, content, scripture_references } = route.params.initialData;
+      setFormData(prev => ({
+        ...prev,
+        title: title || '',
+        description: content || '',
+        scripture: Array.isArray(scripture_references)
+          ? scripture_references.map((ref: any) => `${ref.book} ${ref.chapter}:${ref.verse_start}${ref.verse_end ? `-${ref.verse_end}` : ''}`).join('\n')
+          : '',
+      }));
+      setMode('manual'); // Jump straight to manual editor if copying
     }
+  }, [route.params?.initialData]);
 
-    analyticsService.trackEvent(eventType, {
-      source: 'create_bible_study',
-      ...eventData,
-    }, user.id);
-  }, [user?.id]);
+
+
+  // Handle Back Navigation
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (mode === 'selection') {
+        // If we are in selection mode, let the default behavior happen (go back to previous screen)
+        return;
+      }
+
+      // Prevent default behavior of leaving the screen
+      e.preventDefault();
+
+      // Go back to selection mode
+      setMode('selection');
+    });
+
+    return unsubscribe;
+  }, [navigation, mode]);
 
   const handleInputChange = (field: string, value: string | boolean | number) => {
     setFormData(prev => ({
@@ -68,18 +102,13 @@ const CreateBibleStudyScreen: React.FC<MainStackScreenProps<'CreateBibleStudy'>>
   };
 
   const extractScriptureReferences = useCallback((text: string): string => {
-    if (!text) {
-      return '';
-    }
-
+    if (!text) return '';
     const referencePattern = /([1-3]?\s?[A-Za-z]+(?:\s[\w]+)*)\s\d{1,3}:\d{1,3}(?:[-–]\d{1,3})?/g;
     const matches = new Set<string>();
     let match: RegExpExecArray | null;
-
     while ((match = referencePattern.exec(text)) !== null) {
       matches.add(match[0].trim());
     }
-
     return Array.from(matches).join('\n');
   }, []);
 
@@ -101,118 +130,40 @@ const CreateBibleStudyScreen: React.FC<MainStackScreenProps<'CreateBibleStudy'>>
       description: sectionedDescription.trim().length > 0 ? sectionedDescription : prev.description,
       scripture: extractScriptureReferences(study.scripture) || prev.scripture,
     }));
+  }, [extractScriptureReferences]);
 
-    trackAIEvent('ai_generation_apply_outline', {
-      mode: 'fullStudy',
-      question_count: study.questions?.length || 0,
-      included_prayer_focus: !!study.prayer_focus,
-      included_application: !!study.application,
-    });
-
-    Alert.alert('AI Outline Applied', 'We filled in your study details. Review and edit before publishing.');
-  }, [extractScriptureReferences, trackAIEvent]);
-
-  const applyScriptureVerses = useCallback((verses: AIScriptureVerse[]) => {
-    if (!verses.length) {
+  const handleGenerateStudy = async () => {
+    if (!formData.aiTopic.trim()) {
+      Alert.alert('Topic Required', 'Please enter a topic, theme, or scripture to generate a study.');
       return;
     }
 
-    const scriptureValue = verses
-      .map(suggestion => suggestion.reference)
-      .filter(Boolean)
-      .join('\n');
-
-    setFormData(prev => ({
-      ...prev,
-      scripture: scriptureValue,
-      description: prev.description,
-    }));
-
-    trackAIEvent('ai_generation_apply_verses', {
-      mode: 'scriptureSuggestions',
-      verse_count: verses.length,
-    });
-
-    Alert.alert('Verses Added', 'We added AI-recommended verses to your study.');
-  }, [trackAIEvent]);
-
-  useEffect(() => {
-    const aiResult = route.params?.aiResult;
-    if (!aiResult) {
-      return;
-    }
-
-    if (aiResult.type === 'fullStudy' && aiResult.study) {
-      applyGeneratedStudy(aiResult.study);
-    } else if (aiResult.type === 'scriptureSuggestions' && aiResult.verses?.length) {
-      applyScriptureVerses(aiResult.verses);
-    }
-
-    navigation.setParams({ aiResult: undefined });
-  }, [route.params?.aiResult, applyGeneratedStudy, applyScriptureVerses, navigation]);
-
-  const handleOpenAIAssistant = useCallback(() => {
     if (!aiService.isConfigured()) {
-      trackAIEvent('ai_assistant_open_blocked', { reason: 'missing_api_key' });
-      Alert.alert(
-        'AI Assistant Unavailable',
-        'Add your OpenAI API key to enable AI generated studies.'
-      );
+      Alert.alert('AI Unavailable', 'Please configure your OpenAI API key in settings.');
       return;
     }
 
-    trackAIEvent('ai_assistant_opened', {
-      source_context: 'create_bible_study',
-      has_title: formData.title.trim().length > 0,
-      has_description: formData.description.trim().length > 0,
-      has_scripture: formData.scripture.trim().length > 0,
-    });
+    setIsGenerating(true);
+    try {
+      // Call AI Service directly
+      const result = await aiService.generateBibleStudy(
+        formData.aiTopic, // Using topic as the primary input
+        undefined,        // No secondary topic
+        user?.id          // Pass user ID for analytics
+      );
 
-    navigation.navigate('AIStudyAssistant', {
-      mode: 'fullStudy',
-      topic: formData.title,
-      context: formData.description,
-    });
-  }, [formData.description, formData.scripture, formData.title, navigation, trackAIEvent]);
-
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
+      if (result.success && result.data) {
+        applyGeneratedStudy(result.data);
+        setMode('preview');
+      } else {
+        throw new Error(result.error || 'Failed to generate study');
+      }
+    } catch (error) {
+      console.error('Generation error:', error);
+      Alert.alert('Error', 'Failed to generate study. Please try again.');
+    } finally {
+      setIsGenerating(false);
     }
-    
-    if (event.type === 'set' && selectedDate) {
-      setSelectedDate(selectedDate);
-      setFormData(prev => ({
-        ...prev,
-        scheduledDate: format(selectedDate, 'MMM dd, yyyy'),
-      }));
-    } else if (event.type === 'dismissed') {
-      setShowDatePicker(false);
-    }
-  };
-
-  const handleTimeChange = (event: any, selectedTime?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowTimePicker(false);
-    }
-    
-    if (event.type === 'set' && selectedTime) {
-      setSelectedTime(selectedTime);
-      setFormData(prev => ({
-        ...prev,
-        scheduledTime: format(selectedTime, 'h:mm a'),
-      }));
-    } else if (event.type === 'dismissed') {
-      setShowTimePicker(false);
-    }
-  };
-
-  const handleDateButtonPress = () => {
-    setShowDatePicker(true);
-  };
-
-  const handleTimeButtonPress = () => {
-    setShowTimePicker(true);
   };
 
   const validateForm = () => {
@@ -231,26 +182,51 @@ const CreateBibleStudyScreen: React.FC<MainStackScreenProps<'CreateBibleStudy'>>
     return true;
   };
 
-  const isFormValid = () => {
-    return formData.title.trim().length > 0 && 
-           formData.description.trim().length > 0 && 
-           formData.scripture.trim().length > 0;
+  const parseScriptureString = (scripture: string) => {
+    try {
+      const lastSpaceIndex = scripture.lastIndexOf(' ');
+      if (lastSpaceIndex === -1) return null;
+
+      const book = scripture.substring(0, lastSpaceIndex).trim();
+      const reference = scripture.substring(lastSpaceIndex + 1).trim();
+
+      const [chapterStr, versesStr] = reference.split(':');
+      if (!chapterStr || !versesStr) return null;
+
+      const chapter = parseInt(chapterStr);
+      let verse_start = 0;
+      let verse_end = 0;
+
+      if (versesStr.includes('-')) {
+        const [start, end] = versesStr.split('-');
+        verse_start = parseInt(start);
+        verse_end = parseInt(end);
+      } else {
+        verse_start = parseInt(versesStr);
+        verse_end = parseInt(versesStr);
+      }
+
+      return {
+        reference: scripture,
+        book,
+        chapter,
+        verse_start,
+        verse_end
+      };
+    } catch (e) {
+      return null;
+    }
   };
 
   const handleCreateStudy = async () => {
     if (!validateForm()) return;
-
-    // Validate user is authenticated
     if (!user?.id) {
       Alert.alert('Authentication Required', 'Please sign in to create a Bible study.');
       return;
     }
 
-    console.log('📝 Creating Bible study for user:', user.id);
-
     setIsLoading(true);
     try {
-      // Verify Supabase session
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         Alert.alert('Session Expired', 'Please sign in again.');
@@ -258,14 +234,6 @@ const CreateBibleStudyScreen: React.FC<MainStackScreenProps<'CreateBibleStudy'>>
         return;
       }
 
-      console.log('📋 Session check:', {
-        hasSession: !!session,
-        sessionUserId: session?.user?.id,
-        storeUserId: user?.id,
-        match: session?.user?.id === user?.id,
-      });
-
-      // Create Bible study data
       const studyData = {
         title: formData.title,
         description: formData.description,
@@ -278,12 +246,21 @@ const CreateBibleStudyScreen: React.FC<MainStackScreenProps<'CreateBibleStudy'>>
         duration: formData.duration,
       };
 
-      console.log('📝 Insert payload:', {
-        user_id: user?.id,
-        title: studyData.title,
-      });
+      // Parse scripture references
+      const scriptureRefs = studyData.scripture
+        .split('\n')
+        .filter(s => s.trim())
+        .map(s => {
+          const parsed = parseScriptureString(s.trim());
+          return parsed || {
+            reference: s.trim(),
+            book: s.trim().split(' ')[0] || 'Unknown',
+            chapter: 1,
+            verse_start: 1,
+            verse_end: 1
+          };
+        });
 
-      // Save to database using the studies table
       const { data, error } = await supabase
         .from('studies')
         .insert({
@@ -291,57 +268,26 @@ const CreateBibleStudyScreen: React.FC<MainStackScreenProps<'CreateBibleStudy'>>
           prayer_id: null,
           title: studyData.title,
           content_md: studyData.description,
-          scripture_references: [{
-            reference: studyData.scripture,
-            book: studyData.scripture.split(' ')[0] || 'Unknown',
-            chapter: 1,
-            verse_start: 1,
-            verse_end: 1
-          }],
-          ai_model: 'manual',
+          scripture_references: scriptureRefs,
+          ai_model: mode === 'preview' ? 'gpt-4' : 'manual',
           ai_prompt_version: 'v1.0',
           quality_score: 3,
           is_featured: studyData.isPublic,
           view_count: 0,
           save_count: 0,
-        })
+        } as any)
         .select()
         .single();
 
-      if (error) {
-        console.error('❌ Database error:', error);
-        console.error('📊 Error details:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-        });
-        console.error('👤 User context:', {
-          userId: user?.id,
-          hasSession: !!session,
-          sessionUserId: session?.user?.id,
-        });
+      if (error) throw error;
 
-        // Check if it's an RLS error
-        if (error.code === '42501') {
-          Alert.alert(
-            'Permission Denied',
-            'You do not have permission to create Bible studies. This may be a configuration issue. Please contact support.'
-          );
-        } else {
-          Alert.alert('Error', 'Failed to create Bible study. Please try again.');
-        }
-        throw new Error('Failed to save Bible study to database');
-      }
+      analyticsService.trackEvent('create_bible_study', {
+        source: mode === 'manual' ? 'manual' : 'ai_generated',
+        study_id: (data as any).id,
+      }, user.id);
 
-      console.log('✅ Bible study created successfully:', data);
-
-      // Navigate to the created Bible study details with the study data
-      // This avoids a refetch and ensures the study is immediately available
-      navigation.replace('BibleStudyDetails', {
-        studyId: data.id,
-        study: data
-      });
+      // Navigate to the Bible Studies list page
+      navigation.navigate('BibleStudyList' as any);
     } catch (error) {
       console.error('Error creating Bible study:', error);
       Alert.alert('Error', 'Failed to create Bible study. Please try again.');
@@ -350,214 +296,324 @@ const CreateBibleStudyScreen: React.FC<MainStackScreenProps<'CreateBibleStudy'>>
     }
   };
 
-  const renderSubtitle = () => (
-    <View style={styles.subtitleContainer}>
-      <Text style={styles.subtitleText}>Start a new study with AI insights</Text>
+  // --- Render Methods ---
+
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      description: '',
+      scripture: '',
+      studyType: 'group',
+      isPublic: true,
+      maxParticipants: 20,
+      scheduledDate: '',
+      scheduledTime: '',
+      duration: 60,
+      aiTopic: '',
+    });
+    setIsEditingContent(false);
+    setSelectedDate(new Date());
+    setSelectedTime(new Date());
+  };
+
+  const renderSelectionMode = () => (
+    <View style={styles.selectionContainer}>
+      <Text style={styles.selectionTitle}>How would you like to start?</Text>
+
+      <TouchableOpacity
+        style={styles.selectionCard}
+        onPress={() => {
+          resetForm();
+          setMode('ai-input');
+        }}
+      >
+        <View style={[styles.iconCircle, { backgroundColor: '#EDE9FE' }]}>
+          <Ionicons name="sparkles" size={32} color="#7C3AED" />
+        </View>
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle}>Generate with AI</Text>
+          <Text style={styles.cardDescription}>
+            Enter a topic or verse, and let AI create a complete study outline and insights for you.
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={24} color="#D1D5DB" />
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.selectionCard}
+        onPress={() => {
+          resetForm();
+          setMode('manual');
+        }}
+      >
+        <View style={[styles.iconCircle, { backgroundColor: '#F3F4F6' }]}>
+          <Ionicons name="create" size={32} color="#4B5563" />
+        </View>
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle}>Start from Scratch</Text>
+          <Text style={styles.cardDescription}>
+            Write your own study with your own content, questions, and verses.
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={24} color="#D1D5DB" />
+      </TouchableOpacity>
     </View>
   );
 
-  const renderAISupportSection = () => {
-    const aiAvailable = aiService.isConfigured();
+  const renderAIInputMode = () => (
+    <View style={styles.aiInputContainer}>
+      <Text style={styles.modeTitle}>What is this study about?</Text>
+      <Text style={styles.modeSubtitle}>
+        Enter a topic, theme, or scripture reference.
+      </Text>
+
+      <TextInput
+        style={styles.topicInput}
+        placeholder="e.g., Finding Peace in Anxiety, Psalm 23, Leadership..."
+        placeholderTextColor="#9CA3AF"
+        value={formData.aiTopic}
+        onChangeText={(text) => handleInputChange('aiTopic', text)}
+        multiline
+        maxLength={200}
+      />
+
+      <TouchableOpacity
+        style={[styles.primaryButton, isGenerating && styles.buttonDisabled]}
+        onPress={handleGenerateStudy}
+        disabled={isGenerating}
+      >
+        {isGenerating ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <>
+            <Ionicons name="sparkles" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+            <Text style={styles.primaryButtonText}>Generate Study Outline</Text>
+          </>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderPreviewContent = () => {
+    const contentSections = extractStudySections(formData.description);
+
+    if (contentSections.length === 0) {
+      return (
+        <View style={styles.card}>
+          <Text style={styles.emptyText}>No structured content found.</Text>
+        </View>
+      );
+    }
 
     return (
-      <View style={[styles.section, styles.aiSection]}>
-        <View style={styles.aiHeaderRow}>
-          <View style={styles.aiHeaderText}>
-            <Text style={styles.sectionTitle}>AI Study Assistant</Text>
-            <Text style={styles.aiSectionSubtitle}>
-              Generate outlines or add scripture references instantly. Free while in beta.
-            </Text>
-          </View>
-          <View style={styles.aiBadge}>
-            <Ionicons name="sparkles-outline" size={16} color="#5B21B6" />
-            <Text style={styles.aiBadgeText}>Beta</Text>
-          </View>
-        </View>
+      <View>
+        {contentSections.map((section, index) => {
+          const sectionBody = toStringSafe(section.body);
+          if (!sectionBody) return null;
 
-        <TouchableOpacity
-          style={[styles.aiActionButton, !aiAvailable && styles.aiActionButtonDisabled]}
-          onPress={handleOpenAIAssistant}
-          accessibilityRole="button"
-          accessibilityLabel="Open AI assistant"
-          accessibilityHint="Generate Bible study content or verse suggestions"
-        >
-          <Ionicons name="sparkles" size={18} color="#FFFFFF" style={styles.aiActionIcon} />
-          <Text style={styles.aiActionButtonText}>
-            {aiAvailable ? 'Generate with AI' : 'Connect OpenAI to enable AI'}
-          </Text>
-        </TouchableOpacity>
+          // Determine style and icon based on section type
+          let iconName: any = 'document-text';
+          let iconColor = '#5B21B6';
+          let titleStyle = styles.cardTitle;
 
-        <Text style={styles.aiDisclaimerText}>
-          You can still edit everything manually. We’ll eventually offer this as a premium feature—capture usage analytics now to plan pricing later.
-        </Text>
+          switch (section.type) {
+            case 'reflection':
+              iconName = 'book-outline';
+              iconColor = '#4F46E5'; // Indigo
+              break;
+            case 'questions':
+              iconName = 'help-circle-outline';
+              iconColor = '#D97706'; // Amber
+              break;
+            case 'prayer':
+              iconName = 'heart-outline';
+              iconColor = '#DB2777'; // Pink
+              break;
+            case 'application':
+              iconName = 'footsteps-outline';
+              iconColor = '#059669'; // Emerald
+              break;
+          }
+
+          return (
+            <View key={index} style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Ionicons name={iconName} size={20} color={iconColor} />
+                <Text style={[titleStyle, { color: iconColor }]}>{section.heading || 'Study Note'}</Text>
+              </View>
+              {section.type === 'questions' ? (
+                <View style={styles.questionsContainer}>
+                  {sectionBody.split('\n').map((line, i) => {
+                    const cleanLine = line.replace(/^\d+\.\s*/, '').trim();
+                    if (!cleanLine) return null;
+                    return (
+                      <View key={i} style={styles.questionItem}>
+                        <View style={styles.questionNumberBadge}>
+                          <Text style={styles.questionNumberText}>{i + 1}</Text>
+                        </View>
+                        <Text style={styles.questionText}>{cleanLine}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : (
+                <Text style={styles.sectionContent}>{sectionBody}</Text>
+              )}
+            </View>
+          );
+        })}
       </View>
     );
   };
 
-  const renderBasicInfoSection = () => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Basic Information</Text>
-      
-      <View style={styles.inputContainer}>
-        <Text style={styles.inputLabel}>Study Title *</Text>
-        <TextInput
-          ref={textInputRef}
-          style={styles.textInput}
-          value={formData.title}
-          onChangeText={(value) => handleInputChange('title', value)}
-          placeholder="Enter study title..."
-          placeholderTextColor="#9CA3AF"
-          maxLength={100}
-        />
-        <Text style={styles.characterCount}>{formData.title.length}/100</Text>
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Text style={styles.inputLabel}>Description *</Text>
-        <TextInput
-          style={[styles.textInput, styles.textArea]}
-          value={formData.description}
-          onChangeText={(value) => handleInputChange('description', value)}
-          placeholder="Describe what this study will cover..."
-          placeholderTextColor="#9CA3AF"
-          multiline
-          textAlignVertical="top"
-          maxLength={500}
-        />
-        <Text style={styles.characterCount}>{formData.description.length}/500</Text>
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Text style={styles.inputLabel}>Scripture Reference *</Text>
-        <TextInput
-          style={styles.textInput}
-          value={formData.scripture}
-          onChangeText={(value) => handleInputChange('scripture', value)}
-          placeholder="e.g., John 3:16, Romans 8:28-30"
-          placeholderTextColor="#9CA3AF"
-          maxLength={100}
-        />
-      </View>
-    </View>
-  );
-
-  const renderStudySettingsSection = () => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Study Settings</Text>
-      
-      <View style={styles.settingColumn}>
-        <View style={styles.settingInfo}>
-          <Text style={styles.settingLabel}>Study Type</Text>
-          <Text style={styles.settingDescription}>Choose how participants will study</Text>
+  const renderEditor = () => (
+    <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <View style={styles.editorContainer}>
+        <View style={styles.headerRow}>
+          <Text style={styles.modeTitle}>
+            {mode === 'preview' ? 'Review & Edit' : 'What is this study about?'}
+          </Text>
         </View>
-        <View style={styles.typeButtons}>
-          <TouchableOpacity
-            style={[
-              styles.typeButton,
-              formData.studyType === 'group' && styles.typeButtonActive
-            ]}
-            onPress={() => handleInputChange('studyType', 'group')}
-          >
-            <Ionicons 
-              name="people" 
-              size={20} 
-              color={formData.studyType === 'group' ? '#FFFFFF' : '#6B7280'} 
-            />
-            <Text style={[
-              styles.typeButtonText,
-              formData.studyType === 'group' && styles.typeButtonTextActive
-            ]}>
-              Group
+
+        {mode === 'preview' && (
+          <View style={styles.aiBanner}>
+            <Ionicons name="sparkles" size={16} color="#7C3AED" />
+            <Text style={styles.aiBannerText}>
+              AI generated this outline. You can edit anything below.
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.typeButton,
-              formData.studyType === 'individual' && styles.typeButtonActive
-            ]}
-            onPress={() => handleInputChange('studyType', 'individual')}
-          >
-            <Ionicons 
-              name="person" 
-              size={20} 
-              color={formData.studyType === 'individual' ? '#FFFFFF' : '#6B7280'} 
-            />
-            <Text style={[
-              styles.typeButtonText,
-              formData.studyType === 'individual' && styles.typeButtonTextActive
-            ]}>
-              Individual
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+          </View>
+        )}
 
-      <View style={styles.settingRow}>
-        <View style={styles.settingInfo}>
-          <Text style={styles.settingLabel}>Public Study</Text>
-          <Text style={styles.settingDescription}>Allow others to discover and join</Text>
-        </View>
-        <Switch
-          value={formData.isPublic}
-          onValueChange={(value) => handleInputChange('isPublic', value)}
-          trackColor={{ false: '#E5E7EB', true: '#5B21B6' }}
-          thumbColor={formData.isPublic ? '#FFFFFF' : '#9CA3AF'}
-        />
-      </View>
-
-      {formData.studyType === 'group' && (
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Maximum Participants</Text>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Title</Text>
           <TextInput
-            style={styles.textInput}
-            value={formData.maxParticipants.toString()}
-            onChangeText={(value) => handleInputChange('maxParticipants', parseInt(value) || 20)}
-            placeholder="20"
-            placeholderTextColor="#9CA3AF"
-            keyboardType="numeric"
-            maxLength={3}
+            style={styles.input}
+            placeholder="Study Title"
+            value={formData.title}
+            onChangeText={(text) => handleInputChange('title', text)}
           />
         </View>
-      )}
-    </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Scripture References</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            placeholder="e.g., Philippians 4:6-7"
+            value={formData.scripture}
+            onChangeText={(text) => handleInputChange('scripture', text)}
+            multiline
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <View style={styles.labelRow}>
+            <Text style={styles.label}>Content & Outline</Text>
+            {mode === 'preview' && (
+              <TouchableOpacity
+                onPress={() => setIsEditingContent(!isEditingContent)}
+                style={styles.editToggleButton}
+              >
+                <Ionicons
+                  name={isEditingContent ? 'eye-outline' : 'create-outline'}
+                  size={16}
+                  color="#5B21B6"
+                />
+                <Text style={styles.editToggleText}>
+                  {isEditingContent ? 'Show Preview' : 'Edit Text'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {mode === 'preview' && !isEditingContent ? (
+            renderPreviewContent()
+          ) : (
+            <TextInput
+              style={[styles.input, styles.contentArea]}
+              placeholder="Write your study content..."
+              value={formData.description}
+              onChangeText={(text) => handleInputChange('description', text)}
+              multiline
+              textAlignVertical="top"
+            />
+          )}
+        </View>
+
+        {/* Settings Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Settings</Text>
+          <View style={styles.settingRow}>
+            <Text style={styles.settingLabel}>Public Study</Text>
+            <Switch
+              value={formData.isPublic}
+              onValueChange={(val) => handleInputChange('isPublic', val)}
+              trackColor={{ false: '#E5E7EB', true: '#5B21B6' }}
+            />
+          </View>
+        </View>
+
+        {renderScheduleSection()}
+
+        <View style={{ height: 100 }} />
+      </View>
+    </ScrollView>
   );
+
+  // Date/Time Pickers (reused logic)
+  const handleDateChange = (event: any, date?: Date) => {
+    if (Platform.OS === 'android') setShowDatePicker(false);
+    if (event.type === 'set' && date) {
+      setSelectedDate(date);
+      handleInputChange('scheduledDate', format(date, 'MMM dd, yyyy'));
+    }
+  };
+
+  const handleTimeChange = (event: any, date?: Date) => {
+    if (Platform.OS === 'android') setShowTimePicker(false);
+    if (event.type === 'set' && date) {
+      setSelectedTime(date);
+      handleInputChange('scheduledTime', format(date, 'h:mm a'));
+    }
+  };
 
   const renderScheduleSection = () => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Schedule (Optional)</Text>
-      
-      <View style={styles.dateTimeRow}>
-        <View style={styles.dateTimeField}>
-          <Text style={styles.inputLabel}>Date</Text>
-          <TouchableOpacity style={styles.dateTimeButton} onPress={handleDateButtonPress}>
-            <Ionicons name="calendar-outline" size={18} color="#6B7280" />
-            <Text style={styles.dateTimeButtonText}>
-              {formData.scheduledDate || 'Select date'}
-            </Text>
-          </TouchableOpacity>
-        </View>
 
-        <View style={styles.dateTimeField}>
-          <Text style={styles.inputLabel}>Time</Text>
-          <TouchableOpacity style={styles.dateTimeButton} onPress={handleTimeButtonPress}>
-            <Ionicons name="time-outline" size={18} color="#6B7280" />
-            <Text style={styles.dateTimeButtonText}>
-              {formData.scheduledTime || 'Select time'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.settingRow}>
+        <Text style={styles.settingLabel}>Date</Text>
+        <TouchableOpacity
+          onPress={() => setShowDatePicker(true)}
+          style={styles.dateButton}
+        >
+          <Text style={styles.dateButtonText}>
+            {formData.scheduledDate || 'Select Date'}
+          </Text>
+          <Ionicons name="calendar-outline" size={20} color="#6B7280" />
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.inputContainer}>
-        <Text style={styles.inputLabel}>Duration (minutes)</Text>
+      <View style={styles.settingRow}>
+        <Text style={styles.settingLabel}>Time</Text>
+        <TouchableOpacity
+          onPress={() => setShowTimePicker(true)}
+          style={styles.dateButton}
+        >
+          <Text style={styles.dateButtonText}>
+            {formData.scheduledTime || 'Select Time'}
+          </Text>
+          <Ionicons name="time-outline" size={20} color="#6B7280" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Duration (minutes)</Text>
         <TextInput
-          style={styles.textInput}
+          style={styles.input}
           value={formData.duration.toString()}
-          onChangeText={(value) => handleInputChange('duration', parseInt(value) || 60)}
-          placeholder="60"
-          placeholderTextColor="#9CA3AF"
+          onChangeText={(text) => handleInputChange('duration', parseInt(text) || 0)}
           keyboardType="numeric"
-          maxLength={3}
+          placeholder="60"
         />
       </View>
     </View>
@@ -565,93 +621,54 @@ const CreateBibleStudyScreen: React.FC<MainStackScreenProps<'CreateBibleStudy'>>
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        style={styles.keyboardAvoid}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {renderSubtitle()}
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          <View style={styles.content}>
-            {renderAISupportSection()}
-            {renderBasicInfoSection()}
-            {renderStudySettingsSection()}
-            {renderScheduleSection()}
-            
-          </View>
-        </ScrollView>
-
-        {/* Date Picker Modal */}
-        {showDatePicker && (
-          <View style={styles.pickerModal}>
-            <View style={[styles.pickerContainer, { paddingBottom: Math.max(insets.bottom, layout.drawerBottomPadding) }]}>
-              <View style={styles.pickerHeader}>
-                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                  <Text style={styles.pickerCancelText}>Cancel</Text>
-                </TouchableOpacity>
-                <Text style={styles.pickerTitle}>Select Date</Text>
-                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                  <Text style={styles.pickerDoneText}>Done</Text>
-                </TouchableOpacity>
-              </View>
-              <DateTimePicker
-                value={selectedDate}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={handleDateChange}
-                minimumDate={new Date()}
-                style={styles.picker}
-              />
+        {mode === 'selection' && renderSelectionMode()}
+        {mode === 'ai-input' && renderAIInputMode()}
+        {(mode === 'manual' || mode === 'preview') && (
+          <>
+            {renderEditor()}
+            <View style={styles.floatingButtonContainer}>
+              <TouchableOpacity
+                style={[styles.floatingButton, isLoading && styles.buttonDisabled]}
+                onPress={handleCreateStudy}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.floatingButtonText}>
+                    {mode === 'preview' ? 'Publish Study' : 'Create Study'}
+                  </Text>
+                )}
+              </TouchableOpacity>
             </View>
-          </View>
+          </>
         )}
-        
-        {/* Time Picker Modal */}
-        {showTimePicker && (
-          <View style={styles.pickerModal}>
-            <View style={[styles.pickerContainer, { paddingBottom: Math.max(insets.bottom, layout.drawerBottomPadding) }]}>
-              <View style={styles.pickerHeader}>
-                <TouchableOpacity onPress={() => setShowTimePicker(false)}>
-                  <Text style={styles.pickerCancelText}>Cancel</Text>
-                </TouchableOpacity>
-                <Text style={styles.pickerTitle}>Select Time</Text>
-                <TouchableOpacity onPress={() => setShowTimePicker(false)}>
-                  <Text style={styles.pickerDoneText}>Done</Text>
-                </TouchableOpacity>
-              </View>
-              <DateTimePicker
-                value={selectedTime}
-                mode="time"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={handleTimeChange}
-                style={styles.picker}
-              />
-            </View>
-          </View>
-        )}
-        
-        {/* Floating Create Button */}
-        <View style={[styles.floatingButtonContainer, { paddingBottom: 0 }]}>
-          <TouchableOpacity
-            style={[
-              styles.floatingButton,
-              (!isFormValid() || isLoading) && styles.floatingButtonDisabled
-            ]}
-            onPress={handleCreateStudy}
-            disabled={!isFormValid() || isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={[
-                styles.floatingButtonText,
-                (!isFormValid() || isLoading) && styles.floatingButtonTextDisabled
-              ]}>
-                Create Study
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
       </KeyboardAvoidingView>
+
+      {/* Date Picker Modal */}
+      {showDatePicker && (
+        <DateTimePicker
+          value={selectedDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handleDateChange}
+          minimumDate={new Date()}
+        />
+      )}
+
+      {/* Time Picker Modal */}
+      {showTimePicker && (
+        <DateTimePicker
+          value={selectedTime}
+          mode="time"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handleTimeChange}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -661,287 +678,305 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
-  keyboardAvoid: {
+  selectionContainer: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'center',
+  },
+  selectionTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+  selectionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  iconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  cardContent: {
     flex: 1,
   },
-  subtitleContainer: {
-    backgroundColor: '#D97706',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 4,
   },
-  subtitleText: {
+  cardDescription: {
     fontSize: 14,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    fontWeight: '500',
+    color: '#6B7280',
+    lineHeight: 20,
   },
+
+  // AI Input Mode
+  aiInputContainer: {
+    flex: 1,
+    padding: 24,
+  },
+
+  modeTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  modeSubtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginBottom: 32,
+  },
+  topicInput: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    fontSize: 18,
+    color: '#111827',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    minHeight: 120,
+    textAlignVertical: 'top',
+    marginBottom: 24,
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    backgroundColor: '#7C3AED',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+
+  // Editor Mode
   scrollView: {
     flex: 1,
   },
-  content: {
-    padding: 16,
-    paddingBottom: 50,
+  editorContainer: {
+    padding: 20,
   },
-  section: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  aiSection: {
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  aiBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F3FF',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: '#DDD6FE',
   },
-  aiHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-    gap: 12,
-  },
-  aiHeaderText: {
-    flex: 1,
-  },
-  aiSectionSubtitle: {
+  aiBannerText: {
     fontSize: 14,
-    color: '#6B7280',
-    marginTop: 4,
+    color: '#7C3AED',
+    marginLeft: 8,
+    fontWeight: '500',
   },
-  aiBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4FF',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
+  inputGroup: {
+    marginBottom: 20,
   },
-  aiBadgeText: {
-    color: '#5B21B6',
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  aiActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#5B21B6',
-    borderRadius: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-  },
-  aiActionButtonDisabled: {
-    backgroundColor: '#9CA3AF',
-  },
-  aiActionButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  aiActionIcon: {
-    marginRight: 8,
-  },
-  aiDisclaimerText: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  inputLabel: {
+  label: {
     fontSize: 16,
     fontWeight: '600',
     color: '#374151',
     marginBottom: 8,
   },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 12,
+  input: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
     fontSize: 16,
     color: '#111827',
-    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   textArea: {
-    height: 100,
+    minHeight: 80,
     textAlignVertical: 'top',
   },
-  characterCount: {
-    fontSize: 12,
-    color: '#6B7280',
-    textAlign: 'right',
-    marginTop: 4,
+  contentArea: {
+    minHeight: 250,
+    textAlignVertical: 'top',
+  },
+  section: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 16,
   },
   settingRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    alignItems: 'center',
+    paddingVertical: 8,
   },
-  settingColumn: {
-    flexDirection: 'column',
-    marginBottom: 16,
-  },
-  settingInfo: {
-    flex: 1,
-    paddingBottom: 16,
-  },
-  settingLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  settingDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  typeButtons: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingBottom: 16,
-  },
-  typeButton: {
+  dateButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#F3F4F6',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    backgroundColor: '#FFFFFF',
   },
-  typeButtonActive: {
-    backgroundColor: '#5B21B6',
-    borderColor: '#5B21B6',
-  },
-  typeButtonText: {
+  dateButtonText: {
     fontSize: 14,
-    color: '#6B7280',
-    marginLeft: 6,
+    color: '#374151',
+    marginRight: 8,
+    fontWeight: '500',
   },
-  typeButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  dateTimeRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  dateTimeField: {
-    flex: 1,
-  },
-  dateTimeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: '#FFFFFF',
-    minHeight: 48,
-  },
-  dateTimeButtonText: {
-    flex: 1,
+  settingLabel: {
     fontSize: 16,
-    color: '#111827',
-    marginLeft: 8,
-  },
-  pickerModal: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-    zIndex: 1000,
-  },
-  pickerContainer: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: layout.drawerBottomPadding,
-  },
-  pickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  pickerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  pickerCancelText: {
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  pickerDoneText: {
-    fontSize: 16,
-    color: '#5B21B6',
-    fontWeight: '600',
-  },
-  picker: {
-    height: 200,
+    color: '#374151',
   },
   floatingButtonContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    zIndex: 100,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingTop: 20,
+    padding: 20,
+    backgroundColor: 'rgba(249, 250, 251, 0.9)',
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
   floatingButton: {
-    backgroundColor: '#D97706',
+    backgroundColor: '#111827',
     paddingVertical: 16,
-    paddingHorizontal: 24,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    justifyContent: 'center',
   },
   floatingButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
   },
-  floatingButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+  // Preview Styles
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  floatingButtonTextDisabled: {
-    color: '#FFFFFF',
+  editToggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 4,
+  },
+  editToggleText: {
+    fontSize: 14,
+    color: '#5B21B6',
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingBottom: 8,
+  },
+  sectionContent: {
+    fontSize: 16,
+    lineHeight: 26,
+    color: '#374151',
+    marginBottom: 12,
+  },
+  questionsContainer: {
+    marginTop: 8,
+    gap: 12,
+  },
+  questionItem: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  questionNumberBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  questionNumberText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#D97706',
+  },
+  questionText: {
+    flex: 1,
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#374151',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 8,
   },
 });
 

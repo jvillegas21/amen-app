@@ -21,7 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
  */
 const ChangePasswordScreen: React.FC<MainStackScreenProps<'ChangePassword'>> = ({ navigation }) => {
   const { user } = useAuthStore();
-  
+
   const [formData, setFormData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -74,12 +74,12 @@ const ChangePasswordScreen: React.FC<MainStackScreenProps<'ChangePassword'>> = (
     try {
       // First verify current password by attempting to sign in
       await authService.signIn(user?.email || '', formData.currentPassword);
-      
+
       // If successful, update to new password
       await authService.updatePassword(formData.newPassword);
-      
+
       Alert.alert(
-        'Success', 
+        'Success',
         'Password updated successfully',
         [
           {
@@ -127,10 +127,10 @@ const ChangePasswordScreen: React.FC<MainStackScreenProps<'ChangePassword'>> = (
           onPress={onToggleShow}
           disabled={isLoading}
         >
-          <Ionicons 
-            name={showPassword ? "eye-off" : "eye"} 
-            size={20} 
-            color="#6B7280" 
+          <Ionicons
+            name={showPassword ? "eye-off" : "eye"}
+            size={20}
+            color="#6B7280"
           />
         </TouchableOpacity>
       </View>
@@ -139,22 +139,16 @@ const ChangePasswordScreen: React.FC<MainStackScreenProps<'ChangePassword'>> = (
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.keyboardAvoid}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.content}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="arrow-back" size={24} color="#111827" />
-            </TouchableOpacity>
-            <Text style={styles.title}>Change Password</Text>
-            <Text style={styles.subtitle}>
-              Update your password to keep your account secure
+          {/* Security Info */}
+          <View style={styles.securityInfo}>
+            <Ionicons name="shield-checkmark" size={20} color="#166534" />
+            <Text style={styles.securityInfoText}>
+              Your password is encrypted and stored securely. We never store your password in plain text.
             </Text>
           </View>
 
@@ -206,14 +200,6 @@ const ChangePasswordScreen: React.FC<MainStackScreenProps<'ChangePassword'>> = (
                 <Text style={styles.changeButtonText}>Change Password</Text>
               )}
             </TouchableOpacity>
-          </View>
-
-          {/* Security Info */}
-          <View style={styles.securityInfo}>
-            <Ionicons name="shield-checkmark" size={20} color="theme.colors.success[700]" />
-            <Text style={styles.securityInfoText}>
-              Your password is encrypted and stored securely. We never store your password in plain text.
-            </Text>
           </View>
         </View>
       </KeyboardAvoidingView>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -11,10 +11,9 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
-  Image,
+  Modal,
 } from 'react-native';
 import { MainStackScreenProps } from '@/types/navigation.types';
-import { useAuthStore } from '@/store/auth/authStore';
 import { groupService } from '@/services/api/groupService';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -26,8 +25,7 @@ import GroupAvatar from '@/components/common/GroupAvatar';
  */
 const EditGroupScreen: React.FC<MainStackScreenProps<'EditGroup'>> = ({ navigation, route }) => {
   const { groupId } = route.params;
-  const { profile } = useAuthStore();
-  
+
   const [group, setGroup] = useState<Group | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -38,6 +36,22 @@ const EditGroupScreen: React.FC<MainStackScreenProps<'EditGroup'>> = ({ navigati
   const [avatar, setAvatar] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: 'Group Settings',
+      headerBackTitle: 'Back',
+      headerStyle: {
+        backgroundColor: '#5B21B6',
+      },
+      headerTintColor: '#FFFFFF',
+      headerTitleStyle: {
+        fontWeight: 'bold',
+      },
+    });
+  }, [navigation]);
 
   useEffect(() => {
     fetchGroupDetails();
@@ -48,7 +62,7 @@ const EditGroupScreen: React.FC<MainStackScreenProps<'EditGroup'>> = ({ navigati
       setIsLoading(true);
       const groupData = await groupService.getGroup(groupId);
       setGroup(groupData);
-      
+
       // Populate form with existing data
       setFormData({
         name: groupData.name,
@@ -56,7 +70,7 @@ const EditGroupScreen: React.FC<MainStackScreenProps<'EditGroup'>> = ({ navigati
         privacy: groupData.privacy,
         maxMembers: groupData.max_members,
       });
-      
+
       if (groupData.avatar_url) {
         setAvatar(groupData.avatar_url);
       }
@@ -106,11 +120,6 @@ const EditGroupScreen: React.FC<MainStackScreenProps<'EditGroup'>> = ({ navigati
       return false;
     }
 
-    if (formData.maxMembers < 2 || formData.maxMembers > 1000) {
-      Alert.alert('Error', 'Maximum members must be between 2 and 1000');
-      return false;
-    }
-
     return true;
   };
 
@@ -132,13 +141,13 @@ const EditGroupScreen: React.FC<MainStackScreenProps<'EditGroup'>> = ({ navigati
       console.log('Updating group with data:', updateData);
       const updatedGroup = await groupService.updateGroup(groupId, updateData);
       console.log('Group updated successfully:', updatedGroup);
-      
+
       Alert.alert(
         'Group Updated!',
         'Your group settings have been updated successfully.',
         [
-          { 
-            text: 'OK', 
+          {
+            text: 'OK',
             onPress: () => {
               // Navigate back and trigger a refresh
               navigation.navigate('GroupDetails', { groupId, refresh: Date.now() });
@@ -153,64 +162,6 @@ const EditGroupScreen: React.FC<MainStackScreenProps<'EditGroup'>> = ({ navigati
       setIsSaving(false);
     }
   };
-
-  const handleDeleteGroup = () => {
-    Alert.alert(
-      'Delete Group',
-      'Are you sure you want to delete this group? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await groupService.deleteGroup(groupId);
-              Alert.alert(
-                'Group Deleted',
-                'The group has been deleted successfully.',
-                [
-                  { 
-                    text: 'OK', 
-                    onPress: () => navigation.navigate('GroupsList')
-                  }
-                ]
-              );
-            } catch (error) {
-              console.error('Failed to delete group:', error);
-              Alert.alert('Error', 'Failed to delete group');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-      </TouchableOpacity>
-      <View style={styles.headerContent}>
-        <Text style={styles.headerTitle}>Edit Group</Text>
-        <Text style={styles.headerSubtitle}>Update group settings</Text>
-      </View>
-      <TouchableOpacity
-        style={styles.saveButton}
-        onPress={handleSaveChanges}
-        disabled={isSaving}
-      >
-        {isSaving ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
-        ) : (
-          <Text style={styles.saveButtonText}>Save</Text>
-        )}
-      </TouchableOpacity>
-    </View>
-  );
 
   const renderAvatarSection = () => (
     <View style={styles.section}>
@@ -232,7 +183,7 @@ const EditGroupScreen: React.FC<MainStackScreenProps<'EditGroup'>> = ({ navigati
   const renderBasicInfoSection = () => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Basic Information</Text>
-      
+
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Group Name *</Text>
         <TextInput
@@ -267,7 +218,7 @@ const EditGroupScreen: React.FC<MainStackScreenProps<'EditGroup'>> = ({ navigati
   const renderPrivacySection = () => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Privacy Settings</Text>
-      
+
       <View style={styles.privacyOptions}>
         {[
           { value: 'public', label: 'Public', description: 'Anyone can find and join', icon: 'globe' },
@@ -283,10 +234,10 @@ const EditGroupScreen: React.FC<MainStackScreenProps<'EditGroup'>> = ({ navigati
             onPress={() => handleInputChange('privacy', option.value)}
           >
             <View style={styles.privacyOptionContent}>
-              <Ionicons 
-                name={option.icon as any} 
-                size={20} 
-                color={formData.privacy === option.value ? '#5B21B6' : '#6B7280'} 
+              <Ionicons
+                name={option.icon as any}
+                size={20}
+                color={formData.privacy === option.value ? '#5B21B6' : '#6B7280'}
               />
               <View style={styles.privacyOptionText}>
                 <Text style={[
@@ -309,45 +260,45 @@ const EditGroupScreen: React.FC<MainStackScreenProps<'EditGroup'>> = ({ navigati
     </View>
   );
 
-  const renderAdvancedSection = () => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Advanced Settings</Text>
-      
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Maximum Members</Text>
-        <TextInput
-          style={styles.textInput}
-          value={formData.maxMembers.toString()}
-          onChangeText={(value) => handleInputChange('maxMembers', parseInt(value) || 100)}
-          placeholder="100"
-          placeholderTextColor="#9CA3AF"
-          keyboardType="numeric"
-        />
-        <Text style={styles.inputHelp}>
-          Set the maximum number of members allowed in this group
-        </Text>
-      </View>
-    </View>
-  );
+  const handleDeleteGroup = async () => {
+    if (deleteConfirmationText !== 'DELETE GROUP') {
+      Alert.alert('Error', 'Please type "DELETE GROUP" to confirm.');
+      return;
+    }
 
-  const renderDangerSection = () => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Danger Zone</Text>
-      
-      <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteGroup}>
-        <Ionicons name="trash" size={20} color="#DC2626" />
-        <Text style={styles.deleteButtonText}>Delete Group</Text>
-      </TouchableOpacity>
-      <Text style={styles.deleteWarning}>
-        This will permanently delete the group and all its data. This action cannot be undone.
-      </Text>
-    </View>
-  );
+    try {
+      await groupService.deleteGroup(groupId);
+      setShowDeleteModal(false);
+      Alert.alert(
+        'Group Deleted',
+        'The group has been deleted successfully.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Navigate to Groups tab first, then to GroupsList
+              const parent = navigation.getParent();
+              if (parent) {
+                parent.navigate('MainTabs', {
+                  screen: 'Groups',
+                  params: {
+                    screen: 'GroupsList',
+                  }
+                });
+              }
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Failed to delete group:', error);
+      Alert.alert('Error', 'Failed to delete group');
+    }
+  };
 
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
-        {renderHeader()}
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#5B21B6" />
           <Text style={styles.loadingText}>Loading group details...</Text>
@@ -358,8 +309,6 @@ const EditGroupScreen: React.FC<MainStackScreenProps<'EditGroup'>> = ({ navigati
 
   return (
     <SafeAreaView style={styles.container}>
-      {renderHeader()}
-      
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -372,10 +321,78 @@ const EditGroupScreen: React.FC<MainStackScreenProps<'EditGroup'>> = ({ navigati
           {renderAvatarSection()}
           {renderBasicInfoSection()}
           {renderPrivacySection()}
-          {renderAdvancedSection()}
-          {renderDangerSection()}
+
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => {
+              setDeleteConfirmationText('');
+              setShowDeleteModal(true);
+            }}
+          >
+            <Ionicons name="trash" size={20} color="#DC2626" />
+            <Text style={styles.deleteButtonText}>Delete Group</Text>
+          </TouchableOpacity>
+          <Text style={styles.deleteWarning}>
+            This will permanently delete the group and all its data. This action cannot be undone.
+          </Text>
         </ScrollView>
+
+        <View style={[styles.floatingButtonContainer, { paddingBottom: 0 }]}>
+          <TouchableOpacity
+            style={styles.saveButtonBottom}
+            onPress={handleSaveChanges}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.saveButtonText}>Save Changes</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={showDeleteModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDeleteModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Delete Group</Text>
+            <Text style={styles.modalText}>
+              To confirm deletion, type "DELETE GROUP" below.
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              value={deleteConfirmationText}
+              onChangeText={setDeleteConfirmationText}
+              placeholder="DELETE GROUP"
+              placeholderTextColor="#9CA3AF"
+              autoCapitalize="characters"
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowDeleteModal(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.modalDeleteButton,
+                  deleteConfirmationText !== 'DELETE GROUP' && styles.modalDeleteButtonDisabled
+                ]}
+                onPress={handleDeleteGroup}
+                disabled={deleteConfirmationText !== 'DELETE GROUP'}
+              >
+                <Text style={styles.modalDeleteText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -385,40 +402,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#5B21B6',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  backButton: {
-    marginRight: 12,
-  },
-  headerContent: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#E5E7EB',
-  },
-  saveButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 8,
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
+  // Header styles removed as navigation header is now used
   keyboardAvoidingView: {
     flex: 1,
   },
@@ -427,6 +411,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
+    // Add extra padding for sticky button
   },
   section: {
     backgroundColor: '#FFFFFF',
@@ -496,11 +481,6 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginTop: 4,
   },
-  inputHelp: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-  },
   privacyOptions: {
     gap: 8,
   },
@@ -540,12 +520,49 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 2,
   },
+  floatingButtonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  saveButtonBottom: {
+    backgroundColor: '#5B21B6',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   deleteButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     padding: 16,
     backgroundColor: '#FEF2F2',
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#FECACA',
   },
@@ -553,12 +570,15 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     color: '#DC2626',
     fontWeight: '600',
+    fontSize: 16,
   },
   deleteWarning: {
     fontSize: 12,
     color: '#6B7280',
     marginTop: 8,
     lineHeight: 16,
+    textAlign: 'center',
+    marginBottom: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -569,6 +589,69 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#6B7280',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  modalText: {
+    fontSize: 16,
+    color: '#4B5563',
+    marginBottom: 16,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#111827',
+    marginBottom: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  modalCancelButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+  },
+  modalCancelText: {
+    color: '#374151',
+    fontWeight: '600',
+  },
+  modalDeleteButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#DC2626',
+  },
+  modalDeleteButtonDisabled: {
+    backgroundColor: '#FCA5A5',
+  },
+  modalDeleteText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
 });
 

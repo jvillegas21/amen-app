@@ -31,15 +31,15 @@ import { PRAYER_CATEGORIES } from '@/constants/prayerCategories';
 const CreatePrayerScreen: React.FC<MainStackScreenProps<'CreatePrayer'>> = ({ navigation, route }) => {
   const { createPrayer, isLoading } = usePrayerStore();
   const { profile } = useAuthStore();
-  const { 
-    suggestions, 
-    isLoadingSuggestions, 
-    generateSuggestions, 
-    isGeneratingStudy, 
+  const {
+    suggestions,
+    isLoadingSuggestions,
+    generateSuggestions,
+    isGeneratingStudy,
     generateFullStudy,
-    isConfigured 
+    isConfigured
   } = useAIIntegration();
-  
+
   const [prayerText, setPrayerText] = useState('');
   const [privacyLevel, setPrivacyLevel] = useState<'public' | 'friends' | 'groups' | 'private'>('public');
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -48,7 +48,7 @@ const CreatePrayerScreen: React.FC<MainStackScreenProps<'CreatePrayer'>> = ({ na
   const [location, setLocation] = useState<{ city?: string; lat?: number; lon?: number } | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showBibleStudyModal, setShowBibleStudyModal] = useState(false);
-  
+
   const textInputRef = useRef<TextInput>(null);
   const debounceRef = useRef<NodeJS.Timeout>();
 
@@ -60,7 +60,7 @@ const CreatePrayerScreen: React.FC<MainStackScreenProps<'CreatePrayer'>> = ({ na
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
-      
+
       debounceRef.current = setTimeout(async () => {
         await generateBibleStudySuggestions();
       }, 2000);
@@ -91,6 +91,11 @@ const CreatePrayerScreen: React.FC<MainStackScreenProps<'CreatePrayer'>> = ({ na
       return;
     }
 
+    if (!profile?.id) {
+      Alert.alert('Error', 'You must be logged in to upload images');
+      return;
+    }
+
     try {
       const result = await imageUploadService.pickImageFromLibrary(
         imageUploadService.getImagePickerOptions('prayer')
@@ -98,14 +103,17 @@ const CreatePrayerScreen: React.FC<MainStackScreenProps<'CreatePrayer'>> = ({ na
 
       if (!result.canceled && result.assets && result.assets[0]) {
         const asset = result.assets[0];
-        
-        // Upload the image
-        const uploadResult = await imageUploadService.uploadPrayerImage(asset.uri, 'temp');
+
+        // Upload the image to a user-specific temp folder to avoid RLS issues
+        // The service will append the filename to this path
+        const tempPath = `${profile.id}/temp`;
+        const uploadResult = await imageUploadService.uploadPrayerImage(asset.uri, tempPath);
         setImages(prev => [...prev, uploadResult]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to select image');
+      const errorMessage = error.message || 'Failed to select image';
+      Alert.alert('Error', errorMessage);
     }
   };
 
@@ -116,7 +124,7 @@ const CreatePrayerScreen: React.FC<MainStackScreenProps<'CreatePrayer'>> = ({ na
   const handleLocationRequest = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      
+
       if (status === 'granted') {
         const locationData = await Location.getCurrentPositionAsync({});
         const reverseGeocode = await Location.reverseGeocodeAsync({
@@ -125,7 +133,7 @@ const CreatePrayerScreen: React.FC<MainStackScreenProps<'CreatePrayer'>> = ({ na
         });
 
         const city = reverseGeocode[0]?.city || reverseGeocode[0]?.subregion;
-        
+
         setLocation({
           city,
           lat: locationData.coords.latitude,
@@ -166,20 +174,24 @@ const CreatePrayerScreen: React.FC<MainStackScreenProps<'CreatePrayer'>> = ({ na
         } : undefined,
       });
 
-      // Navigate to Feed tab to show the created prayer
-      navigation.navigate('Main', { screen: 'Home' });
+      // Navigate based on context
+      if (groupId) {
+        navigation.navigate('GroupDetails', { groupId });
+      } else {
+        navigation.navigate('MainTabs', { screen: 'Home' });
+      }
     } catch (error: any) {
       console.error('Prayer creation error:', error);
-      
+
       // Show more detailed error message
       let errorMessage = 'Failed to create prayer request';
-      
+
       if (error.message) {
         errorMessage = error.message;
       } else if (error.code) {
         errorMessage = `Database error (${error.code}): ${error.message || 'Unknown error'}`;
       }
-      
+
       Alert.alert('Error', errorMessage);
     }
   };
@@ -236,7 +248,7 @@ const CreatePrayerScreen: React.FC<MainStackScreenProps<'CreatePrayer'>> = ({ na
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.keyboardAvoid}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
@@ -262,7 +274,11 @@ const CreatePrayerScreen: React.FC<MainStackScreenProps<'CreatePrayer'>> = ({ na
             {/* Images */}
             {images.length > 0 && (
               <View style={styles.imagesContainer}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingTop: 12, paddingRight: 12, paddingLeft: 4 }}
+                >
                   {images.map((image, index) => (
                     <View key={index} style={styles.imageWrapper}>
                       <Image source={{ uri: image.url }} style={styles.image} />

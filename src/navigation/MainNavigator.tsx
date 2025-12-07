@@ -38,9 +38,9 @@ import DiscoverGroupsScreen from '@/screens/groups/DiscoverGroupsScreen';
 import GroupChatScreen from '@/screens/groups/GroupChatScreen';
 import GroupMembersScreen from '@/screens/groups/GroupMembersScreen';
 import GroupSettingsScreen from '@/screens/groups/GroupSettingsScreen';
-import BibleStudyScreen from '@/screens/main/BibleStudyScreen';
 import BibleStudyDetailsScreen from '@/screens/main/BibleStudyDetailsScreen';
 import BibleStudyListScreen from '@/screens/main/BibleStudyListScreen';
+import { EditBibleStudyScreen } from '@/screens/main/EditBibleStudyScreen';
 import CategoryPrayersScreen from '@/screens/main/CategoryPrayersScreen';
 import SettingsScreen from '@/screens/settings/SettingsScreen';
 import PrivacyScreen from '@/screens/settings/PrivacyScreen';
@@ -63,6 +63,8 @@ import LanguageScreen from '@/screens/settings/LanguageScreen';
 import DataUsageScreen from '@/screens/settings/DataUsageScreen';
 import StorageBackupScreen from '@/screens/settings/StorageBackupScreen';
 import LocationSettingsScreen from '@/screens/settings/LocationSettingsScreen';
+import EditProfileScreen from '@/screens/settings/EditProfileScreen';
+import DeleteAccountScreen from '@/screens/settings/DeleteAccountScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createStackNavigator<MainStackParamList>();
@@ -200,7 +202,7 @@ const MainNavigator: React.FC = () => {
       }}
     >
       {/* Main Tab Navigator */}
-      <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+      <Stack.Screen name="MainTabs" component={MainTabNavigator} options={{ title: 'Back' }} />
 
       {/* Stack Screens with Tab Bar Visible */}
       <Stack.Group
@@ -218,7 +220,7 @@ const MainNavigator: React.FC = () => {
         <Stack.Screen
           name="EditPrayer"
           component={EditPrayerScreen}
-          options={{ title: 'Edit Prayer' }}
+          options={{ title: 'Edit Prayer', headerBackTitle: 'Back' }}
         />
         <Stack.Screen
           name="CreateBibleStudy"
@@ -343,11 +345,7 @@ const MainNavigator: React.FC = () => {
           component={StatisticsScreen}
           options={{ title: 'Statistics' }}
         />
-        <Stack.Screen
-          name="BibleStudy"
-          component={BibleStudyScreen}
-          options={{ title: 'Bible Study' }}
-        />
+
         <Stack.Screen
           name="BibleStudyDetails"
           component={BibleStudyDetailsScreen}
@@ -361,7 +359,7 @@ const MainNavigator: React.FC = () => {
           component={BibleStudyListScreen}
           options={({ navigation }) => ({
             title: 'Bible Studies',
-            headerBackTitle: 'Discover',
+            headerBackTitle: 'Back',
             ...createColoredHeaderOptions(insets, '#D97706'),
             headerRight: () => (
               <TouchableOpacity
@@ -380,11 +378,20 @@ const MainNavigator: React.FC = () => {
           })}
         />
         <Stack.Screen
+          name="EditBibleStudy"
+          component={EditBibleStudyScreen}
+          options={{
+            headerShown: true,
+            headerBackTitle: 'Back',
+          }}
+        />
+        <Stack.Screen
           name="CategoryPrayers"
           component={CategoryPrayersScreen}
           options={({ route }) => ({
-            title: route.params.categoryName,
+            headerShown: true,
             headerBackTitle: 'Back',
+            title: route.params.categoryName,
             ...createColoredHeaderOptions(
               insets,
               route.params.categoryColor || '#5B21B6'
@@ -401,7 +408,7 @@ const MainNavigator: React.FC = () => {
         <Stack.Screen
           name="Privacy"
           component={PrivacyScreen}
-          options={{ title: 'Privacy Settings' }}
+          options={{ title: 'Privacy Settings', headerBackTitle: 'Back' }}
         />
         <Stack.Screen
           name="Notifications"
@@ -416,78 +423,80 @@ const MainNavigator: React.FC = () => {
         <Stack.Screen
           name="About"
           component={AboutScreen}
-          options={{ title: 'About Amenity' }}
+          options={{ title: 'About Amenity', headerBackTitle: 'Back' }}
         />
         <Stack.Screen
           name="Help"
           component={HelpScreen}
-          options={{ title: 'Help & Support' }}
+          options={{ title: 'Help & Support', headerBackTitle: 'Back' }}
         />
         <Stack.Screen
           name="PrivacyPolicy"
           component={PrivacyPolicyScreen}
-          options={{ title: 'Privacy Policy' }}
+          options={{ title: 'Privacy Policy', headerBackTitle: 'Back' }}
         />
         <Stack.Screen
           name="TermsOfService"
           component={TermsOfServiceScreen}
-          options={{ title: 'Terms of Service' }}
+          options={{ title: 'Terms of Service', headerBackTitle: 'Back' }}
         />
         <Stack.Screen
           name="BlockedUsers"
           component={BlockedUsersScreen}
-          options={{ title: 'Blocked Users' }}
+          options={{ title: 'Blocked Users', headerBackTitle: 'Back' }}
         />
         <Stack.Screen
           name="TicketDetails"
           component={TicketDetailsScreen}
-          options={{ title: 'Support Ticket' }}
+          options={{ title: 'Support Ticket', headerBackTitle: 'Back' }}
         />
         <Stack.Screen
           name="GroupMemberManagement"
           component={GroupMemberManagementScreen}
-          options={{ title: 'Manage Members' }}
+          options={{ title: 'Manage Members', headerBackTitle: 'Back' }}
         />
         <Stack.Screen
           name="ChangePassword"
           component={ChangePasswordScreen}
-          options={{ title: 'Change Password' }}
+          options={{ title: 'Change Password', headerBackTitle: 'Back' }}
         />
         <Stack.Screen
           name="AccountSecurity"
           component={AccountSecurityScreen}
-          options={{ title: 'Account Security' }}
+          options={{ title: 'Account Security', headerBackTitle: 'Back' }}
         />
         <Stack.Screen
           name="NotificationSettings"
           component={NotificationSettingsScreen}
-          options={{ title: 'Notification Settings' }}
+          options={{ title: 'Notification Settings', headerBackTitle: 'Back' }}
         />
         <Stack.Screen
           name="Theme"
           component={ThemeScreen}
-          options={{ title: 'Theme' }}
+          options={{ title: 'Theme', headerBackTitle: 'Back' }}
         />
         <Stack.Screen
           name="Language"
           component={LanguageScreen}
-          options={{ title: 'Language' }}
+          options={{ title: 'Language', headerBackTitle: 'Back' }}
         />
         <Stack.Screen
           name="DataUsage"
           component={DataUsageScreen}
-          options={{ title: 'Data Usage' }}
+          options={{ title: 'Data Usage', headerBackTitle: 'Back' }}
         />
         <Stack.Screen
           name="StorageBackup"
           component={StorageBackupScreen}
-          options={{ title: 'Storage & Backup' }}
+          options={{ title: 'Storage & Backup', headerBackTitle: 'Back' }}
         />
         <Stack.Screen
           name="LocationSettings"
           component={LocationSettingsScreen}
-          options={{ title: 'Location Settings' }}
+          options={{ title: 'Location Settings', headerBackTitle: 'Back' }}
         />
+        <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Edit Profile', headerBackTitle: 'Back' }} />
+        <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} options={{ title: 'Delete Account', headerBackTitle: 'Back' }} />
       </Stack.Group>
     </Stack.Navigator>
   );

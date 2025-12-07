@@ -10,7 +10,7 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import { GroupsStackScreenProps } from '@/types/navigation.types';
+import { MainStackScreenProps } from '@/types/navigation.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Group } from '@/types/database.types';
@@ -19,7 +19,7 @@ import { groupService } from '@/services/api/groupService';
 /**
  * Discover Groups Screen - Browse and search for groups to join
  */
-const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> = ({ navigation }) => {
+const DiscoverGroupsScreen: React.FC<MainStackScreenProps<'DiscoverGroups'>> = ({ navigation }) => {
   const { profile } = useAuthStore();
   const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,7 +56,7 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
           onPress: async () => {
             try {
               await groupService.joinGroup(groupId);
-              setGroups((prev: Group[]) => prev.map((group: Group) => 
+              setGroups((prev: Group[]) => prev.map((group: Group) =>
                 group.id === groupId ? { ...group, isJoined: true } : group
               ));
             } catch (error) {
@@ -93,8 +93,8 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
     }
   };
 
-  const filteredGroups = groups.filter((group: Group) => 
-    searchQuery === '' || 
+  const filteredGroups = groups.filter((group: Group) =>
+    searchQuery === '' ||
     group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (group.description && group.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -135,7 +135,7 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
       <View style={styles.groupAvatar}>
         <Ionicons name="people" size={24} color="#6B7280" />
       </View>
-      
+
       <View style={styles.groupContent}>
         <View style={styles.groupHeader}>
           <Text style={styles.groupName}>{item.name}</Text>
@@ -147,11 +147,11 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
             />
           </View>
         </View>
-        
+
         <Text style={styles.groupDescription} numberOfLines={2}>
           {item.description}
         </Text>
-        
+
         <View style={styles.groupMeta}>
           <View style={styles.groupStats}>
             <Ionicons name="people" size={14} color="#6B7280" />
@@ -160,7 +160,7 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
           <Text style={styles.groupCategory}>{item.tags?.[0] || 'General'}</Text>
         </View>
       </View>
-      
+
       <TouchableOpacity
         style={[
           styles.joinButton,
@@ -220,6 +220,53 @@ const DiscoverGroupsScreen: React.FC<GroupsStackScreenProps<'DiscoverGroups'>> =
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}
         ListEmptyComponent={renderEmptyState}
+        ListHeaderComponent={
+          <TouchableOpacity
+            style={styles.inviteCodeButton}
+            onPress={() => {
+              Alert.prompt(
+                'Join by Invite Code',
+                'Enter the invite code shared with you',
+                [
+                  {
+                    text: 'Cancel',
+                    style: 'cancel',
+                  },
+                  {
+                    text: 'Join',
+                    onPress: async (code?: string) => {
+                      if (!code?.trim()) return;
+                      try {
+                        setIsLoading(true);
+                        const group = await groupService.joinGroupByCode(code.trim());
+                        Alert.alert(
+                          'Success',
+                          `You have joined ${group.name}!`,
+                          [
+                            {
+                              text: 'View Group',
+                              onPress: () => navigation.navigate('GroupDetails', { groupId: group.id })
+                            }
+                          ]
+                        );
+                        fetchDiscoverData(); // Refresh list
+                      } catch (error: any) {
+                        Alert.alert('Error', error.message || 'Failed to join group');
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    },
+                  },
+                ],
+                'plain-text'
+              );
+            }}
+          >
+            <Ionicons name="key-outline" size={20} color="#5B21B6" />
+            <Text style={styles.inviteCodeText}>Have an invite code?</Text>
+            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+          </TouchableOpacity>
+        }
       />
     </SafeAreaView>
   );
@@ -385,6 +432,26 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: '#6B7280',
+  },
+  inviteCodeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  inviteCodeText: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#111827',
   },
 });
 

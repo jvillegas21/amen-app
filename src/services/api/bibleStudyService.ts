@@ -1,17 +1,6 @@
 import { supabase } from '@/config/supabase';
 import { aiService } from '@/services/aiService';
-
-export interface BibleStudy {
-  id: string;
-  title: string;
-  content: string;
-  scripture_references: Array<string | Record<string, unknown>>;
-  quality_score: number;
-  view_count: number;
-  save_count: number;
-  is_saved?: boolean;
-  created_at: string;
-}
+import { BibleStudy } from '@/types/database.types';
 
 export interface BibleStudySuggestion {
   id: string;
@@ -54,10 +43,10 @@ For each suggestion, provide:
 Format as JSON array with fields: title, description, scripture_references, difficulty_level, estimated_duration, topics`;
 
       const response = await aiService.generateText(prompt);
-      
+
       // Parse the JSON response
       const suggestions = JSON.parse(response);
-      
+
       // Add IDs to suggestions
       return suggestions.map((suggestion: any, index: number) => ({
         id: `suggestion-${Date.now()}-${index}`,
@@ -105,17 +94,22 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
 
       const bibleStudyData = studyResult.data;
       const content = `# ${bibleStudyData.title}\n\n## Scripture\n${bibleStudyData.scripture}\n\n## Reflection\n${bibleStudyData.reflection}\n\n## Questions for Reflection\n${bibleStudyData.questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}\n\n## Prayer Focus\n${bibleStudyData.prayer_focus}${bibleStudyData.application ? `\n\n## Practical Application\n${bibleStudyData.application}` : ''}`;
-      
+
       const study: BibleStudy = {
         id: `study-${Date.now()}`,
         title: suggestion.title,
-        content,
-        scripture_references: suggestion.scripture_references,
+        content_md: content,
+        scripture_references: suggestion.scripture_references as any,
         quality_score: 4.5, // Default quality score
         view_count: 0,
         save_count: 0,
         is_saved: false,
         created_at: new Date().toISOString(),
+        user_id: userId,
+        ai_model: 'gpt-4-turbo-preview',
+        ai_prompt_version: '1.0',
+        is_featured: false,
+        prayer_id: null
       };
 
       // Save to database
@@ -139,7 +133,7 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
         user_id: userId,
         prayer_id: null,
         title: study.title,
-        content_md: study.content,
+        content_md: study.content_md,
         scripture_references: study.scripture_references,
         ai_model: 'gpt-4-turbo-preview',
         ai_prompt_version: '1.0',
@@ -147,7 +141,7 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
         is_featured: false,
         view_count: study.view_count || 0,
         save_count: study.save_count || 0,
-      });
+      } as any);
 
     if (error) {
       console.error('Database error:', error);
@@ -167,7 +161,7 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
 
     if (error) throw error;
     if (!data) throw new Error('Bible study not found');
-    
+
     return data;
   }
 
@@ -187,11 +181,15 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
         return;
       }
 
+      console.log('Current view count:', data.view_count);
+      const newCount = (data.view_count ?? 0) + 1;
+      console.log('Incrementing to:', newCount);
+
       const { error: updateError } = await supabase
         .from('studies')
         .update({
           view_count: (data.view_count ?? 0) + 1,
-        })
+        } as any)
         .eq('id', studyId);
 
       if (updateError) {
@@ -203,6 +201,20 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
   }
 
   /**
+   * Update Bible study
+   */
+  async updateBibleStudy(studyId: string, updates: Partial<BibleStudy>): Promise<void> {
+    const { error } = await supabase
+      .from('studies')
+      .update({
+        ...updates,
+      } as any)
+      .eq('id', studyId);
+
+    if (error) throw error;
+  }
+
+  /**
    * Save Bible study for user
    */
   async saveStudyForUser(studyId: string, userId: string): Promise<void> {
@@ -211,7 +223,7 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
       .insert({
         study_id: studyId,
         user_id: userId,
-      });
+      } as any);
 
     if (error) throw error;
 
@@ -232,7 +244,7 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
         .from('studies')
         .update({
           save_count: (data.save_count ?? 0) + 1,
-        })
+        } as any)
         .eq('id', studyId);
 
       if (updateError) {
@@ -240,6 +252,25 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
       }
     } catch (err) {
       console.warn('Error incrementing save count:', err);
+    }
+  }
+
+  /**
+   * Rate a Bible study
+   */
+  async rateStudy(studyId: string, rating: number): Promise<void> {
+    // Since we lack a dedicated ratings table, we will update the quality_score on the study itself.
+    // This allows us to persist the rating without schema changes.
+    const { error } = await supabase
+      .from('studies')
+      .update({
+        quality_score: rating
+      } as any)
+      .eq('id', studyId);
+
+    if (error) {
+      console.warn('Error rating study:', error);
+      throw error;
     }
   }
 
@@ -273,7 +304,7 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
         .from('studies')
         .update({
           save_count: nextCount,
-        })
+        } as any)
         .eq('id', studyId);
 
       if (updateError) {
@@ -281,6 +312,21 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
       }
     } catch (err) {
       console.warn('Error decrementing save count:', err);
+    }
+  }
+
+  /**
+   * Delete Bible study
+   */
+  async deleteBibleStudy(studyId: string): Promise<void> {
+    const { error } = await supabase
+      .from('studies')
+      .delete()
+      .eq('id', studyId);
+
+    if (error) {
+      console.error('Error deleting Bible study:', error);
+      throw new Error('Failed to delete Bible study');
     }
   }
 
@@ -297,11 +343,11 @@ Format as Markdown with proper headings and structure. Make it engaging and spir
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    
+
     return data?.map(item => ({
       ...item.study,
       is_saved: true,
-    })) || [];
+    } as unknown as BibleStudy)) || [];
   }
 
   /**

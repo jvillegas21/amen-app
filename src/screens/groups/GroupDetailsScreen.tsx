@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -7,17 +7,15 @@ import {
   SafeAreaView,
   FlatList,
   RefreshControl,
-  ActivityIndicator,
   Alert,
-  Image,
   Modal,
+  Share,
 } from 'react-native';
 import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
-import { usePrayerStore } from '@/store/prayer/prayerStore';
 import { groupService } from '@/services/api/groupService';
 import { Ionicons } from '@expo/vector-icons';
-import { Prayer, Group } from '@/types/database.types';
+import { Prayer } from '@/types/database.types';
 import { formatDistanceToNow } from 'date-fns';
 import GroupAvatar from '@/components/common/GroupAvatar';
 import UserAvatar from '@/components/common/UserAvatar';
@@ -30,12 +28,11 @@ const GroupDetailsScreen: React.FC<MainStackScreenProps<'GroupDetails'>> = ({ na
   const { groupId } = route.params;
   const refresh = (route.params as any).refresh; // Optional refresh parameter for reloading data
   const { profile } = useAuthStore();
-  const { prayers, isLoading } = usePrayerStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   const [group, setGroup] = useState<any>(null);
   const [groupPrayers, setGroupPrayers] = useState<Prayer[]>([]);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [isMember, setIsMember] = useState(false);
   const [userRole, setUserRole] = useState<'admin' | 'moderator' | 'member' | null>(null);
 
@@ -62,17 +59,31 @@ const GroupDetailsScreen: React.FC<MainStackScreenProps<'GroupDetails'>> = ({ na
     return unsubscribe;
   }, [navigation, groupId]);
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => setShowMenu(true)}
+          style={{ marginRight: 16 }}
+          accessibilityLabel="Group options"
+        >
+          <Ionicons name="ellipsis-horizontal" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
   const fetchGroupDetails = async () => {
     try {
       console.log('Fetching group details for groupId:', groupId);
       const groupData = await groupService.getGroup(groupId);
       console.log('Fetched group data:', groupData);
       setGroup(groupData);
-      
+
       // Check if current user is a member
       const members = await groupService.getGroupMembers(groupId);
       const currentUserMember = members.find(member => member.user_id === profile?.id);
-      
+
       if (currentUserMember) {
         setIsMember(true);
         setUserRole(currentUserMember.role);
@@ -151,54 +162,38 @@ const GroupDetailsScreen: React.FC<MainStackScreenProps<'GroupDetails'>> = ({ na
   };
 
   const handleGroupChatPress = () => {
-    // Navigate to group chat within Groups tab
     const generalChatId = 'general-chat';
-    // Navigate to Groups tab first, then to GroupChat
-    const parent = navigation.getParent();
-    if (parent) {
-      parent.navigate('MainTabs', {
-        screen: 'Groups',
-        params: {
-          screen: 'GroupChat',
-          params: { prayerId: generalChatId, groupId }
-        }
-      });
-    }
+    navigation.navigate('GroupChat', { prayerId: generalChatId, groupId });
   };
 
   const handleMembersPress = () => {
-    const parent = navigation.getParent();
-    if (parent) {
-      parent.navigate('MainTabs', {
-        screen: 'Groups',
-        params: {
-          screen: 'GroupMembers',
-          params: { groupId }
-        }
-      });
-    }
+    navigation.navigate('GroupMembers', { groupId });
   };
 
   const handleEditGroup = () => {
     navigation.navigate('EditGroup', { groupId });
   };
 
-  const handleSettingsPress = () => {
-    if (userRole === 'admin' || userRole === 'moderator') {
-      setShowSettingsModal(true);
-    } else {
-      const parent = navigation.getParent();
-      if (parent) {
-        parent.navigate('MainTabs', {
-          screen: 'Groups',
-          params: {
-            screen: 'GroupSettings',
-            params: { groupId }
-          }
-        });
+  const handleInviteGroup = async () => {
+    try {
+      if (!group?.invite_code) {
+        Alert.alert('Error', 'This group does not have an invite code.');
+        return;
       }
+
+      const message = `Join my prayer group "${group.name}" on Amen! Use code: ${group.invite_code}`;
+
+      await Share.share({
+        message,
+        title: 'Join my Prayer Group',
+      });
+    } catch (error) {
+      console.error('Error sharing invite:', error);
+      Alert.alert('Error', 'Failed to share invite');
     }
   };
+
+
 
   const renderPrayerItem = ({ item: prayer }: { item: Prayer }) => (
     <TouchableOpacity
@@ -231,7 +226,7 @@ const GroupDetailsScreen: React.FC<MainStackScreenProps<'GroupDetails'>> = ({ na
       <View style={styles.prayerStats}>
         <View style={styles.statItem}>
           <Ionicons name="heart" size={16} color="#DC2626" />
-          <Text style={styles.statText}>{prayer.interaction_count || 0}</Text>
+          <Text style={styles.statText}>{prayer.pray_count || 0}</Text>
         </View>
         <View style={styles.statItem}>
           <Ionicons name="chatbubble" size={16} color="#6B7280" />
@@ -283,50 +278,26 @@ const GroupDetailsScreen: React.FC<MainStackScreenProps<'GroupDetails'>> = ({ na
               <Text style={styles.joinButtonText}>Join Group</Text>
             </TouchableOpacity>
           ) : (
-            <>
-              <TouchableOpacity style={styles.primaryButton} onPress={handleCreatePrayer}>
-                <Ionicons name="add" size={20} color="#FFFFFF" />
-                <Text style={styles.primaryButtonText}>Share Prayer</Text>
+            <View style={styles.primaryActions}>
+              <TouchableOpacity style={styles.actionChip} onPress={handleInviteGroup}>
+                <Ionicons name="person-add" size={20} color="#5B21B6" />
+                <Text style={styles.actionChipText}>Invite</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.secondaryButton} onPress={handleMembersPress}>
+
+              <TouchableOpacity style={styles.actionChip} onPress={handleMembersPress}>
                 <Ionicons name="people" size={20} color="#5B21B6" />
-                <Text style={styles.secondaryButtonText}>Members</Text>
+                <Text style={styles.actionChipText}>Members</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.secondaryButton} onPress={handleGroupChatPress}>
+
+              <TouchableOpacity style={styles.actionChip} onPress={handleGroupChatPress}>
                 <Ionicons name="chatbubbles" size={20} color="#5B21B6" />
-                <Text style={styles.secondaryButtonText}>Chat</Text>
+                <Text style={styles.actionChipText}>Chat</Text>
               </TouchableOpacity>
-              
-              {userRole === 'admin' && (
-                <TouchableOpacity style={styles.secondaryButton} onPress={handleEditGroup}>
-                  <Ionicons name="create" size={20} color="#5B21B6" />
-                  <Text style={styles.secondaryButtonText}>Edit</Text>
-                </TouchableOpacity>
-              )}
-              
-              {(userRole === 'admin' || userRole === 'moderator') && (
-                <TouchableOpacity style={styles.secondaryButton} onPress={handleSettingsPress}>
-                  <Ionicons name="settings" size={20} color="#5B21B6" />
-                  <Text style={styles.secondaryButtonText}>Settings</Text>
-                </TouchableOpacity>
-              )}
-              
-              <TouchableOpacity style={styles.leaveButton} onPress={handleLeaveGroup}>
-                <Ionicons name="exit" size={20} color="#DC2626" />
-                <Text style={styles.leaveButtonText}>Leave</Text>
-              </TouchableOpacity>
-            </>
+            </View>
           )}
         </View>
 
-        {/* Prayer Count */}
-        <View style={styles.prayerCountContainer}>
-          <Text style={styles.prayerCountText}>
-            {groupPrayers.length} prayer{groupPrayers.length !== 1 ? 's' : ''}
-          </Text>
-        </View>
+
       </View>
     );
   };
@@ -367,24 +338,55 @@ const GroupDetailsScreen: React.FC<MainStackScreenProps<'GroupDetails'>> = ({ na
       />
 
 
-      {/* Settings Modal */}
+      {/* FAB */}
+      {isMember && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={handleCreatePrayer}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="add" size={30} color="#FFFFFF" />
+        </TouchableOpacity>
+      )}
+
+      {/* Menu Modal */}
       <Modal
-        visible={showSettingsModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowSettingsModal(false)}
+        visible={showMenu}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowMenu(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Group Settings</Text>
-            <TouchableOpacity onPress={() => setShowSettingsModal(false)}>
-              <Ionicons name="close" size={24} color="#111827" />
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowMenu(false)}
+        >
+          <View style={styles.menuContainer}>
+            {(userRole === 'admin' || userRole === 'moderator') && (
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  setShowMenu(false);
+                  handleEditGroup();
+                }}
+              >
+                <Ionicons name="settings-outline" size={24} color="#111827" />
+                <Text style={styles.menuText}>Group Settings</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={[styles.menuItem, styles.menuItemDestructive]}
+              onPress={() => {
+                setShowMenu(false);
+                handleLeaveGroup();
+              }}
+            >
+              <Ionicons name="log-out-outline" size={24} color="#DC2626" />
+              <Text style={[styles.menuText, styles.menuTextDestructive]}>Leave Group</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalText}>Group settings will be implemented here</Text>
-          </View>
-        </SafeAreaView>
+        </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );
@@ -504,14 +506,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 6,
   },
-  prayerCountContainer: {
-    alignItems: 'center',
-  },
-  prayerCountText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-  },
+
   prayerCard: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
@@ -627,6 +622,71 @@ const styles = StyleSheet.create({
   modalText: {
     fontSize: 16,
     color: '#6B7280',
+  },
+  primaryActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  actionChipText: {
+    color: '#5B21B6',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#5B21B6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  menuContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 16,
+    paddingBottom: 40,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  menuItemDestructive: {
+    borderBottomWidth: 0,
+  },
+  menuText: {
+    fontSize: 16,
+    color: '#111827',
+    marginLeft: 12,
+    fontWeight: '500',
+  },
+  menuTextDestructive: {
+    color: '#DC2626',
   },
 });
 

@@ -21,14 +21,20 @@ export type MainStackParamList = {
   CreatePrayer: { groupId?: string };
   EditPrayer: { prayerId: string };
   CreateBibleStudy:
-    | {
-        aiResult?: {
-          type: 'fullStudy' | 'scriptureSuggestions';
-          study?: BibleStudy;
-          verses?: AIScriptureVerse[];
-        };
-      }
-    | undefined;
+  | {
+    aiResult?: {
+      type: 'fullStudy' | 'scriptureSuggestions';
+      study?: BibleStudy;
+      verses?: AIScriptureVerse[];
+    };
+    initialData?: {
+      title?: string;
+      content?: string;
+      scripture_references?: any[];
+    };
+  }
+  | undefined;
+  EditBibleStudy: { studyId: string };
   AIStudyAssistant: {
     mode?: 'fullStudy' | 'scriptureSuggestions';
     topic?: string;
@@ -36,7 +42,7 @@ export type MainStackParamList = {
   };
   CreateEvent: undefined;
   UserProfile: { userId: string };
-  GroupDetails: { groupId: string };
+  GroupDetails: { groupId: string; refresh?: number };
   CreateGroup: undefined;
   EditGroup: { groupId: string };
   MyGroups: undefined;
@@ -75,6 +81,8 @@ export type MainStackParamList = {
   DataUsage: undefined;
   StorageBackup: undefined;
   LocationSettings: undefined;
+  EditProfile: undefined;
+  DeleteAccount: undefined;
 };
 
 // Auth Stack Navigator
@@ -154,6 +162,6 @@ export interface NavigationState {
 
 declare global {
   namespace ReactNavigation {
-    interface RootParamList extends RootStackParamList {}
+    interface RootParamList extends RootStackParamList { }
   }
 }

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
   RefreshControl,
@@ -23,23 +23,25 @@ import { theme } from '@/theme';
 /**
  * Bible Study List Screen - Browse and discover Bible studies
  */
-const BibleStudyListScreen: React.FC<MainStackScreenProps<'BibleStudyList'>> = ({ 
-  navigation 
+const BibleStudyListScreen: React.FC<MainStackScreenProps<'BibleStudyList'>> = ({
+  navigation
 }) => {
   const { profile } = useAuthStore();
-  
+
   const [studies, setStudies] = useState<BibleStudy[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'featured' | 'recent' | 'my_studies'>('featured');
 
-  useEffect(() => {
-    fetchStudies();
-  }, [activeTab]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchStudies();
+    }, [activeTab])
+  );
 
   const fetchStudies = async () => {
     try {
-      setIsLoading(true);
+      if (studies.length === 0) setIsLoading(true);
       let studiesData: BibleStudy[] = [];
 
       switch (activeTab) {
@@ -74,7 +76,7 @@ const BibleStudyListScreen: React.FC<MainStackScreenProps<'BibleStudyList'>> = (
   };
 
   const handleStudyPress = (study: BibleStudy) => {
-    navigation.navigate('BibleStudy', { studyId: study.id });
+    navigation.navigate('BibleStudyDetails', { studyId: study.id });
   };
 
   const renderTabButton = (tab: 'featured' | 'recent' | 'my_studies', label: string) => (
@@ -164,7 +166,7 @@ const BibleStudyListScreen: React.FC<MainStackScreenProps<'BibleStudyList'>> = (
       <Ionicons name="library-outline" size={64} color="#9CA3AF" />
       <Text style={styles.emptyTitle}>No Bible Studies Found</Text>
       <Text style={styles.emptyText}>
-        {activeTab === 'my_studies' 
+        {activeTab === 'my_studies'
           ? "You haven't created any Bible studies yet."
           : "No Bible studies available at the moment."
         }
@@ -222,13 +224,13 @@ const BibleStudyListScreen: React.FC<MainStackScreenProps<'BibleStudyList'>> = (
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.contentContainer}>
         {renderHeader()}
         {renderBody()}
       </View>
-      <PersistentFooterNav activeTab="Discover" navigation={navigation} />
-    </SafeAreaView>
+      <PersistentFooterNav navigation={navigation as any} activeTab="Discover" />
+    </View>
   );
 };
 

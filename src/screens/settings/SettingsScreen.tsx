@@ -9,14 +9,10 @@ import {
   Switch,
   Alert,
   ActivityIndicator,
-  TextInput,
-  Modal,
 } from 'react-native';
 import { MainStackScreenProps } from '@/types/navigation.types';
 import { useAuthStore } from '@/store/auth/authStore';
 import { Ionicons } from '@expo/vector-icons';
-import ImagePicker from '@/components/common/ImagePicker';
-import { imageUploadService, ImageUploadResult } from '@/services/api/imageUploadService';
 
 interface SettingsData {
   notifications: {
@@ -69,40 +65,23 @@ interface SettingsData {
   };
 }
 
-interface ProfileData {
-  display_name: string;
-  bio: string;
-  location_city: string;
-  avatar_url: string;
-}
-
 /**
  * Settings Screen - Main settings hub with categories
  * Based on settings mockups
  */
 const SettingsScreen: React.FC<MainStackScreenProps<'Settings'>> = ({ navigation }) => {
-  const { profile, signOut, updateProfile } = useAuthStore();
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerBackTitle: 'Back',
+    });
+  }, [navigation]);
+
+  const { profile, signOut } = useAuthStore();
   const [settings, setSettings] = useState<SettingsData | null>(null);
-  const [profileData, setProfileData] = useState<ProfileData>({
-    display_name: '',
-    bio: '',
-    location_city: '',
-    avatar_url: '',
-  });
   const [isLoading, setIsLoading] = useState(true);
-  const [showEditProfile, setShowEditProfile] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchSettings();
-    if (profile) {
-      setProfileData({
-        display_name: profile.display_name || '',
-        bio: profile.bio || '',
-        location_city: profile.location_city || '',
-        avatar_url: profile.avatar_url || '',
-      });
-    }
   }, [profile]);
 
   const fetchSettings = async () => {
@@ -161,7 +140,7 @@ const SettingsScreen: React.FC<MainStackScreenProps<'Settings'>> = ({ navigation
           research_participation: false,
         },
       };
-      
+
       setSettings(defaultSettings);
     } catch (error) {
       console.error('Failed to fetch settings:', error);
@@ -203,53 +182,6 @@ const SettingsScreen: React.FC<MainStackScreenProps<'Settings'>> = ({ navigation
         },
       ]
     );
-  };
-
-  const handleProfileInputChange = (field: keyof ProfileData, value: string) => {
-    setProfileData(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleImageSelected = async (result: ImageUploadResult) => {
-    setProfileData(prev => ({
-      ...prev,
-      avatar_url: result.url,
-    }));
-  };
-
-  const handleImageRemoved = () => {
-    setProfileData(prev => ({
-      ...prev,
-      avatar_url: '',
-    }));
-  };
-
-  const handleSaveProfile = async () => {
-    if (!profileData.display_name.trim()) {
-      Alert.alert('Error', 'Display name is required');
-      return;
-    }
-
-    try {
-      setSaving(true);
-      
-      await updateProfile({
-        display_name: profileData.display_name.trim(),
-        bio: profileData.bio.trim(),
-        location_city: profileData.location_city.trim(),
-        avatar_url: profileData.avatar_url,
-      });
-
-      Alert.alert('Success', 'Profile updated successfully');
-      setShowEditProfile(false);
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      Alert.alert('Error', 'Failed to update profile. Please try again.');
-    } finally {
-      setSaving(false);
-    }
   };
 
   const renderSettingsSection = (
@@ -299,21 +231,11 @@ const SettingsScreen: React.FC<MainStackScreenProps<'Settings'>> = ({ navigation
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Account</Text>
       <View style={styles.sectionContent}>
-        {renderSettingsSection('Edit Profile', 'person-outline', () => setShowEditProfile(true))}
+        {renderSettingsSection('Edit Profile', 'person-outline', () => navigation.navigate('EditProfile'))}
         {renderSettingsSection('Privacy Settings', 'shield-outline', () => navigation.navigate('Privacy'))}
         {renderSettingsSection('Change Password', 'key-outline', () => navigation.navigate('ChangePassword'))}
         {renderSettingsSection('Account Security', 'lock-closed-outline', () => navigation.navigate('AccountSecurity'))}
-        {renderSettingsSection('Data Export', 'download-outline', () => {
-          Alert.alert('Coming Soon', 'Data export feature will be available soon');
-        })}
-        {renderSettingsSection('Delete Account', 'trash-outline', () => {
-          Alert.alert('Delete Account', 'This action cannot be undone. Are you sure?', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Delete', style: 'destructive', onPress: () => {
-              Alert.alert('Coming Soon', 'Account deletion will be available soon');
-            }}
-          ]);
-        })}
+        {renderSettingsSection('Delete Account', 'trash-outline', () => navigation.navigate('DeleteAccount'))}
       </View>
     </View>
   );
@@ -325,63 +247,7 @@ const SettingsScreen: React.FC<MainStackScreenProps<'Settings'>> = ({ navigation
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Notifications</Text>
         <View style={styles.sectionContent}>
-          {renderToggleSetting(
-            'Push Notifications',
-            'Receive notifications on your device',
-            'notifications-outline',
-            settings.notifications.push_notifications,
-            (value) => handleToggleSetting('notifications', 'push_notifications', value)
-          )}
-          {renderToggleSetting(
-            'Prayer Reminders',
-            'Daily reminders to pray',
-            'heart-outline',
-            settings.notifications.prayer_reminders,
-            (value) => handleToggleSetting('notifications', 'prayer_reminders', value)
-          )}
-          {renderToggleSetting(
-            'Prayer Responses',
-            'When someone prays for your requests',
-            'chatbubble-outline',
-            settings.notifications.prayer_responses,
-            (value) => handleToggleSetting('notifications', 'prayer_responses', value)
-          )}
-          {renderToggleSetting(
-            'Group Updates',
-            'Updates from your prayer groups',
-            'people-outline',
-            settings.notifications.group_updates,
-            (value) => handleToggleSetting('notifications', 'group_updates', value)
-          )}
-          {renderToggleSetting(
-            'New Followers',
-            'When someone follows you',
-            'person-add-outline',
-            settings.notifications.new_followers,
-            (value) => handleToggleSetting('notifications', 'new_followers', value)
-          )}
-          {renderToggleSetting(
-            'Direct Messages',
-            'Private messages from other users',
-            'mail-outline',
-            settings.notifications.direct_messages,
-            (value) => handleToggleSetting('notifications', 'direct_messages', value)
-          )}
-          {renderToggleSetting(
-            'Weekly Summary',
-            'Weekly prayer activity summary',
-            'bar-chart-outline',
-            settings.notifications.weekly_summary,
-            (value) => handleToggleSetting('notifications', 'weekly_summary', value)
-          )}
-          {renderToggleSetting(
-            'System Updates',
-            'App updates and announcements',
-            'information-circle-outline',
-            settings.notifications.system_updates,
-            (value) => handleToggleSetting('notifications', 'system_updates', value)
-          )}
-          {renderSettingsSection('Notification Settings', 'settings-outline', () => navigation.navigate('NotificationSettings'))}
+          {renderSettingsSection('Notification Settings', 'notifications-outline', () => navigation.navigate('NotificationSettings'))}
         </View>
       </View>
     );
@@ -395,7 +261,7 @@ const SettingsScreen: React.FC<MainStackScreenProps<'Settings'>> = ({ navigation
         <Text style={styles.sectionTitle}>App Settings</Text>
         <View style={styles.sectionContent}>
           {renderSettingsSection('Theme', 'color-palette-outline', () => navigation.navigate('Theme'))}
-          {renderSettingsSection('Language', 'language-outline', () => navigation.navigate('Language'))}
+          {/* Language section removed as per request */}
           {renderToggleSetting(
             'Haptic Feedback',
             'Vibration feedback for interactions',
@@ -489,9 +355,7 @@ const SettingsScreen: React.FC<MainStackScreenProps<'Settings'>> = ({ navigation
             settings.data_sharing.research_participation,
             (value) => handleToggleSetting('data_sharing', 'research_participation', value)
           )}
-          {renderSettingsSection('Data Export', 'download-outline', () => {
-            Alert.alert('Coming Soon', 'Data export will be available soon');
-          })}
+          {renderSettingsSection('Data Export', 'download-outline', () => navigation.navigate('DataUsage'))}
         </View>
       </View>
     );
@@ -502,11 +366,14 @@ const SettingsScreen: React.FC<MainStackScreenProps<'Settings'>> = ({ navigation
       <Text style={styles.sectionTitle}>Support</Text>
       <View style={styles.sectionContent}>
         {renderSettingsSection('Help & FAQ', 'help-circle-outline', () => navigation.navigate('Help'))}
-        {renderSettingsSection('Contact Support', 'mail-outline', () => navigation.navigate('SupportTickets'))}
-        {renderSettingsSection('Report a Problem', 'bug-outline', () => navigation.navigate('ReportContent'))}
+        {renderSettingsSection('Contact Support', 'mail-outline', () => {
+          Alert.alert('Coming Soon', 'Support tickets will be available soon');
+          // navigation.navigate('SupportTickets')
+        })}
+        {renderSettingsSection('Report a Problem', 'bug-outline', () => navigation.navigate('ReportContent', { type: 'user', id: 'support' }))}
         {renderSettingsSection('Blocked Users', 'person-remove-outline', () => navigation.navigate('BlockedUsers'))}
-        {renderSettingsSection('Content Filters', 'filter-outline', () => navigation.navigate('ContentFilters'))}
-        {renderSettingsSection('Analytics', 'bar-chart-outline', () => navigation.navigate('AnalyticsDashboard'))}
+        {/* {renderSettingsSection('Content Filters', 'filter-outline', () => navigation.navigate('ContentFilters'))} */}
+        {/* {renderSettingsSection('Analytics', 'bar-chart-outline', () => navigation.navigate('AnalyticsDashboard'))} */}
         {renderSettingsSection('Rate the App', 'star-outline', () => {
           Alert.alert('Coming Soon', 'App rating will be available soon');
         })}
@@ -531,7 +398,7 @@ const SettingsScreen: React.FC<MainStackScreenProps<'Settings'>> = ({ navigation
     <View style={styles.accountInfo}>
       <View style={styles.accountInfoContent}>
         <Text style={styles.accountInfoTitle}>Signed in as</Text>
-        <Text style={styles.accountInfoEmail}>{profile?.email}</Text>
+        <Text style={styles.accountInfoEmail}>{useAuthStore.getState().user?.email}</Text>
         <Text style={styles.accountInfoName}>{profile?.display_name}</Text>
       </View>
     </View>
@@ -542,106 +409,6 @@ const SettingsScreen: React.FC<MainStackScreenProps<'Settings'>> = ({ navigation
       <Ionicons name="log-out-outline" size={20} color="#DC2626" />
       <Text style={styles.signOutButtonText}>Sign Out</Text>
     </TouchableOpacity>
-  );
-
-  const renderEditProfileModal = () => (
-    <Modal
-      visible={showEditProfile}
-      animationType="slide"
-      presentationStyle="pageSheet"
-    >
-      <SafeAreaView style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => setShowEditProfile(false)}>
-            <Text style={styles.modalCancelButton}>Cancel</Text>
-          </TouchableOpacity>
-          <Text style={styles.modalTitle}>Edit Profile</Text>
-          <TouchableOpacity
-            onPress={handleSaveProfile}
-            disabled={saving}
-            style={[styles.modalSaveButton, saving && styles.modalSaveButtonDisabled]}
-          >
-            {saving ? (
-              <ActivityIndicator size="small" color="#5B21B6" />
-            ) : (
-              <Text style={styles.modalSaveButtonText}>Save</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-          <Text style={styles.modalSectionTitle}>Profile Information</Text>
-          <Text style={styles.modalSectionDescription}>
-            Update your profile information and avatar
-          </Text>
-
-          {/* Avatar */}
-          <View style={styles.modalInputGroup}>
-            <Text style={styles.modalInputLabel}>Profile Picture</Text>
-            <ImagePicker
-              onImageSelected={handleImageSelected}
-              onImageRemoved={handleImageRemoved}
-              currentImageUrl={profileData.avatar_url}
-              type="profile"
-              disabled={saving}
-            />
-          </View>
-
-          {/* Display Name */}
-          <View style={styles.modalInputGroup}>
-            <Text style={styles.modalInputLabel}>Display Name *</Text>
-            <TextInput
-              style={styles.modalTextInput}
-              placeholder="Enter your display name"
-              value={profileData.display_name}
-              onChangeText={(value) => handleProfileInputChange('display_name', value)}
-              maxLength={50}
-              editable={!saving}
-            />
-          </View>
-
-          {/* Bio */}
-          <View style={styles.modalInputGroup}>
-            <Text style={styles.modalInputLabel}>Bio</Text>
-            <TextInput
-              style={[styles.modalTextInput, styles.modalTextArea]}
-              placeholder="Tell us about yourself..."
-              value={profileData.bio}
-              onChangeText={(value) => handleProfileInputChange('bio', value)}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-              maxLength={500}
-              editable={!saving}
-            />
-            <Text style={styles.modalCharacterCount}>
-              {profileData.bio.length}/500 characters
-            </Text>
-          </View>
-
-          {/* Location */}
-          <View style={styles.modalInputGroup}>
-            <Text style={styles.modalInputLabel}>Location</Text>
-            <TextInput
-              style={styles.modalTextInput}
-              placeholder="City, Country"
-              value={profileData.location_city}
-              onChangeText={(value) => handleProfileInputChange('location_city', value)}
-              maxLength={100}
-              editable={!saving}
-            />
-          </View>
-
-          {/* Help Text */}
-          <View style={styles.modalHelpContainer}>
-            <Ionicons name="information-circle-outline" size={20} color="#3B82F6" />
-            <Text style={styles.modalHelpText}>
-              Your profile information is visible to other users. Keep it appropriate and respectful.
-            </Text>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </Modal>
   );
 
   if (isLoading) {
@@ -657,7 +424,7 @@ const SettingsScreen: React.FC<MainStackScreenProps<'Settings'>> = ({ navigation
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {renderAccountInfo()}
         {renderAccountSection()}
         {renderNotificationsSection()}
@@ -667,10 +434,7 @@ const SettingsScreen: React.FC<MainStackScreenProps<'Settings'>> = ({ navigation
         {renderSupportSection()}
         {renderLegalSection()}
         {renderSignOutButton()}
-        
-        <View style={styles.bottomSpacing} />
       </ScrollView>
-      {renderEditProfileModal()}
     </SafeAreaView>
   );
 };
@@ -680,7 +444,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
-  scrollView: {
+  content: {
     flex: 1,
   },
   loadingContainer: {

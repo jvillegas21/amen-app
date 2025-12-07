@@ -133,11 +133,7 @@ const OfflineStatusBanner: React.FC<OfflineStatusBannerProps> = ({
         </View>
       </View>
 
-      {syncError && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{syncError}</Text>
-        </View>
-      )}
+
     </View>
   );
 };
@@ -177,17 +173,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing[1],
     marginLeft: theme.spacing[1],
   },
-  errorContainer: {
-    marginTop: theme.spacing[1],
-    paddingTop: theme.spacing[1],
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  errorText: {
-    ...theme.typography.caption.small,
-    color: theme.colors.text.inverse,
-    opacity: 0.9,
-  },
+
 });
 
 export default OfflineStatusBanner;

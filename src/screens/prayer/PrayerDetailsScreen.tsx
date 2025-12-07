@@ -10,6 +10,7 @@ import {
   Share,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -48,7 +49,7 @@ export default function PrayerDetailsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
   const [interacting, setInteracting] = useState(false);
-  
+
   const scrollViewRef = useRef<ScrollView>(null);
   const commentInputRef = useRef<TextInput>(null);
   const commentSubscriptionRef = useRef<any>(null);
@@ -87,7 +88,7 @@ export default function PrayerDetailsScreen() {
   useLayoutEffect(() => {
     const isOwner = prayer && profile && prayer.user_id === profile.id;
 
-    const actions = [];
+    const actions: { onPress: () => void; iconName: any; accessibilityLabel: string; accessibilityHint: string }[] = [];
 
     // Add edit action if user owns the prayer
     if (isOwner) {
@@ -148,10 +149,22 @@ export default function PrayerDetailsScreen() {
   const fetchPrayerDetails = async () => {
     try {
       setLoading(true);
-      const [commentsData, interactionsData] = await Promise.all([
+      // Fetch full prayer details (including images) and interactions in parallel
+      const [prayerData, commentsData, interactionsData] = await Promise.all([
+        prayerService.getPrayer(prayerId!),
         commentService.getPrayerComments(prayerId!),
         prayerService.getPrayerInteractionCounts(prayerId!),
       ]);
+
+      // Update store with full prayer details (fixes missing images)
+      if (prayerData) {
+        // We use updatePrayerFromRealtime as a generic "update/upsert" action
+        // Use type assertion to access the method if it's not in the interface but exists in implementation
+        // or just use the method if it's available.
+        // Checking store definition: updatePrayerFromRealtime is available.
+        const { updatePrayerFromRealtime } = usePrayerStore.getState();
+        updatePrayerFromRealtime(prayerData);
+      }
 
       setComments(commentsData);
       setInteractions(interactionsData);
@@ -204,12 +217,26 @@ export default function PrayerDetailsScreen() {
   const handleSave = async () => {
     if (!prayerId || interacting) return;
 
+    // Store previous state for rollback
+    const previousState = { ...interactions };
+    const wasSaved = prayer?.user_interactions?.isSaved || interactions.isSaved;
+
     try {
       setInteracting(true);
+
+      // Optimistic update
+      setInteractions(prev => ({
+        ...prev,
+        isSaved: !wasSaved,
+        // Update save count if needed (though usually hidden in details)
+      }));
+
       // Use the same interaction method as prayer cards for consistency
       await interactWithPrayer(prayerId, 'SAVE');
     } catch (error) {
       console.error('Error saving prayer:', error);
+      // Rollback on error
+      setInteractions(previousState);
       Alert.alert('Error', 'Failed to save prayer');
     } finally {
       // Clear interacting state after a short delay to prevent visual flickering
@@ -229,7 +256,7 @@ export default function PrayerDetailsScreen() {
       };
 
       const result = await Share.share(shareOptions);
-      
+
       if (result.action === Share.sharedAction) {
         // Record the share
         await prayerService.sharePrayer(prayerId!, 'copy');
@@ -253,7 +280,7 @@ export default function PrayerDetailsScreen() {
       setComments(prev => [...prev, comment]);
       setNewComment('');
       setInteractions(prev => ({ ...prev, comments: prev.comments + 1 }));
-      
+
       // Scroll to bottom to show new comment
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -274,20 +301,22 @@ export default function PrayerDetailsScreen() {
       'Set a reminder to pray for this request?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Set Reminder', onPress: () => {
-          // For now, set a reminder for 1 hour from now
-          const reminderTime = new Date();
-          reminderTime.setHours(reminderTime.getHours() + 1);
-          
-          prayerService.createPrayerReminder(prayerId!, reminderTime)
-            .then(() => {
-              Alert.alert('Success', 'Reminder set for 1 hour from now');
-            })
-            .catch((error) => {
-              console.error('Error creating reminder:', error);
-              Alert.alert('Error', 'Failed to create reminder');
-            });
-        }},
+        {
+          text: 'Set Reminder', onPress: () => {
+            // For now, set a reminder for 1 hour from now
+            const reminderTime = new Date();
+            reminderTime.setHours(reminderTime.getHours() + 1);
+
+            prayerService.createPrayerReminder(prayerId!, reminderTime)
+              .then(() => {
+                Alert.alert('Success', 'Reminder set for 1 hour from now');
+              })
+              .catch((error) => {
+                console.error('Error creating reminder:', error);
+                Alert.alert('Error', 'Failed to create reminder');
+              });
+          }
+        },
       ]
     );
   };
@@ -345,7 +374,7 @@ export default function PrayerDetailsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       {/* Updated Prayer Details Screen */}
 
       <ScrollView
@@ -357,14 +386,89 @@ export default function PrayerDetailsScreen() {
       >
         {/* Prayer Content */}
         <View style={styles.prayerContainer}>
-          <Text style={styles.prayerContent}>{prayer.text}</Text>
-          
-          <View style={styles.prayerMeta}>
-            <Text style={styles.prayerAuthor}>by {prayer.user?.display_name || 'Anonymous'}</Text>
-            <Text style={styles.prayerDate}>
-              {formatDistanceToNow(new Date(prayer.created_at), { addSuffix: true })}
-            </Text>
+          {/* Header: Avatar, Name, Time, Location */}
+          <View style={styles.header}>
+            <View style={styles.userInfo}>
+              {prayer.is_anonymous ? (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <Ionicons name="person-outline" size={20} color="#9CA3AF" />
+                </View>
+              ) : prayer.user?.avatar_url ? (
+                <Image source={{ uri: prayer.user.avatar_url }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <Ionicons name="person" size={20} color="#9CA3AF" />
+                </View>
+              )}
+              <View style={styles.userDetails}>
+                <Text style={styles.userName}>
+                  {prayer.is_anonymous ? 'Anonymous' : prayer.user?.display_name || 'User'}
+                </Text>
+                <View style={styles.metaInfo}>
+                  <Text style={styles.timeText}>
+                    {formatDistanceToNow(new Date(prayer.created_at), { addSuffix: true })}
+                  </Text>
+                  {prayer.location_city && prayer.location_granularity !== 'hidden' && (
+                    <>
+                      <Text style={styles.separator}>•</Text>
+                      <View style={styles.locationContainer}>
+                        <Ionicons name="location-outline" size={12} color="#9CA3AF" />
+                        <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">
+                          {prayer.location_city}
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+              </View>
+            </View>
+
+            {/* Privacy Badge */}
+            {prayer.privacy_level !== 'public' && (
+              <View style={styles.privacyBadge}>
+                <Ionicons
+                  name={
+                    prayer.privacy_level === 'private'
+                      ? 'lock-closed-outline'
+                      : prayer.privacy_level === 'friends'
+                        ? 'people-outline'
+                        : 'people-circle-outline'
+                  }
+                  size={12}
+                  color="#6B7280"
+                />
+              </View>
+            )}
           </View>
+
+          {/* Prayer Text */}
+          <Text style={styles.prayerContent}>{prayer.text}</Text>
+
+          {/* Prayer Images */}
+          {prayer.images && prayer.images.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.imagesContainer}
+              contentContainerStyle={styles.imagesContentContainer}
+            >
+              {prayer.images.map((imageUrl, index) => (
+                <TouchableOpacity
+                  key={index}
+                  activeOpacity={0.9}
+                  onPress={() => {
+                    // TODO: Implement full screen image viewer
+                  }}
+                >
+                  <Image
+                    source={{ uri: imageUrl }}
+                    style={styles.prayerImage}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
         </View>
 
         {/* Interaction Buttons */}
@@ -373,7 +477,7 @@ export default function PrayerDetailsScreen() {
             style={[styles.interactionButton, prayer?.user_interaction?.type === 'PRAY' && styles.interactionButtonActive]}
             onPress={handlePray}
             accessibilityRole="button"
-            accessibilityState={{ pressed: prayer?.user_interaction?.type === 'PRAY', disabled: interacting }}
+            accessibilityState={{ disabled: interacting }}
             accessibilityLabel={`${prayer?.user_interaction?.type === 'PRAY' ? 'Remove prayer' : 'Pray for this request'}`}
             accessibilityHint={`Double tap to ${prayer?.user_interaction?.type === 'PRAY' ? 'remove your prayer' : 'add your prayer'}`}
           >
@@ -401,7 +505,7 @@ export default function PrayerDetailsScreen() {
             style={[styles.interactionButton, (prayer?.user_interactions?.isSaved || interactions.isSaved) && styles.interactionButtonActive]}
             onPress={handleSave}
             accessibilityRole="button"
-            accessibilityState={{ pressed: prayer?.user_interactions?.isSaved || interactions.isSaved, disabled: interacting }}
+            accessibilityState={{ disabled: interacting }}
             accessibilityLabel={`${prayer?.user_interactions?.isSaved || interactions.isSaved ? 'Remove from saved prayers' : 'Save prayer for later'}`}
             accessibilityHint={`Double tap to ${prayer?.user_interactions?.isSaved || interactions.isSaved ? 'remove from' : 'add to'} your saved prayers`}
           >
@@ -416,7 +520,7 @@ export default function PrayerDetailsScreen() {
         {/* Comments Section */}
         <View style={styles.commentsSection}>
           <Text style={styles.commentsTitle}>Comments ({comments.length})</Text>
-          
+
           {comments.map((comment) => (
             <View key={comment.id} style={styles.commentItem}>
               <View style={styles.commentHeader}>
@@ -450,7 +554,7 @@ export default function PrayerDetailsScreen() {
         />
         <TouchableOpacity
           style={[
-            styles.submitButton, 
+            styles.submitButton,
             (!newComment.trim() || submittingComment) && styles.submitButtonDisabled
           ]}
           onPress={handleSubmitComment}
@@ -459,16 +563,16 @@ export default function PrayerDetailsScreen() {
           {submittingComment ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : !newComment.trim() ? (
-            <Ionicons 
-              name="send-outline" 
-              size={20} 
-              color="#FFFFFF" 
+            <Ionicons
+              name="send-outline"
+              size={20}
+              color="#FFFFFF"
             />
           ) : (
-            <Ionicons 
-              name="send" 
-              size={20} 
-              color="#FFFFFF" 
+            <Ionicons
+              name="send"
+              size={20}
+              color="#FFFFFF"
             />
           )}
         </TouchableOpacity>
@@ -506,7 +610,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   prayerContainer: {
-    paddingTop: 0,
+    paddingTop: 16,
     paddingHorizontal: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
@@ -651,5 +755,82 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  userInfo: {
+    flexDirection: 'row',
+    flex: 1,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  userDetails: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  metaInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  timeText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  separator: {
+    marginHorizontal: 6,
+    color: '#6B7280',
+    fontSize: 12,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    minWidth: 0,
+  },
+  locationText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginLeft: 2,
+    flex: 1,
+    minWidth: 0,
+  },
+  privacyBadge: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  imagesContainer: {
+    marginBottom: 16,
+  },
+  imagesContentContainer: {
+    paddingRight: 16,
+  },
+  prayerImage: {
+    width: 200,
+    height: 150,
+    borderRadius: 12,
+    marginRight: 12,
+    backgroundColor: '#F3F4F6',
   },
 });

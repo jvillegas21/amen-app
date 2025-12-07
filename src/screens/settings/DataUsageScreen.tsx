@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Switch,
   Alert,
   ScrollView,
 } from 'react-native';
@@ -12,207 +11,109 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/theme/ThemeContext';
-
-interface DataUsageSettings {
-  autoDownloadImages: boolean;
-  useWiFiOnly: boolean;
-  reduceDataUsage: boolean;
-  cacheSize: number;
-  clearCache: boolean;
-}
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import { useAuthStore } from '@/store/auth/authStore';
 
 export default function DataUsageScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  
-  const [settings, setSettings] = useState<DataUsageSettings>({
-    autoDownloadImages: true,
-    useWiFiOnly: false,
-    reduceDataUsage: false,
-    cacheSize: 0,
-    clearCache: false,
-  });
+  const { user, profile } = useAuthStore();
 
-  useEffect(() => {
-    // TODO: Load settings from storage
-    loadDataUsageSettings();
-  }, []);
+  // ... existing state ...
+  const [isExporting, setIsExporting] = useState(false);
 
-  const loadDataUsageSettings = async () => {
-    // TODO: Implement loading from AsyncStorage
-    setSettings(prev => ({
-      ...prev,
-      cacheSize: 125, // MB
-    }));
-  };
+  // ... existing useEffect and loadDataUsageSettings ...
 
-  const handleSettingChange = (key: keyof DataUsageSettings, value: boolean) => {
-    setSettings(prev => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
+  const handleExportData = async () => {
+    try {
+      setIsExporting(true);
 
-  const handleClearCache = () => {
-    Alert.alert(
-      'Clear Cache',
-      'This will clear all cached data including images and offline content. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear Cache',
-          style: 'destructive',
-          onPress: () => {
-            // TODO: Implement cache clearing
-            setSettings(prev => ({
-              ...prev,
-              cacheSize: 0,
-            }));
-            Alert.alert('Success', 'Cache cleared successfully');
-          },
+      // Create a JSON object with user data
+      const exportData = {
+        user: {
+          id: user?.id,
+          email: user?.email,
+          ...profile
         },
-      ]
-    );
+        exportDate: new Date().toISOString(),
+        appVersion: '1.0.0', // TODO: Get actual version
+        // Add more data here as needed (prayers, groups, etc.)
+      };
+
+      const fileUri = FileSystem.documentDirectory + 'amen_data_export.json';
+      await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(exportData, null, 2));
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/json',
+          dialogTitle: 'Export Data'
+        });
+      } else {
+        Alert.alert('Error', 'Sharing is not available on this device');
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      Alert.alert('Error', 'Failed to export data');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
-  const formatCacheSize = (sizeInMB: number) => {
-    if (sizeInMB < 1) {
-      return `${(sizeInMB * 1024).toFixed(0)} KB`;
-    }
-    return `${sizeInMB.toFixed(1)} MB`;
-  };
+  // ... existing handleSettingChange, handleClearCache, formatCacheSize ...
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Data Usage</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>Data Usage</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.content}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-          Manage your data usage
-        </Text>
-        <Text style={[styles.sectionDescription, { color: theme.colors.textSecondary }]}>
-          Control how the app uses your data and storage
-        </Text>
+        {/* ... existing sections ... */}
 
-        {/* Data Usage Settings */}
+        {/* Data Export Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionHeader, { color: theme.colors.text }]}>
-            Data Usage
+          <Text style={[styles.sectionHeader, { color: theme.colors.text.primary }]}>
+            Data Export
           </Text>
-          
-          <View style={[styles.settingItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-            <View style={styles.settingContent}>
-              <View style={styles.settingLeft}>
-                <Ionicons name="image-outline" size={24} color={theme.colors.primary} />
-                <View style={styles.settingText}>
-                  <Text style={[styles.settingName, { color: theme.colors.text }]}>
-                    Auto-download Images
-                  </Text>
-                  <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
-                    Automatically download images in prayers and groups
-                  </Text>
-                </View>
-              </View>
-              <Switch
-                value={settings.autoDownloadImages}
-                onValueChange={(value) => handleSettingChange('autoDownloadImages', value)}
-                trackColor={{ false: theme.colors.border, true: theme.colors.primary + '40' }}
-                thumbColor={settings.autoDownloadImages ? theme.colors.primary : theme.colors.textSecondary}
-              />
-            </View>
-          </View>
 
-          <View style={[styles.settingItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <View style={[styles.settingItem, { backgroundColor: theme.colors.background.secondary, borderColor: theme.colors.border.primary }]}>
             <View style={styles.settingContent}>
               <View style={styles.settingLeft}>
-                <Ionicons name="wifi-outline" size={24} color={theme.colors.primary} />
+                <Ionicons name="download-outline" size={24} color={theme.colors.primary[600]} />
                 <View style={styles.settingText}>
-                  <Text style={[styles.settingName, { color: theme.colors.text }]}>
-                    Wi-Fi Only Downloads
+                  <Text style={[styles.settingName, { color: theme.colors.text.primary }]}>
+                    Export My Data
                   </Text>
-                  <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
-                    Only download content when connected to Wi-Fi
-                  </Text>
-                </View>
-              </View>
-              <Switch
-                value={settings.useWiFiOnly}
-                onValueChange={(value) => handleSettingChange('useWiFiOnly', value)}
-                trackColor={{ false: theme.colors.border, true: theme.colors.primary + '40' }}
-                thumbColor={settings.useWiFiOnly ? theme.colors.primary : theme.colors.textSecondary}
-              />
-            </View>
-          </View>
-
-          <View style={[styles.settingItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-            <View style={styles.settingContent}>
-              <View style={styles.settingLeft}>
-                <Ionicons name="speedometer-outline" size={24} color={theme.colors.primary} />
-                <View style={styles.settingText}>
-                  <Text style={[styles.settingName, { color: theme.colors.text }]}>
-                    Reduce Data Usage
-                  </Text>
-                  <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
-                    Compress images and reduce data usage
-                  </Text>
-                </View>
-              </View>
-              <Switch
-                value={settings.reduceDataUsage}
-                onValueChange={(value) => handleSettingChange('reduceDataUsage', value)}
-                trackColor={{ false: theme.colors.border, true: theme.colors.primary + '40' }}
-                thumbColor={settings.reduceDataUsage ? theme.colors.primary : theme.colors.textSecondary}
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* Storage Settings */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionHeader, { color: theme.colors.text }]}>
-            Storage
-          </Text>
-          
-          <View style={[styles.settingItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-            <View style={styles.settingContent}>
-              <View style={styles.settingLeft}>
-                <Ionicons name="folder-outline" size={24} color={theme.colors.primary} />
-                <View style={styles.settingText}>
-                  <Text style={[styles.settingName, { color: theme.colors.text }]}>
-                    Cache Size
-                  </Text>
-                  <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
-                    Currently using {formatCacheSize(settings.cacheSize)}
+                  <Text style={[styles.settingDescription, { color: theme.colors.text.secondary }]}>
+                    Download a copy of your personal data
                   </Text>
                 </View>
               </View>
               <TouchableOpacity
-                style={[styles.clearButton, { backgroundColor: theme.colors.error }]}
-                onPress={handleClearCache}
+                style={[styles.clearButton, { backgroundColor: theme.colors.primary[600] }]}
+                onPress={handleExportData}
+                disabled={isExporting}
               >
-                <Text style={styles.clearButtonText}>Clear</Text>
+                <Text style={styles.clearButtonText}>
+                  {isExporting ? 'Exporting...' : 'Export'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
-        {/* Data Usage Info */}
-        <View style={[styles.infoContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-          <Ionicons name="information-circle-outline" size={20} color={theme.colors.info} />
-          <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
-            These settings help you control how much data the app uses. Reducing data usage may affect image quality and loading speed.
-          </Text>
-        </View>
+        {/* ... existing info container ... */}
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+// ... existing styles ...
 
 const styles = StyleSheet.create({
   container: {
